@@ -1,0 +1,83 @@
+read -n 1 -s -r -p "This file is intended to set up a server to host the qial-db website. It may overwrite stuff without asking. Press any key to continue"
+
+#Get updates
+sudo apt-get update
+sudo apt-get upgrade
+
+#Install git
+sudo apt-get install -y git
+
+#Clone qial-db
+cd $HOME
+git clone https://github.com/ecc521/qial-db.git
+
+#Install NodeJS
+curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
+sudo apt-get install -y nodejs
+
+#Build qial-db
+cd qial-db
+npm install
+
+#Install apache
+sudo apt-get install -y apache2
+
+#Enable needed modules
+sudo a2enmod rewrite
+sudo a2enmod headers
+sudo a2enmod proxy #This is needed for the NodeJS server portion, but not the rest of the site. Enable it now anyways.
+sudo a2enmod proxy_http
+sudo a2enmod http2
+
+sudo rm /etc/apache2/sites-available/qial-db.conf
+
+sudo tee -a /etc/apache2/sites-available/qial-db.conf > /dev/null << EOF
+<VirtualHost *:80>
+		ServerAdmin admin@rivers.run.com
+		ServerName qial-db.rivers.run
+		ServerAlias www.qial-db.rivers.run
+		DocumentRoot $HOME/qial-db
+		ErrorLog ${APACHE_LOG_DIR}/error.log
+		CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+EOF
+
+sudo a2ensite qial-db.conf
+
+sudo tee -a /etc/apache2/apache2.conf > /dev/null << EOF
+
+<Directory $HOME/qial-db/>
+    	Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+</Directory>
+EOF
+
+
+#Enable reverse proxy to /node.
+sudo tee -a /etc/apache2/conf-available/NODEQIALDB.conf > /dev/null << EOF
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+ProxyPass /node http://127.0.0.1:3000/node
+
+LoadModule http2_module modules/mod_http2.so
+Protocols h2 http/1.1
+EOF
+
+sudo a2enconf NODEQIALDB #To disable, run sudo a2disconf NODEQIALDB
+
+#Restart apache so configuration changes take effect.
+sudo systemctl restart apache2
+
+#Install Certbot
+sudo apt-get install -y certbot python-certbot-apache
+sudo certbot --apache
+
+
+echo "Swap file recommended, assuming maximum server memory is low: "
+echo "Google Cloud Compute Engine: https://badlywired.com/2016/08/15/adding-swap-google-compute-engine/"
+
+#Run server on reboot. Reboot at 4am every day. Run certbot renew on each reboot.
+(crontab -l ; echo "@reboot node $HOME/qial-db/server/main.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
+(crontab -l ; echo "@reboot sudo certbot renew  >> $HOME/qial-db/server/logs/updateCertificate.log") | sort - | uniq - | crontab -
+(crontab -l ; echo "0 4   *   *   *    sudo reboot") | sort - | uniq - | crontab -
