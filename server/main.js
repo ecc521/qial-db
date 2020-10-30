@@ -52,7 +52,6 @@ async function httprequest(req,res) {
 			//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error. Browsers are clearly
 			//not following the spec, because of difficulty in redesigning architecture. Since ingress to cloud isn't charged, we'll just let the
 			//request proceed, then return the error - chunked transfer will stop this from being a major problem.
-			req.destroy(["Error in password processing: " + e.message])
 			return;
 		}
 
