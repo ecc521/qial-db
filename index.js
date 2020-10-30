@@ -40,120 +40,73 @@ return Number(Num[0])+"."+Num[1].substring(0,dec)+" "+"  kMGTPEZY"[Num.length]+"
 
 let uploadResults = document.getElementById("uploadResults")
 let currentFilesReady = [];
+
+
+async function uploadFile(file, append = false, filename = file.name, startPercentage = 0, percentageMultiple = 1) {
+	console.log(startPercentage, percentageMultiple)
+	//We will split large files into 5MB chunks.
+	let chunkSize = 5e6
+	if (file.size > chunkSize) {
+		let currentPos = 0
+
+		while (currentPos < file.size) {
+			let currentEnd = currentPos + chunkSize
+			currentEnd = Math.min(currentEnd, file.size)
+			uploadResults.innerHTML += `Uploading Next File Chunk...<br>`
+			let status = await uploadFile(file.slice(currentPos, currentEnd), true, file.name, currentPos/file.size*100, (currentEnd-currentPos)/file.size)
+			console.log(status)
+			if (status !== 200) {
+				uploadResults.innerHTML += "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
+				break;
+			}
+			currentPos = currentEnd
+		}
+	}
+	else {
+		console.log(file)
+		//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
+		return await new Promise((resolve, reject) => {
+			let start = Date.now()
+			let request = new XMLHttpRequest();
+			request.open('POST', url + "upload");
+
+			request.setRequestHeader("qial-filename", filename);
+			request.setRequestHeader("qial-password", passwordInput.value);
+
+			if (append) {
+				request.setRequestHeader("qial-action", "append");
+			}
+
+			// upload progress event
+			request.upload.addEventListener('progress', function(e) {
+				// upload progress as percentage
+				let upload_percentage = (e.loaded / e.total)*100; //Percentage of THIS upload.
+				let percent_completed = startPercentage + upload_percentage * percentageMultiple //Percentage of TOTAL upload.
+				uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(file.size * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(file.size, 2)})<br>`
+			});
+
+			request.onerror = function(e) {
+				uploadResults.innerHTML += "Error: " + e.message + "<br>"
+			}
+
+			request.addEventListener('load', function(e) {
+				uploadResults.innerHTML += "Request finished with status " + request.status + "<br>"
+				uploadResults.innerHTML += "Request finished with message " + request.response + "<br>"
+				resolve(request.status);
+			});
+			request.send(file);
+		})
+	}
+}
+
+
 async function uploadFiles(files) {
-	//Begin uploading... We'll do this one at once.
+	//Begin uploading... We'll do this one file at once for now.
 	for (let i=0;i<files.length;i++) {
 		try {
 			let file = files[i]
 			uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${numberPrettyBytesSI(file.size, 2)})...<br>`
-
-			//Fetch implementation of uploads.
-			/*let request = fetch(url + "upload", {
-				method: "POST",
-				body: file,
-				headers: {
-					"qial-password": passwordInput.value,
-					"qial-filename": file.name
-				}
-			})
-			request = await request
-			let response = await request.text() */
-
-
-			//This was a test to do upload progress.
-			//It requires enabling expiramental web platform features in chrome 85&86
-			//The idea was to have a readable stream upload, and measure data transferred with pull calls.
-			//It looks, however, like it doesn't call pull, instead only calling start.
-			/*
-			let currentPosition = 0;
-			let reader = new FileReader()
-			console.log(file)
-
-			function obtainNextSplit() {
-				let distance = file.size - currentPosition
-				console.log(distance)
-				if (distance <= 0) {null} //Nothing left
-				if (distance > 60000) {distance = 60000} //Arbitrary
-
-				let minifile = file.slice(currentPosition, currentPosition+distance)
-				currentPosition += distance
-				return new Promise((resolve, reject) => {
-					reader.onload = function() {
-						console.log(minifile)
-						resolve(reader.result)
-					}
-					reader.readAsArrayBuffer(minifile)
-				})
-			}
-
-			let readablestream = new ReadableStream({
-				async start(controller) {
-					console.log("Called")
-					let buff = await obtainNextSplit()
-					if (buff === null) {controller.close("Empty")}
-					else {
-						console.log(buff)
-						controller.enqueue(buff)
-					}
-				},
-				async pull(controller) {
-					console.log("Pulled")
-					let buff = await obtainNextSplit()
-					if (buff === null) {controller.close("Empty")}
-					else {
-						console.log(buff)
-						controller.enqueue(buff)
-					}
-				},
-				async close(reason) {
-					console.log(reason)
-				}
-			})
-
-			console.log(readablestream)
-
-			let request = fetch(url + "upload", {
-				method: "POST",
-				body: readablestream,
-				headers: {
-					"qial-password": passwordInput.value,
-					"qial-filename": file.name
-				},
-				allowHTTP1ForStreamingUpload: true,
-			})
-			request = await request
-			let response = await request.text()*/
-
-
-			//XMLHttpRequest upload
-			let response = await new Promise((resolve, reject) => {
-				let start = Date.now()
-				let request = new XMLHttpRequest();
-				request.open('POST', url + "upload");
-
-				request.setRequestHeader("qial-filename", file.name);
-				request.setRequestHeader("qial-password", passwordInput.value);
-
-				// upload progress event
-				request.upload.addEventListener('progress', function(e) {
-					// upload progress as percentage
-					let percent_completed = (e.loaded / e.total)*100;
-					console.log(percent_completed);
-					uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(file.size * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(file.size, 2)})<br>`
-				});
-
-				// request finished event
-				request.addEventListener('load', function(e) {
-					// HTTP status message (200, 404 etc)
-					console.log(request.status);
-					// request.response holds response from the server
-					resolve(request.response);
-				});
-				// send POST request to server
-				request.send(file);
-			})
-
-			uploadResults.innerHTML += `${response}<br>`
+			let response = await uploadFile(file)
 		}
 		catch(e) {
 			console.error(e)
