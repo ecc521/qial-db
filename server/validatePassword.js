@@ -23,14 +23,14 @@ Since there are no usernames, every password submitted must be tested against ev
 		if (line.length === 128 && regexpHex.test(line)) {return true}
 	})
 
-	console.log(lines)
-
 	let pieces = lines.map((line) => {
 		return {
 			"salt": line.slice(0,64),
 			"hash": line.slice(64, 128)
 		}
 	})
+
+	return pieces
 }
 
 

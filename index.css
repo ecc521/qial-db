@@ -5,3 +5,41 @@ html, body {
 h1, h2 {
 	text-align: center;
 }
+
+#filedrop {
+  border: 2px dashed #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  width: 320px;
+  height:auto;
+  max-height:400px;
+  margin:auto;
+  background-color:#eef;
+  text-align:center;
+}
+
+#filedrop.highlight {
+  border-color: purple;
+}
+
+#fileinputlabel {
+  display: inline-block;
+  padding: 10px;
+  background: #ccc;
+  cursor: pointer;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+#fileinputlabel:hover {
+  background: #ddd;
+}
+
+#fileinput {
+  display: none;
+}
+
+
+#uploadMenu {
+	background-color: #f8f8f8;
+}

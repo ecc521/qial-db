@@ -46,7 +46,9 @@
 
 				let request = await fetch(url, {
 					method: "POST",
-					data: password.value
+					headers: {
+						"qial-password": passwordInput.value,
+					}
 				})
 				let response = await request.text()
 				result.innerHTML = response

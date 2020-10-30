@@ -21,22 +21,72 @@ async function httprequest(req,res) {
 	console.log(req.url)
 	res.setHeader('Access-Control-Allow-Origin', '*')
 
+	//Handle preflight requests. 
+	if (req.method === "OPTIONS") {
+		res.statusCode = 200
+		res.setHeader("Access-Control-Allow-Headers", "*")
+		res.end()
+		return;
+	}
+
 	//Generate a salt and hash entry for the specified password.
 	if (req.method === "POST" && req.url === "/auth/generateentry") {
-		let password = (await getData(req)).toString()
+		let password = req.headers['qial-password']
 		let entry = passwords.generateEntry(password)
 		res.statusCode = 200
 		res.setHeader('Content-Type', 'text/plain');
 		res.end(entry);
+		return
 	}
+
+
 
 	if (req.method === "POST" && req.url === "/upload") {
 
+		let data = getData(req) //Don't await yet.
+		let password = req.headers['qial-password']
+		let filename = req.headers['qial-filename']
+		console.log(filename)
+		try {
+			let valid = await passwords.authPassword(password)
+			if (!valid) {
+				throw new Error("Invalid Password")
+			}
+		}
+		catch (e) {
+			res.statusCode = 403
+			res.setHeader('Content-Type', 'text/plain');
+			res.end("Error in password processing: " + e.message);
+			return;
+		}
+
+		//Now we can process the actual upload. The user is authorized.
+		data = await data
+
+		console.log(data.length)
+
+		res.statusCode = 200
+		res.setHeader('Content-Type', 'text/plain');
+		res.end("Upload Success");
+
+		return
 	}
 
+	res.statusCode = 501
+	res.setHeader('Content-Type', 'text/plain');
+	res.end("Server is unable to handle this request - Not Implemented");
 }
 
-const httpserver = http.createServer(httprequest);
+const httpserver = http.createServer(async function(req, res) {
+	try {
+		return await httprequest(req, res)
+	}
+	catch (e) {
+		res.statusCode = 500
+		res.setHeader('Content-Type', 'text/plain');
+		res.end("Internal Server Error: " + e.message);
+	}
+});
 
 try {
 	httpserver.listen(httpport, hostname, () => {
