@@ -32,31 +32,134 @@ togglePassword.addEventListener("click", function() {
 
 
 let uploadResults = document.getElementById("uploadResults")
-async function newFiles(files) {
-	if (confirm("Upload " + files.length + " files? ")) {
-		//Begin uploading... We'll do this one at once.
-		for (let i=0;i<files.length;i++) {
-			try {
-				let file = files[i]
-				uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${Math.ceil(file.size/1000)}KB)...<br>`
+let currentFilesReady = [];
+async function uploadFiles(files) {
+	//Begin uploading... We'll do this one at once.
+	for (let i=0;i<files.length;i++) {
+		try {
+			let file = files[i]
+			uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${Math.ceil(file.size/1000)}KB)...<br>`
 
-				let request = await fetch(url + "upload", {
-					method: "POST",
-					body: file,
-					headers: {
-						"qial-password": passwordInput.value,
-						"qial-filename": file.name
+			//Fetch implementation of uploads.
+			/*let request = fetch(url + "upload", {
+				method: "POST",
+				body: file,
+				headers: {
+					"qial-password": passwordInput.value,
+					"qial-filename": file.name
+				}
+			})
+			request = await request
+			let response = await request.text() */
+
+
+			//This was a test to do upload progress.
+			//It requires enabling expiramental web platform features in chrome 85&86
+			//The idea was to have a readable stream upload, and measure data transferred with pull calls.
+			//It looks, however, like it doesn't call pull, instead only calling start.
+			/*
+			let currentPosition = 0;
+			let reader = new FileReader()
+			console.log(file)
+
+			function obtainNextSplit() {
+				let distance = file.size - currentPosition
+				console.log(distance)
+				if (distance <= 0) {null} //Nothing left
+				if (distance > 60000) {distance = 60000} //Arbitrary
+
+				let minifile = file.slice(currentPosition, currentPosition+distance)
+				currentPosition += distance
+				return new Promise((resolve, reject) => {
+					reader.onload = function() {
+						console.log(minifile)
+						resolve(reader.result)
 					}
+					reader.readAsArrayBuffer(minifile)
 				})
+			}
 
-				let response = await request.text()
-				uploadResults.innerHTML += `${response}<br>`
-			}
-			catch(e) {
-				console.error(e)
-			}
+			let readablestream = new ReadableStream({
+				async start(controller) {
+					console.log("Called")
+					let buff = await obtainNextSplit()
+					if (buff === null) {controller.close("Empty")}
+					else {
+						console.log(buff)
+						controller.enqueue(buff)
+					}
+				},
+				async pull(controller) {
+					console.log("Pulled")
+					let buff = await obtainNextSplit()
+					if (buff === null) {controller.close("Empty")}
+					else {
+						console.log(buff)
+						controller.enqueue(buff)
+					}
+				},
+				async close(reason) {
+					console.log(reason)
+				}
+			})
+
+			console.log(readablestream)
+
+			let request = fetch(url + "upload", {
+				method: "POST",
+				body: readablestream,
+				headers: {
+					"qial-password": passwordInput.value,
+					"qial-filename": file.name
+				},
+				allowHTTP1ForStreamingUpload: true,
+			})
+			request = await request
+			let response = await request.text()*/
+
+
+			//XMLHttpRequest upload
+			let response = await new Promise((resolve, reject) => {
+				let request = new XMLHttpRequest();
+				request.open('POST', url + "upload");
+
+				request.setRequestHeader("qial-filename", file.name);
+				request.setRequestHeader("qial-password", passwordInput.value);
+
+				// upload progress event
+				request.upload.addEventListener('progress', function(e) {
+					// upload progress as percentage
+					let percent_completed = (e.loaded / e.total)*100;
+					console.log(percent_completed);
+					uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete<br>`
+				});
+
+				// request finished event
+				request.addEventListener('load', function(e) {
+					// HTTP status message (200, 404 etc)
+					console.log(request.status);
+					// request.response holds response from the server
+					resolve(request.response);
+				});
+				// send POST request to server
+				request.send(file);
+			})
+
+			uploadResults.innerHTML += `${response}<br>`
+		}
+		catch(e) {
+			console.error(e)
 		}
 	}
+}
+
+let uploadButton = document.getElementById("upload")
+uploadButton.addEventListener("click", function() {
+	uploadFiles(currentFilesReady)
+})
+function newFiles(files) {
+	currentFilesReady = files
+	uploadButton.innerHTML = "Upload " + files.length + " Files"
 }
 
 
