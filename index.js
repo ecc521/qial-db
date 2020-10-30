@@ -82,7 +82,8 @@ async function uploadFile(file, append = false, filename = file.name, startPerce
 				// upload progress as percentage
 				let upload_percentage = (e.loaded / e.total)*100; //Percentage of THIS upload.
 				let percent_completed = startPercentage + upload_percentage * percentageMultiple //Percentage of TOTAL upload.
-				uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(file.size * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(file.size, 2)})<br>`
+				let totalSize = Math.round(file.size / percentageMultiple)
+				uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(totalSize * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(totalSize, 2)})<br>`
 			});
 
 			request.onerror = function(e) {
