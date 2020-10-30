@@ -31,6 +31,13 @@ togglePassword.addEventListener("click", function() {
 })
 
 
+//https://stackoverflow.com/a/62703368/10965456
+function numberPrettyBytesSI(Num=0, dec=2){
+if (Num<1000) return Num+" Bytes";
+Num =("0".repeat((Num+="").length*2%3)+Num).match(/.{3}/g);
+return Number(Num[0])+"."+Num[1].substring(0,dec)+" "+"  kMGTPEZY"[Num.length]+"B";
+}
+
 let uploadResults = document.getElementById("uploadResults")
 let currentFilesReady = [];
 async function uploadFiles(files) {
@@ -38,7 +45,7 @@ async function uploadFiles(files) {
 	for (let i=0;i<files.length;i++) {
 		try {
 			let file = files[i]
-			uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${Math.ceil(file.size/1000)}KB)...<br>`
+			uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${numberPrettyBytesSI(file.size, 2)})...<br>`
 
 			//Fetch implementation of uploads.
 			/*let request = fetch(url + "upload", {
@@ -120,6 +127,7 @@ async function uploadFiles(files) {
 
 			//XMLHttpRequest upload
 			let response = await new Promise((resolve, reject) => {
+				let start = Date.now()
 				let request = new XMLHttpRequest();
 				request.open('POST', url + "upload");
 
@@ -131,7 +139,7 @@ async function uploadFiles(files) {
 					// upload progress as percentage
 					let percent_completed = (e.loaded / e.total)*100;
 					console.log(percent_completed);
-					uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete<br>`
+					uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(file.size * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(file.size, 2)})<br>`
 				});
 
 				// request finished event
