@@ -57,8 +57,8 @@ async function httprequest(req,res) {
 			req.pause()
 			res.statusCode = 401
 			res.setHeader('Content-Type', 'text/plain');
-			res.setHeader('Connection', 'close'); //End the connection.
 			res.end("Error in password processing: " + e.message);
+			req.destroy(["Error in password processing: " + e.message])
 			return;
 		}
 
