@@ -21,7 +21,7 @@ async function httprequest(req,res) {
 	console.log(req.url)
 	res.setHeader('Access-Control-Allow-Origin', '*')
 
-	//Handle preflight requests. 
+	//Handle preflight requests.
 	if (req.method === "OPTIONS") {
 		res.statusCode = 200
 		res.setHeader("Access-Control-Allow-Headers", "*")
@@ -30,7 +30,7 @@ async function httprequest(req,res) {
 	}
 
 	//Generate a salt and hash entry for the specified password.
-	if (req.method === "POST" && req.url === "/auth/generateentry") {
+	if (req.method === "POST" && req.url.includes("/auth/generateentry")) {
 		let password = req.headers['qial-password']
 		let entry = passwords.generateEntry(password)
 		res.statusCode = 200
@@ -41,7 +41,7 @@ async function httprequest(req,res) {
 
 
 
-	if (req.method === "POST" && req.url === "/upload") {
+	if (req.method === "POST" && req.url.includes("/upload")) {
 
 		let data = getData(req) //Don't await yet.
 		let password = req.headers['qial-password']
