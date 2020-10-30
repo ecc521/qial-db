@@ -78,6 +78,7 @@ echo "Swap file recommended, assuming maximum server memory is low: "
 echo "Google Cloud Compute Engine: https://badlywired.com/2016/08/15/adding-swap-google-compute-engine/"
 
 #Run server on reboot. Reboot at 4am every day. Run certbot renew on each reboot.
+(crontab -l ; echo "@reboot mkdir -p ${HOME}/qial-db/server/logs/") | sort - | uniq - | crontab -
 (crontab -l ; echo "@reboot node $HOME/qial-db/server/main.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
 (crontab -l ; echo "@reboot sudo certbot renew  >> $HOME/qial-db/server/logs/updateCertificate.log") | sort - | uniq - | crontab -
 (crontab -l ; echo "0 4   *   *   *    sudo reboot") | sort - | uniq - | crontab -
