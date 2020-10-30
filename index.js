@@ -60,7 +60,7 @@ async function uploadFile(file, append = false, filename = file.name, startPerce
 				uploadResults.innerHTML += "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
 				break;
 			}
-			uploadResults.innerHTML += `Chunk ${++totalChunks} of ${Math.ceil(file.size/chunkSize)} Uploaded. Total time ${Math.round(Date.now()-start/10)/100} seconds<br>`
+			uploadResults.innerHTML += `Chunk ${++totalChunks} of ${Math.ceil(file.size/chunkSize)} Uploaded. Total time ${Math.round((Date.now()-start)/10)/100} seconds<br>`
 			currentPos = currentEnd
 		}
 	}
