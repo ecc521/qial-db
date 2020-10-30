@@ -43,30 +43,30 @@ let currentFilesReady = [];
 
 
 async function uploadFile(file, append = false, filename = file.name, startPercentage = 0, percentageMultiple = 1) {
-	console.log(startPercentage, percentageMultiple)
 	//We will split large files into 5MB chunks.
+	let start = Date.now()
+
 	let chunkSize = 5e6
 	if (file.size > chunkSize) {
 		let currentPos = 0
+		let totalChunks = 0
 
 		while (currentPos < file.size) {
 			let currentEnd = currentPos + chunkSize
 			currentEnd = Math.min(currentEnd, file.size)
-			uploadResults.innerHTML += `Uploading Next File Chunk...<br>`
+			uploadResults.innerHTML += `Uploading Chunk ${totalChunks + 1} of ${Math.ceil(file.size/chunkSize)}...<br>`
 			let status = await uploadFile(file.slice(currentPos, currentEnd), true, file.name, currentPos/file.size*100, (currentEnd-currentPos)/file.size)
-			console.log(status)
 			if (status !== 200) {
 				uploadResults.innerHTML += "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
 				break;
 			}
+			uploadResults.innerHTML += `Chunk ${++totalChunks} of ${Math.ceil(file.size/chunkSize)} Uploaded. Total time ${Math.round(Date.now()-start/10)/100} seconds<br>`
 			currentPos = currentEnd
 		}
 	}
 	else {
-		console.log(file)
 		//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
 		return await new Promise((resolve, reject) => {
-			let start = Date.now()
 			let request = new XMLHttpRequest();
 			request.open('POST', url + "upload");
 
