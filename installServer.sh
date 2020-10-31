@@ -48,7 +48,7 @@ sudo tee -a /etc/apache2/apache2.conf > /dev/null << EOF
 
 <Directory $HOME/qial-db/>
     	Options Indexes FollowSymLinks
-        AllowOverride None
+        AllowOverride All
         Require all granted
 </Directory>
 EOF

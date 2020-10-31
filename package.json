@@ -34,6 +34,7 @@
     "@babel/runtime": "^7.11.0",
     "babel-loader": "^8.1.0",
     "core-js": "^3.6.5",
+    "csv-parser": "^2.3.3",
     "node-fetch": "^2.6.1",
     "webpack": "^4.44.1"
   }

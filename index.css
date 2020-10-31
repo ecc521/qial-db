@@ -45,5 +45,18 @@ h1, h2 {
 }
 
 .center {
-	text-align: center; 
+	text-align: center;
+}
+
+
+.previewCard {
+	width: 33vw;
+	display: inline-block;
+	text-align: center;
+	min-height: 200px;
+}
+
+.previewCard p {
+	margin: 0;
+	margin-bottom: 4px;
 }
