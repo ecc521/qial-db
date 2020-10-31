@@ -41,73 +41,106 @@ return Number(Num[0])+"."+Num[1].substring(0,dec)+" "+"  kMGTPEZY"[Num.length]+"
 let uploadResults = document.getElementById("uploadResults")
 let currentFilesReady = [];
 
+function createProgressBar() {
+	let progress = document.createElement("progress")
+	progress.max = 100
+	return progress
+}
 
-async function uploadFile(file, append = false, filename = file.name, startPercentage = 0, percentageMultiple = 1) {
-	//We will split large files into 5MB chunks.
-	let start = Date.now()
 
-	let chunkSize = 5e6
-	if (file.size > chunkSize) {
-		let currentPos = 0
-		let totalChunks = 0
+async function _uploadFile(file, start, end, setFileProgress) {
+	//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
+	return await new Promise((resolve, reject) => {
+		let request = new XMLHttpRequest();
+		request.open('POST', url + "upload");
 
-		while (currentPos < file.size) {
-			let currentEnd = currentPos + chunkSize
-			currentEnd = Math.min(currentEnd, file.size)
-			uploadResults.innerHTML += `Uploading Chunk ${totalChunks + 1} of ${Math.ceil(file.size/chunkSize)}...<br>`
-			let status = await uploadFile(file.slice(currentPos, currentEnd), true, file.name, currentPos/file.size*100, (currentEnd-currentPos)/file.size)
-			if (status !== 200) {
-				uploadResults.innerHTML += "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
-				break;
-			}
-			uploadResults.innerHTML += `Chunk ${++totalChunks} of ${Math.ceil(file.size/chunkSize)} Uploaded. Total time ${Math.round((Date.now()-start)/10)/100} seconds<br>`
-			currentPos = currentEnd
+		request.setRequestHeader("qial-filename", file.name);
+		request.setRequestHeader("qial-password", passwordInput.value);
+
+		if (start !== 0 || end !== file.size) {
+			request.setRequestHeader("qial-action", "append");
 		}
+
+		request.upload.addEventListener('progress', function(e) {
+			let total_loaded = start + e.loaded
+			let total_percent = total_loaded / file.size * 100
+			setFileProgress(total_percent, total_loaded)
+		});
+
+		request.onerror = function(e) {
+			uploadResults.innerHTML += "Error: " + e.message + "<br>"
+		}
+
+		request.addEventListener('load', function(e) {
+			if (request.status !== 200) {
+				uploadResults.innerHTML += "Error Status Received: " + request.status + "<br>"
+				uploadResults.innerHTML += "Message: " + request.response + "<br>"
+			}
+			resolve(request.status);
+		});
+		request.send(file.slice(start, end));
+	})
+}
+
+async function uploadFile(file, {filenumber, setProgress}) {
+	//Split into chunks
+	let chunkSize = 5e6
+	let currentPos = 0
+	let totalChunks = 0
+
+	let progress = createProgressBar()
+	uploadResults.appendChild(progress)
+	let label = document.createElement("label")
+	uploadResults.appendChild(label)
+	uploadResults.appendChild(document.createElement("br"))
+
+	function setFileProgress(percentage, bytesLoaded) {
+		setProgress(filenumber + percentage/100)
+		progress.value = percentage
+		label.innerHTML = `Uploading ${file.name} - ${Math.round(percentage*10)/10}% (${numberPrettyBytesSI(bytesLoaded, 2)} of ${numberPrettyBytesSI(file.size, 2)})`
 	}
-	else {
-		//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
-		return await new Promise((resolve, reject) => {
-			let request = new XMLHttpRequest();
-			request.open('POST', url + "upload");
 
-			request.setRequestHeader("qial-filename", filename);
-			request.setRequestHeader("qial-password", passwordInput.value);
+	while (currentPos < file.size) {
+		let currentEnd = currentPos + chunkSize
+		currentEnd = Math.min(currentEnd, file.size)
 
-			if (append) {
-				request.setRequestHeader("qial-action", "append");
-			}
-
-			// upload progress event
-			request.upload.addEventListener('progress', function(e) {
-				// upload progress as percentage
-				let upload_percentage = (e.loaded / e.total)*100; //Percentage of THIS upload.
-				let percent_completed = startPercentage + upload_percentage * percentageMultiple //Percentage of TOTAL upload.
-				let totalSize = Math.round(file.size / percentageMultiple)
-				uploadResults.innerHTML += `Upload is ${Math.round(percent_completed*10)/10}% complete (${Date.now() - start}ms - ${numberPrettyBytesSI(Math.round(totalSize * 0.01 * percent_completed), 2)} of ${numberPrettyBytesSI(totalSize, 2)})<br>`
-			});
-
-			request.onerror = function(e) {
-				uploadResults.innerHTML += "Error: " + e.message + "<br>"
-			}
-
-			request.addEventListener('load', function(e) {
-				uploadResults.innerHTML += "Request finished with status " + request.status + "<br>"
-				uploadResults.innerHTML += "Request finished with message " + request.response + "<br>"
-				resolve(request.status);
-			});
-			request.send(file);
-		})
+		let status = await _uploadFile(file, currentPos, currentEnd, setFileProgress)
+		if (status !== 200) {
+			let p = document.createElement("p")
+			p.innerHTML = "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
+			uploadResults.appendChild(p)
+			break;
+		}
+		currentPos = currentEnd
 	}
 }
 
 
 async function uploadFiles(files) {
+	//Clear the current progress history.
+	uploadResults.innerHTML = ""
+
 	//Begin uploading... We'll do this one file at once for now.
+	let progress = createProgressBar()
+	uploadResults.appendChild(progress)
+	let label = document.createElement("label")
+	uploadResults.appendChild(label)
+	uploadResults.appendChild(document.createElement("br"))
+
+	//TODO: Weight files by size. 
+	function setProgress(fileIndex) {
+		label.innerHTML = `Uploading File ${Math.min(Math.floor(fileIndex+1), files.length)} of ${files.length}...`
+		progress.value = fileIndex*100/files.length
+	}
+
 	for (let i=0;i<files.length;i++) {
 		try {
 			let file = files[i]
-			uploadResults.innerHTML += `Uploading ${file.name} (${i+1} of ${files.length} - ${numberPrettyBytesSI(file.size, 2)})...<br>`
-			let response = await uploadFile(file)
+			setProgress(i)
+			let response = await uploadFile(file, {
+				filenumber: i,
+				setProgress
+			})
 		}
 		catch(e) {
 			console.error(e)
@@ -117,6 +150,7 @@ async function uploadFiles(files) {
 
 let uploadButton = document.getElementById("upload")
 uploadButton.addEventListener("click", function() {
+	if (currentFilesReady.length === 0) {return alert("You need to select some files to upload. ")}
 	uploadFiles(currentFilesReady)
 })
 function newFiles(files) {

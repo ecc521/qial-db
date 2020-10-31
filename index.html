@@ -11,16 +11,22 @@
 
 		<button id="toggleUpload">Open Upload Menu</button>
 		<div id="uploadMenu">
-			<input id="password" type="password" placeholder="Enter Password">
-			<button id="togglepassword">Show Password</button>
-			Open <a href="authgen.html" target="_blank">Auth Key Generator</a>, Open <a href="https://github.com/ecc521/qial-db/releases/tag/v1.0" target="_blank">Auth Instructions</a>
+
+			<div class="center">
+				<input id="password" type="password" placeholder="Enter Password">
+				<button id="togglepassword">Show Password</button>
+				Open <a href="authgen.html" target="_blank">Auth Key Generator</a>, Open <a href="https://github.com/ecc521/qial-db/releases/tag/v1.0" target="_blank">Auth Instructions</a>
+			</div>
 
 			<div id="filedrop">
 				<p>Drag and Drop Files here, OR</p>
 				<input type="file" id="fileinput" multiple accept="*">
 				<label id="fileinputlabel" for="fileinput">Browse for Files</label>
 			</div>
-			<button id="upload">Upload 0 Files</button>
+			<br>
+			<div class="center">
+				<button id="upload">Upload 0 Files</button>
+			</div>
 
 			<p id="uploadResults"></p>
 		</div>

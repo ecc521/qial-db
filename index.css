@@ -43,3 +43,7 @@ h1, h2 {
 #uploadMenu {
 	background-color: #f8f8f8;
 }
+
+.center {
+	text-align: center; 
+}
