@@ -53,10 +53,21 @@ h1, h2 {
 	width: 33vw;
 	display: inline-block;
 	text-align: center;
-	min-height: 200px;
+	min-height: 100%;
+	border: 1px solid #aaaaaa;
 }
 
 .previewCard p {
 	margin: 0;
 	margin-bottom: 4px;
+}
+
+.cardHolderRow {
+	min-height: 250px;
+	display: flex;
+}
+
+.neuroglancerLink {
+	border-radius: 1000000px;
+	padding: 8px;
 }

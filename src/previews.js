@@ -1,11 +1,23 @@
 let cardHolder = document.getElementById("items")
 
 function drawCards(items) {
+	function createRow() {
+		let row = document.createElement("div")
+		row.className = "cardHolderRow"
+		cardHolder.appendChild(row)
+		return row
+	}
+
+	let row = createRow()
+
 	for (let i=0;i<items.length;i++) {
 		let item = items[i]
 		let card = document.createElement("div")
 		card.className = "previewCard"
-		cardHolder.appendChild(card)
+		if (row.children.length >= 3) {
+			row = createRow()
+		}
+		row.appendChild(card)
 
 		function addText(text) {
 			let p = document.createElement("p")
@@ -30,6 +42,7 @@ function drawCards(items) {
 
 			let preview = document.createElement("button")
 			preview.innerHTML = "View in Neuroglancer"
+			preview.className = "neuroglancerLink"
 			card.appendChild(preview)
 			preview.addEventListener("click", function() {
 				//Create neuroglancer link.
