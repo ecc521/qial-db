@@ -129,3 +129,7 @@ try {
 catch(e) {
 	console.error(e)
 }
+
+
+//Call at start, to begin processing of thumbnails, etc.
+generateJSON()

@@ -50,8 +50,7 @@ h1, h2 {
 
 
 .infoCard {
-	display: inline-block;
-	text-align: center;
+	display: block;
 	min-height: 100%;
 }
 
@@ -62,7 +61,8 @@ h1, h2 {
 
 .itemRow {
 	border: 1px solid #aaaaaa;
-	min-height: 150px;
+	display: flex;
+	align-items: center;
 }
 
 .itemRow div {
@@ -76,4 +76,14 @@ h1, h2 {
 .neuroglancerLink {
 	border-radius: 1000000px;
 	padding: 8px;
+}
+
+.selectBox {
+	width: 20px;
+	height: 20px;
+	margin-right: 10px;
+}
+
+.thumbnailContainer {
+	width: 85vw;
 }

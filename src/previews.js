@@ -6,6 +6,11 @@ function createItem(item) {
 	let row = document.createElement("div")
 	row.className = "itemRow"
 
+	let checkbox = document.createElement("input")
+	checkbox.type = "checkbox"
+	checkbox.className = "selectBox"
+	row.appendChild(checkbox)
+
 	let infoCard = document.createElement("div")
 	infoCard.className = "infoCard"
 	row.appendChild(infoCard)
@@ -17,13 +22,11 @@ function createItem(item) {
 	}
 
 	if (item.type === "file") {
-		infoCard.style.width = "100vw"
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
 	}
 	else if (item.type === "animal") {
-		infoCard.style.width = "30vw"
 		addText(`Animal: ${item.Animal}`)
 		addText(`Sex: ${item.Sex}`)
 		addText(`Genotype: ${item.Genotype}`)
@@ -36,7 +39,8 @@ function createItem(item) {
 
 
 		let thumbnailContainer = document.createElement("div")
-		thumbnailContainer.style.width = "69vw"
+		thumbnailContainer.className = "thumbnailContainer"
+		row.appendChild(thumbnailContainer)
 
 		function addThumbnails(view, container) {
 			view.thumbnails.forEach((fileName) => {
@@ -56,22 +60,18 @@ function createItem(item) {
 			return preview
 		}
 
-		//TODO: Allow expanding for multiple views
 		for (let i=0;i<item.views.length;i++) {
-			row.appendChild(thumbnailContainer)
 
 			let view = item.views[i]
-			if (i === 0) {
-				infoCard.appendChild(createButton(view))
-			}
-			else {
-				let button = createButton(view)
-				button.style.transform = "translate(0, -100px)"
-				thumbnailContainer.appendChild(button)
-			}
-			addThumbnails(view, thumbnailContainer)
-			thumbnailContainer = document.createElement("div")
-			thumbnailContainer.style.width = "100vw"
+			let scanContainer = document.createElement("div")
+			scanContainer.style.textAlign = "center"
+			thumbnailContainer.appendChild(scanContainer)
+
+			addThumbnails(view, scanContainer)
+
+			scanContainer.appendChild(document.createElement("br"))
+			let button = createButton(view)
+			scanContainer.appendChild(button)
 		}
 	}
 	else {
