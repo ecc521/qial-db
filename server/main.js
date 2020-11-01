@@ -2,11 +2,11 @@ const http = require("http")
 const path = require("path")
 const fs = require("fs")
 
-let dataDir = path.join(__dirname, "../", "data")
+const dataDir = path.join(__dirname, "../", "data")
 fs.mkdirSync(dataDir, {recursive: true})
 
 const passwords = require("./validatePassword.js")
-const loadDataCSV = require("./loadDataCSV.js")
+const generateJSON = require("./generateJSON.js")
 
 const hostname = "0.0.0.0"
 const httpport = 3000
@@ -36,7 +36,7 @@ async function httprequest(req,res) {
 	if (req.url.includes("/data.json")) {
 		res.statusCode = 200
 		res.setHeader('Content-Type', 'application/json')
-		res.end(JSON.stringify(await loadDataCSV()))
+		res.end(JSON.stringify(await generateJSON()))
 		return;
 	}
 

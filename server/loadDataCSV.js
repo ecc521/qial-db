@@ -6,6 +6,7 @@ let cache;
 let lastCached;
 module.exports = async function loadDataCSV(filePath = path.join(__dirname, "../", "data", "QCLAB_AD_mice.csv")) {
 	//If in cache, and was last cached more recently than the file changed, then don't bother processing.
+	cache = null; //Temporarily disable cache. generateJSON.js now modifies. 
 	if (!(cache && lastCached > fs.statSync(filePath).mtime)) {
 		let results = await new Promise((resolve, reject) => {
 			let results = []

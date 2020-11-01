@@ -49,22 +49,28 @@ h1, h2 {
 }
 
 
-.previewCard {
-	width: 33vw;
+.infoCard {
 	display: inline-block;
 	text-align: center;
 	min-height: 100%;
-	border: 1px solid #aaaaaa;
 }
 
-.previewCard p {
+.infoCard p {
 	margin: 0;
 	margin-bottom: 4px;
 }
 
-.cardHolderRow {
-	min-height: 250px;
-	display: flex;
+.itemRow {
+	border: 1px solid #aaaaaa;
+	min-height: 150px;
+}
+
+.itemRow div {
+	display: inline-block;
+}
+
+.itemRow img {
+	margin-left: 5px;
 }
 
 .neuroglancerLink {
