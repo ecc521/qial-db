@@ -52,7 +52,10 @@ async function _uploadFile(file, start, end, setFileProgress) {
 		request.setRequestHeader("qial-filename", file.name);
 		request.setRequestHeader("qial-password", passwordInput.value);
 
-		if (start !== 0 || end !== file.size) {
+		//If we aren't starting at 0, this must be an append.
+		//If this is in fact a chunk, and it would be overwriting a file, it will be rejected, so upload will be aborted.
+		//(The server currently allows all appends, writes only if doesn't currently exist)
+		if (start !== 0) {
 			request.setRequestHeader("qial-action", "append");
 		}
 
