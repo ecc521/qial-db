@@ -95,8 +95,12 @@ module.exports = async function() {
 		}
 	}
 
-
-
+	//Delete all thumbnails without associated animals.
+	files = files.filter((fileName) => {
+		if (!fileName.includes(".qialdbthumbnail.")) {return true}
+		fs.unlinkSync(path.join(dataDir, fileName))
+		return false
+	})
 
 
 	let fileData = []
