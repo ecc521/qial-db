@@ -46,6 +46,9 @@ function createItem(item) {
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
 				img.src = dataDir + fileName
+				img.addEventListener("click", function() {
+					window.open(generateNeuroglancerLink(view.filePath))
+				})
 				container.appendChild(img)
 			})
 		}
