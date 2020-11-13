@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-	<bead>
+	<head>
 		<title>qial-db - Quantitative Imaging and Analysis Laboratories</title>
 	</head>
 	<body>
@@ -9,14 +9,18 @@
 		<h1>qial-db</h1>
 		<h2>Quantitative Imaging and Analysis Laboratories</h2>
 
-		<button id="toggleUpload">Open Upload Menu</button>
-		<div id="uploadMenu">
+		<p class="center">Editing and Download functions are located in a bar at the bottom of the screen. </p>
 
-			<div class="center">
-				<input id="password" type="password" placeholder="Enter Password">
-				<button id="togglepassword">Show Password</button>
-				Open <a href="authgen.html" target="_blank">Auth Key Generator</a>, Open <a href="https://github.com/ecc521/qial-db/releases/tag/v1.0" target="_blank">Auth Instructions</a>
-			</div>
+		<div class="bottomBar">
+			<button id="toggleUpload">Open Upload Menu</button>
+		</div>
+		<div id="authMenu" class="center">
+			<input id="password" type="password" placeholder="Enter Password">
+			<button id="togglepassword">Show Password</button>
+			Open <a href="authgen.html" target="_blank">Auth Key Generator</a>, Open <a href="https://github.com/ecc521/qial-db/releases/tag/v1.0" target="_blank">Auth Instructions</a>
+		</div>
+
+		<div id="uploadMenu">
 
 			<div id="filedrop">
 				<p>Drag and Drop Files here, OR</p>
@@ -29,7 +33,11 @@
 			</div>
 
 			<p id="uploadResults"></p>
+			<br>
+			<p>Click "Close Upload Menu" on the bar at the bottom of this page to close. </p>
 		</div>
+
+
 		<br><br>
 		<div id="items"></div>
 		<script src="packages/index.js"></script>

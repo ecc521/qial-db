@@ -16,17 +16,20 @@ async function generateThumbnails(pathToNIFTI) {
 		outputNameRoot + ".qialdbthumbnail.z.png"
 	]
 
-	//We're going to assume that, if the file is already there, it is correct.
-	if (outputNames.every((outputName) => {
-		return fs.existsSync(path.join(dataDir, outputName))
-	})) {
-		return outputNames //Short circuit - save fs writes and time.
-	}
+	//Filter out files that we don't need to generate again.
+	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
+	let filesToProcess = outputNames.filter((fileName) => {
+		let modified = fs.statSync(path.join(dataDir, outputName)).mtime
+		if (modified < modifiedNifti) {return true} //Nifti modified more recently than thumbnail. Thumbnail old.
+		return false
+	})
+
+	if (filesToProcess.length === 0) {return outputNames}
 
 	let process = child_process.spawn("python3", [
 		path.join(__dirname, "generateThumbnails.py"),
 		pathToNIFTI,
-	].concat(outputNames), {
+	].concat(filesToProcess), {
 		cwd: dataDir
 	})
 
@@ -43,24 +46,25 @@ module.exports = async function() {
 
 	let csvJSON = await loadDataCSV()
 
-	function reclaimFiles(...fileNames) {
+	function reclaimFiles(reclaimedFiles, ...fileNames) {
 		//Remove a file from files - it is associated with something.
 		fileNames.forEach((fileName) => {
-			if (fileName instanceof Array) {reclaimFiles(...fileName)}
+			if (fileName instanceof Array) {reclaimFiles(reclaimedFiles, ...fileName)}
 			else {
 				let index = files.indexOf(fileName)
 				if (index !== -1) {
-					files.splice(index, 1)
+					reclaimedFiles.push(files.splice(index, 1)[0])
 				}
 			}
 		})
+		return reclaimedFiles
 	}
 
 	for (let i=0;i<csvJSON.length;i++) {
 		let item = csvJSON[i]
 		item.type = "animal"
 		item.views = []
-
+		item.componentFiles = []
 		if (item["SAMBA Brunno"]) {
 			let view = {
 				name: "SAMBA Brunno",
@@ -69,7 +73,7 @@ module.exports = async function() {
 			}
 			view.thumbnails = await generateThumbnails(view.filePath)
 			item.views.push(view)
-			reclaimFiles(view.filePath, view.labelPath, view.thumbnails)
+			item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.labelPath, view.thumbnails))
 		}
 		delete item["SAMBA Brunno"]
 
@@ -90,9 +94,24 @@ module.exports = async function() {
 				}
 				view.thumbnails = await generateThumbnails(view.filePath)
 				item.views.push(view)
-				reclaimFiles(view.filePath, view.thumbnails)
+				item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails))
 			}
 		}
+
+		item.componentFiles = item.componentFiles.map((fileName) => {
+			let stats = fs.statSync(path.join(dataDir, fileName))
+			return {
+				name: fileName,
+				size: stats.size,
+				lastModified: new Date(stats.mtime).getTime(),
+				type: "file"
+			}
+		})
+		//Cleaning up and keeping thumbnails up to date is handled elsewhere.
+		item.componentFiles = item.componentFiles.filter((obj) => {
+			if (!obj.name.includes(".qialdbthumbnail.")) {return true}
+			return false
+		})
 	}
 
 	//Delete all thumbnails without associated animals.
@@ -126,5 +145,6 @@ module.exports = async function() {
 	allData.sort((a, b) => {
 		return calc(b) - calc(a)
 	})
+
 	return allData
 }

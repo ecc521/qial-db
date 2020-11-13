@@ -1,27 +1,26 @@
-let uploadMenu = document.getElementById("uploadMenu")
+let uploadMenuDiv = document.getElementById("uploadMenu")
+let uploadButton = document.getElementById("upload")
+let fileInput = document.getElementById("fileinput")
+let droparea = document.getElementById('filedrop')
+let uploadResults = document.getElementById("uploadResults")
+
+uploadMenuDiv.remove()
+
+let uploadMenu = new window.Overlay()
+let passwordInput;
+
 let toggleUpload = document.getElementById("toggleUpload")
-uploadMenu.style.display = "none"
 toggleUpload.addEventListener("click", function() {
-	if (uploadMenu.style.display === "none") {
-		uploadMenu.style.display = "block"
+	function hide() {
+		uploadMenu.hide()
+		toggleUpload.innerHTML = "Open Upload Menu"
+	}
+	if (uploadMenu.hidden === true) {
+		passwordInput = uploadMenu.show(uploadMenuDiv, true, hide)
 		toggleUpload.innerHTML = "Close Upload Menu"
 	}
 	else {
-		uploadMenu.style.display = "none"
-		toggleUpload.innerHTML = "Open Upload Menu"
-	}
-})
-
-let passwordInput = document.getElementById("password")
-let togglePassword = document.getElementById("togglepassword")
-togglePassword.addEventListener("click", function() {
-	if (passwordInput.type === "password") {
-		passwordInput.type = "text"
-		togglePassword.innerHTML = "Hide Password"
-	}
-	else {
-		passwordInput.type = "password"
-		togglePassword.innerHTML = "Show Password"
+		hide()
 	}
 })
 
@@ -33,7 +32,6 @@ Num =("0".repeat((Num+="").length*2%3)+Num).match(/.{3}/g);
 return Number(Num[0])+"."+Num[1].substring(0,dec)+" "+"  kMGTPEZY"[Num.length]+"B";
 }
 
-let uploadResults = document.getElementById("uploadResults")
 let currentFilesReady = [];
 
 function createProgressBar() {
@@ -146,7 +144,6 @@ async function uploadFiles(files) {
 	}
 }
 
-let uploadButton = document.getElementById("upload")
 uploadButton.addEventListener("click", function() {
 	if (currentFilesReady.length === 0) {return alert("You need to select some files to upload. ")}
 	uploadFiles(currentFilesReady)
@@ -158,13 +155,11 @@ function newFiles(files) {
 
 
 //Handle File Input Button
-document.getElementById("fileinput").addEventListener("change", function(){
+fileInput.addEventListener("change", function(){
 	newFiles(this.files)
 })
 
 //File Drag and Drop
-let droparea = document.getElementById('filedrop')
-
 ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
   droparea.addEventListener(eventName, preventDefaults, false)
 })
