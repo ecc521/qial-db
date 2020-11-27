@@ -2,6 +2,10 @@ html, body {
 	margin: 0;
 }
 
+body {
+	padding-block-end: 70px; /*Force content above overlay bar at bottom. */
+}
+
 h1, h2 {
 	text-align: center;
 }

@@ -27,3 +27,5 @@ elif(len(data.shape) == 3):
 imageio.imwrite(p.x_out_path, slice_x)
 imageio.imwrite(p.y_out_path, slice_y)
 imageio.imwrite(p.z_out_path, slice_z)
+
+#TODO: Consider using a lossy format instead of PNG. The difference is very minor for 2x+ savings, and these are thumbnails. 
