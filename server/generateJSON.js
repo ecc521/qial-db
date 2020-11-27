@@ -19,7 +19,9 @@ async function generateThumbnails(pathToNIFTI) {
 	//Filter out files that we don't need to generate again.
 	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
 	let filesToProcess = outputNames.filter((fileName) => {
-		let modified = fs.statSync(path.join(dataDir, outputName)).mtime
+		let filePath = path.join(dataDir, outputName)
+		if (!fs.existsSync(filePath)) {return true} //Need to regenerate
+		let modified = fs.statSync(filePath).mtime
 		if (modified < modifiedNifti) {return true} //Nifti modified more recently than thumbnail. Thumbnail old.
 		return false
 	})
@@ -71,9 +73,16 @@ module.exports = async function() {
 				filePath: item["SAMBA Brunno"] + "_T1_masked.nii.gz",
 				labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
 			}
-			view.thumbnails = await generateThumbnails(view.filePath)
-			item.views.push(view)
-			item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.labelPath, view.thumbnails))
+
+			let filePath = path.join(dataDir, view.filePath)
+			if (fs.existsSync(filePath)) {
+				view.thumbnails = await generateThumbnails(filePath)
+				if (!fs.existsSync(path.join(dataDir, view.labelPath))) {
+					delete item.labelPath
+				}
+				item.views.push(view)
+				item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.labelPath, view.thumbnails))
+			}
 		}
 		delete item["SAMBA Brunno"]
 
@@ -92,9 +101,13 @@ module.exports = async function() {
 					name: fileName.slice(fileName.indexOf("RARE_MEMRI"), fileName.indexOf(".")),
 					filePath: fileName,
 				}
-				view.thumbnails = await generateThumbnails(view.filePath)
-				item.views.push(view)
-				item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails))
+
+				let filePath = path.join(dataDir, view.filePath)
+				if (fs.existsSync(filePath)) {
+					view.thumbnails = await generateThumbnails(filePath)
+					item.views.push(view)
+					item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails))
+				}
 			}
 		}
 
