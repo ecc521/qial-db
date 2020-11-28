@@ -136,7 +136,8 @@ async function httprequest(req,res) {
 		}
 
 		//Send the user a zip file.
-		let zipper = child_process.spawn("zip", ["-9", "-"].concat(names), {
+		//Since most of our files should be already compressed, and no compression is drastically faster, use compression level 0. 
+		let zipper = child_process.spawn("zip", ["-0", "-"].concat(names), {
 			cwd: dataDir,
 			stido: ["ignore", "pipe", "pipe"] //Ingore stdin. Pipe others.
 		})
