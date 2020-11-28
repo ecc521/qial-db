@@ -36,6 +36,7 @@ function Item(item) {
 		this.componentFiles = item.componentFiles
 		this.componentFiles = this.componentFiles.map((component) => {
 			let item = new Item(component)
+			item.parent = this
 			this.componentRows.push(item.row)
 			return item
 		})

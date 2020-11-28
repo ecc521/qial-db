@@ -34,6 +34,7 @@ function getDownloadData() {
 	return items
 }
 toggleDownload.addEventListener("click", getDownloadData)
+window.addEventListener("bulkSelectionUsed", getDownloadData)
 
 downloadZip.addEventListener("click", function() {
 	let items = getDownloadData()
