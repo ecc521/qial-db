@@ -36,22 +36,26 @@ function getDownloadData() {
 toggleDownload.addEventListener("click", getDownloadData)
 
 downloadZip.addEventListener("click", function() {
-	var link = document.createElement("a");
-	document.body.appendChild(link);
-
-	link.download = "qialdownload.zip" //TODO: Name getting ignored, in favor of request directory "download"
 	let items = getDownloadData()
 	if (items.length === 0) {return alert("Please exit the download menu and select some items to download. ")}
 
 	let names = items.map((item) => {
 		return item.name
 	})
-	link.href = window.url + "download?names=" + names.join(",");
-	console.log(link.href)
-	link.click();
 
-	document.body.removeChild(link);
-	URL.revokeObjectURL(link.href)
+	let form = document.createElement("form")
+	form.setAttribute("method", "post")
+	form.setAttribute("action", window.url + "download")
+	form.style.display = "none"
+
+	let field = document.createElement("input")
+	field.setAttribute("name", "names")
+	field.setAttribute("value", names.join(","))
+	form.appendChild(field)
+
+	document.body.appendChild(form)
+	form.submit()
+	form.remove()
 })
 
 downloadNodejsScript.addEventListener("click", function() {

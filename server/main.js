@@ -122,7 +122,7 @@ async function httprequest(req,res) {
 		let data = await getData(req)
 
 		//We use the URL object to get search params, so the domain/host can be anything.
-		let urlObj = new URL("localhost:/" + req.url)
+		let urlObj = new URL("localhost:/?" + data.toString())
 		let names = urlObj.searchParams.get("names").split(",")
 
 		for (let i=0;i<names.length;i++) {
@@ -143,7 +143,7 @@ async function httprequest(req,res) {
 
 		res.statusCode = 200;
 		res.setHeader('Content-Type', 'application/zip');
-		zipper.stdout.pipe(res) //Respond with the zip file.*/
+		zipper.stdout.pipe(res) //Respond with the zip file.
 		return;
 	}
 
