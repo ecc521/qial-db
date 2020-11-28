@@ -37,6 +37,14 @@ module.exports = class Overlay {
 			overlayClassInstance.hide()
 		})
 		document.body.appendChild(this.overlay)
+
+		this.overlay.onclick = (function(e) {
+			//Hide when the outside of the overlay is clicked. 
+			if (e.target === this.overlay) {
+				this.hide()
+			}
+		}).bind(this)
+
 		if (includePassword) {
 			this.center.appendChild(authMenu)
 		}
@@ -53,6 +61,7 @@ module.exports = class Overlay {
 	hide() {
 		if (this.hidden === false) {
 			this.hidden = true
+			this.overlay.onclick = undefined
 			this.overlay.remove()
 			if (this.hideCallback) {this.hideCallback()}
 		}
