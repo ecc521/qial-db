@@ -2,24 +2,27 @@ const dataDir = window.location.protocol + "//" + window.location.host + "/data/
 
 let itemContainer = document.getElementById("items")
 
-function createItem(item) {
-	let row = document.createElement("div")
-	row.className = "itemRow"
 
-	let checkbox = document.createElement("input")
-	checkbox.type = "checkbox"
-	checkbox.className = "selectBox"
-	row.appendChild(checkbox)
+function Item(item) {
+	this.row = document.createElement("div")
+	this.row.className = "itemRow"
 
-	let infoCard = document.createElement("div")
-	infoCard.className = "infoCard"
-	row.appendChild(infoCard)
+	this.checkbox = document.createElement("input")
+	this.checkbox.type = "checkbox"
+	this.checkbox.className = "selectBox"
+	this.row.appendChild(this.checkbox)
 
-	function addText(text, container = infoCard) {
+	this.infoCard = document.createElement("div")
+	this.infoCard.className = "infoCard"
+	this.row.appendChild(this.infoCard)
+
+	let addText = (function addText(text, container = this.infoCard) {
 		let p = document.createElement("p")
 		p.innerHTML = text
 		container.appendChild(p)
-	}
+	}).bind(this)
+
+	this.componentRows = []
 
 	if (item.type === "file") {
 		addText(`File Name: ${item.name}`)
@@ -27,20 +30,43 @@ function createItem(item) {
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
 	}
 	else if (item.type === "animal") {
+		this.componentFiles = item.componentFiles
+		this.componentFiles = this.componentFiles.map((component) => {
+			let item = new Item(component)
+			this.componentRows.push(item.row)
+			return item
+		})
+
+		let setComponentVisibility = (function() {
+			if (this.checkbox.checked === false) {
+				this.componentFiles.forEach((file) => {
+					file.row.style.display = "none"
+					file.checkbox.checked = false
+				})
+			}
+			else {
+				this.componentFiles.forEach((file) => {
+					file.row.style.display = ""
+					file.checkbox.checked = true
+				})
+			}
+		}).bind(this)
+
+		setComponentVisibility()
+		this.checkbox.addEventListener("change", setComponentVisibility)
+
 		addText(`Animal: ${item.Animal}`)
 		addText(`Sex: ${item.Sex}`)
 		addText(`Genotype: ${item.Genotype}`)
 		addText(`Weight: ${item.weight}`)
 		addText(`DOB: ${item.DOB}`)
 
+		if (item.Sex === "male") {this.row.style.backgroundColor = "#eeeeff"}
+		else if (item.Sex === "female") {this.row.style.backgroundColor = "#ffeeee"}
 
-		if (item.Sex === "male") {row.style.backgroundColor = "#eeeeff"}
-		else if (item.Sex === "female") {row.style.backgroundColor = "#ffeeee"}
-
-
-		let thumbnailContainer = document.createElement("div")
-		thumbnailContainer.className = "thumbnailContainer"
-		row.appendChild(thumbnailContainer)
+		this.thumbnailContainer = document.createElement("div")
+		this.thumbnailContainer.className = "thumbnailContainer"
+		this.row.appendChild(this.thumbnailContainer)
 
 		function addThumbnails(view, container) {
 			view.thumbnails.forEach((fileName) => {
@@ -68,7 +94,7 @@ function createItem(item) {
 			let view = item.views[i]
 			let scanContainer = document.createElement("div")
 			scanContainer.style.textAlign = "center"
-			thumbnailContainer.appendChild(scanContainer)
+			this.thumbnailContainer.appendChild(scanContainer)
 
 			addThumbnails(view, scanContainer)
 
@@ -80,11 +106,7 @@ function createItem(item) {
 	else {
 		console.warn("Unknown Type: " + item.type)
 	}
-
-	return row
 }
-
-
 
 function generateNeuroglancerLink(fileName) {
 	let imageLink = dataDir + fileName
@@ -141,8 +163,11 @@ function drawCards(items) {
 	while(itemContainer.firstChild) {itemContainer.firstChild.remove()}
 	for (let i=0;i<items.length;i++) {
 		let item = items[i]
-		let row = createItem(item)
-		itemContainer.appendChild(row)
+		item = new Item(item) //REDEFINE OF VARIABLE!!!
+		itemContainer.appendChild(item.row)
+		item.componentRows.forEach((row) => {
+			itemContainer.appendChild(row)
+		})
 	}
 }
 
