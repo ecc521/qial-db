@@ -1,6 +1,7 @@
 const http = require("http")
 const path = require("path")
 const fs = require("fs")
+const child_process = require("child_process")
 
 const dataDir = path.join(__dirname, "../", "data")
 fs.mkdirSync(dataDir, {recursive: true})
@@ -10,6 +11,19 @@ const generateJSON = require("./generateJSON.js")
 
 const hostname = "0.0.0.0"
 const httpport = 3000
+
+//Gets the body of a request.
+function getData(request) {
+	return new Promise((resolve, reject) => {
+		let body = []
+		request.on("data", function(chunk) {
+			body.push(chunk)
+		})
+		request.on("end", function() {
+			resolve(Buffer.concat(body))
+		})
+	})
+}
 
 async function httprequest(req,res) {
 	console.log(req.url)
@@ -102,6 +116,35 @@ async function httprequest(req,res) {
 		res.setHeader('Content-Type', 'text/plain');
 		res.end("Success");
 		return
+	}
+
+	if (req.url.includes("/download")) {
+		let data = await getData(req)
+
+		//We use the URL object to get search params, so the domain/host can be anything.
+		let urlObj = new URL("localhost:/" + req.url)
+		let names = urlObj.searchParams.get("names").split(",")
+
+		for (let i=0;i<names.length;i++) {
+			//Not sure if this is needed. Quite possibly ../ would make an invalid URL.
+			if (path.resolve(dataDir, names[i]).indexOf(dataDir) !== 0) {
+				res.statusCode = 403
+				res.setHeader('Content-Type', 'text/plain');
+				res.end("Reading parent directories is prohibited. ");
+				return;
+			}
+		}
+
+		//Send the user a zip file.
+		let zipper = child_process.spawn("zip", ["-9", "-"].concat(names), {
+			cwd: dataDir,
+			stido: ["ignore", "pipe", "pipe"] //Ingore stdin. Pipe others.
+		})
+
+		res.statusCode = 200;
+		res.setHeader('Content-Type', 'application/zip');
+		zipper.stdout.pipe(res) //Respond with the zip file.*/
+		return;
 	}
 
 	res.statusCode = 501

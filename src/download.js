@@ -2,7 +2,8 @@ let getDownloadTemplate = require("./getDownloadTemplate.js")
 
 let downloadMenuDiv = document.getElementById("downloadMenu")
 let downloadNodejsScript = document.getElementById("downloadNodejsScript")
-let downloadScriptInfo = document.getElementById("downloadScriptInfo")
+let downloadZip = document.getElementById("downloadZip")
+let downloadInfo = document.getElementById("downloadInfo")
 
 downloadMenuDiv.remove()
 
@@ -29,10 +30,29 @@ function getDownloadData() {
 
 	let totalSize = items.reduce((sum, item) => {return sum + item.size}, 0)
 
-	downloadScriptInfo.innerHTML = `NodeJS script will download ${items.length} selected files totalling ${numberPrettyBytesSI(totalSize)}. `
+	downloadInfo.innerHTML = `You have selected ${items.length} files totalling ${numberPrettyBytesSI(totalSize)}. `
 	return items
 }
 toggleDownload.addEventListener("click", getDownloadData)
+
+downloadZip.addEventListener("click", function() {
+	var link = document.createElement("a");
+	document.body.appendChild(link);
+
+	link.download = "qialdownload.zip" //TODO: Name getting ignored, in favor of request directory "download"
+	let items = getDownloadData()
+	if (items.length === 0) {return alert("Please exit the download menu and select some items to download. ")}
+
+	let names = items.map((item) => {
+		return item.name
+	})
+	link.href = window.url + "download?names=" + names.join(",");
+	console.log(link.href)
+	link.click();
+
+	document.body.removeChild(link);
+	URL.revokeObjectURL(link.href)
+})
 
 downloadNodejsScript.addEventListener("click", function() {
 	var link = document.createElement("a");
