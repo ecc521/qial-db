@@ -1,9 +1,11 @@
 const dataDir = window.location.protocol + "//" + window.location.host + "/data/"
 
 let itemContainer = document.getElementById("items")
-
+window.itemHolder = [] //itemHolder currently holds files only - no animals.
 
 function Item(item) {
+	this.item = item
+
 	this.row = document.createElement("div")
 	this.row.className = "itemRow"
 
@@ -25,6 +27,7 @@ function Item(item) {
 	this.componentRows = []
 
 	if (item.type === "file") {
+		itemHolder.push(this)
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
@@ -60,6 +63,7 @@ function Item(item) {
 		addText(`Genotype: ${item.Genotype}`)
 		addText(`Weight: ${item.weight}`)
 		addText(`DOB: ${item.DOB}`)
+		addText(`File Count: ${item.componentFiles.length}`)
 
 		if (item.Sex === "male") {this.row.style.backgroundColor = "#eeeeff"}
 		else if (item.Sex === "female") {this.row.style.backgroundColor = "#ffeeee"}
@@ -160,6 +164,7 @@ function generateNeuroglancerLink(fileName) {
 
 
 function drawCards(items) {
+	itemHolder = []
 	while(itemContainer.firstChild) {itemContainer.firstChild.remove()}
 	for (let i=0;i<items.length;i++) {
 		let item = items[i]
