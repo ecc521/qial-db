@@ -8,7 +8,7 @@ function setAll(selected = true) {
 			child.parent.checkbox.checked = !selected
 			child.parent.checkbox.click()
 		}
-		child.checkbox.checked
+		child.checkbox.checked = selected
 	})
 }
 

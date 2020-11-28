@@ -164,6 +164,79 @@ function generateNeuroglancerLink(fileName) {
 }
 
 
+let searchOptions = document.getElementById("searchOptions")
+let searchFilters = [] //Functions to filter list through
+
+function generateSearchOptions(items) {
+	let ofOptions = ["type", "Sex", "Genotype"] //Selecting one of a few.
+
+	ofOptions.forEach((optionName) => {
+		let select = document.createElement("select")
+
+		function searchFilter(items) {
+			let selection = select.value
+			return items.filter((item) => {
+				if (select.value === "") {return true}
+				if (item[optionName] === undefined) {return false}
+				return item[optionName] === select.value
+			})
+		}
+
+		function setPossibilities() {
+			let currentItems = items
+			//Use all filters but this one.
+			searchFilters.filter((filter) => {return filter !== searchFilter}).forEach((filter) => {
+				currentItems = filter(currentItems)
+			})
+
+			function getPossibilities(items) {
+				let possibilities = {
+					"": 0
+				}
+				items.forEach((item) => {
+					if (item[optionName] === undefined) {return}
+
+					if (item[optionName] !== "") {
+						possibilities[""]++
+					}
+					if (!possibilities[item[optionName]]) {
+						possibilities[item[optionName]] = 0
+					}
+					possibilities[item[optionName]]++
+				})
+				return possibilities
+			}
+
+			let possibilities = getPossibilities(items)
+			for (let possibility in possibilities) {
+				let option = document.getElementsByName(possibility + optionName)[0]
+				if (!option) {
+					option = document.createElement("option")
+					option.value = possibility
+					option.setAttribute("name", possibility + optionName)
+					select.appendChild(option)
+				}
+				let possibilityName = possibility
+				if (possibilityName === "") {possibilityName = "Any " + optionName}
+				option.innerHTML = possibilityName + ` (${getPossibilities(currentItems)[possibility] || 0} - ${possibilities[possibility]} total)`
+			}
+		}
+
+		setPossibilities()
+		window.addEventListener("searchProcessed", setPossibilities)
+		select.addEventListener("change", processSearch)
+		searchFilters.push(searchFilter)
+		searchOptions.appendChild(select)
+	})
+}
+
+function processSearch() {
+	let items = window.data
+	searchFilters.forEach((filter) => {items = filter(items)})
+	drawCards(items)
+	window.dispatchEvent(new Event("searchProcessed"))
+}
+
 function drawCards(items) {
 	itemHolder = []
 	while(itemContainer.firstChild) {itemContainer.firstChild.remove()}
@@ -180,7 +253,8 @@ function drawCards(items) {
 ;(async function() {
 	let request = await fetch(url + "data.json")
 	let response = await request.json()
-	console.log(response)
+	window.data = response
 
-	drawCards(response)
+	generateSearchOptions(window.data)
+	drawCards(window.data)
 }())
