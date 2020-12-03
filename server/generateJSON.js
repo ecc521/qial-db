@@ -10,16 +10,17 @@ async function generateThumbnails(pathToNIFTI) {
 
 	let outputName = path.basename(pathToNIFTI)
 	let outputNameRoot = outputName.slice(0, outputName.indexOf("."))
+	let type = "jpg" //JPEG is ~3x smaller, and similar visual quality. These are thumbnails.
 	let outputNames = [
-		outputNameRoot + ".qialdbthumbnail.x.png",
-		outputNameRoot + ".qialdbthumbnail.y.png",
-		outputNameRoot + ".qialdbthumbnail.z.png"
+		outputNameRoot + ".qialdbthumbnail.x." + type,
+		outputNameRoot + ".qialdbthumbnail.y." + type,
+		outputNameRoot + ".qialdbthumbnail.z." + type
 	]
 
 	//Filter out files that we don't need to generate again.
 	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
 	let filesToProcess = outputNames.filter((fileName) => {
-		let filePath = path.join(dataDir, outputName)
+		let filePath = path.join(dataDir, fileName)
 		if (!fs.existsSync(filePath)) {return true} //Need to regenerate
 		let modified = fs.statSync(filePath).mtime
 		if (modified < modifiedNifti) {return true} //Nifti modified more recently than thumbnail. Thumbnail old.
