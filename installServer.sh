@@ -7,6 +7,9 @@ sudo apt-get upgrade
 #Install git
 sudo apt-get install -y git
 
+#Install ZIP
+sudo apt-get install -y zip
+
 sudo apt-get install python3 python3-pip
 pip3 install nibabel numpy argparse pathlib imageio
 
