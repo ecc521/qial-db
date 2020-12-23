@@ -1,16 +1,11 @@
 const fetch = require("node-fetch")
 const crypto = require("crypto")
 
-async function fetchAuthFile() {
-	let request = await fetch("https://api.github.com/repos/ecc521/qial-db/releases/latest")
-	let response = await request.json()
-	let body = response.body //This is the description of the latest release.
+async function fetchAuthFile(AUTH_FILE_ID = "1h0dFgl7Q7SaK8jOLzf0H1hqS7asZnhPsEMAEQTMstpQ", API_KEY = "AIzaSyCNyaZX81DId62wp_UOS2mncJq-1YQdJmM") {
+	let request = await fetch('https://www.googleapis.com/drive/v3/files/' + AUTH_FILE_ID + '/export?mimeType=' + "text/plain" + '&key=' + API_KEY)
+	let body = await request.text()
 
 	/*
-In order to generate a new hash/salt combo,
-
-Note: These hashes and salts are exposed to the public. Therefore is strongly advised to use a password not related to those you use elsewhere. We should probably hash more than once, and use a more expensive hashing function to make guessing more costly, however this implementation should be solid, provided passwords are non-trivial.
-
 Format:
 Each hash and salt entry is on a new line. The salt comes first, then the hash. There is no space between the two.
 All lines not exactly 128 hexadecimal characters, after whitespace is removed, will be ignored. These lines can be used for comments and labeling.
@@ -72,5 +67,6 @@ function generateEntry(password) {
 module.exports = {
 	getHash,
 	generateEntry,
-	authPassword
+	authPassword,
+	fetchAuthFile //For testing purposes.
 }
