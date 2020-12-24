@@ -59,22 +59,18 @@ async function httprequest(req,res) {
 		let password = req.headers['qial-password']
 		let filename = req.headers['qial-filename']
 		console.log(filename)
-		try {
-			let valid = await passwords.authPassword(password)
-			if (!valid) {
-				throw new Error("Invalid Password")
-			}
-		}
-		catch (e) {
+
+		let auth = await passewords.authPassword(password, [true, false, false])
+		if (auth.authorized !== true) {
 			res.statusCode = 401
 			res.setHeader('Content-Type', 'text/plain');
-			res.end("Error in password processing: " + e.message);
-			//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error. Browsers are clearly
-			//not following the spec, because of difficulty in redesigning architecture. Since ingress to cloud isn't charged, we'll just let the
-			//request proceed, then return the error - chunked transfer will stop this from being a major problem.
-			//req.destroy(["Error in password processing: " + e.message])
+			res.end("Error in password processing: " + auth.message);
+			//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
+			//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
+			//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
 			return;
 		}
+
 
 		//Now we can process the actual upload. The user is authorized.
 		let action = req.headers["qial-action"]
@@ -92,13 +88,11 @@ async function httprequest(req,res) {
 
 		let writeStream;
 		if (action === "append") {
-			//We may need to handle this in chunks, depending on how large this file is. We'll decide what to do based on this.
 			writeStream = fs.createWriteStream(writePath, {
 				flags: "a"
 			})
 		}
 		else {
-			//TODO: Either auto-rename, or provide the user an option.
 			if (fs.existsSync(writePath)) {
 				res.statusCode = 400
 				res.setHeader('Content-Type', 'text/plain');
@@ -125,8 +119,8 @@ async function httprequest(req,res) {
 		let urlObj = new URL("localhost:/?" + data.toString())
 		let names = urlObj.searchParams.get("names").split(",")
 
+		//Block reading of parent directories - TODO: Test this. 
 		for (let i=0;i<names.length;i++) {
-			//Not sure if this is needed. Quite possibly ../ would make an invalid URL.
 			if (path.resolve(dataDir, names[i]).indexOf(dataDir) !== 0) {
 				res.statusCode = 403
 				res.setHeader('Content-Type', 'text/plain');
@@ -136,7 +130,7 @@ async function httprequest(req,res) {
 		}
 
 		//Send the user a zip file.
-		//Since most of our files should be already compressed, and no compression is drastically faster, use compression level 0. 
+		//Since most of our files should be already compressed, and no compression is drastically faster, use compression level 0.
 		let zipper = child_process.spawn("zip", ["-0", "-"].concat(names), {
 			cwd: dataDir,
 			stido: ["ignore", "pipe", "pipe"] //Ingore stdin. Pipe others.
