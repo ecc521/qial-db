@@ -44,7 +44,6 @@ async function generateThumbnails(pathToNIFTI) {
 }
 
 module.exports = async function() {
-
 	let files = await fs.promises.readdir(dataDir)
 
 	let csvJSON = await loadDataCSV()

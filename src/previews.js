@@ -31,6 +31,25 @@ function Item(item) {
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
+
+		let renameButton = document.createElement("button")
+		renameButton.classList.add("renameButton")
+		renameButton.innerHTML = "Rename"
+		this.row.appendChild(renameButton)
+		renameButton.addEventListener("click", function() {
+			fetch(url + "fileops", {
+				method: 'PATCH',
+				headers: {
+					'qial-password': prompt("Please enter Qial-DB Password"),
+				  	'qial-filename': item.name,
+				  	'qial-target-filename': prompt("Please enter new filename (don't forget extension!)"),
+				},
+			}).then((response) => {
+				response.text().then((result) => {
+					alert(result)
+				})
+			})
+		})
 	}
 	else if (item.type === "animal") {
 		this.componentFiles = item.componentFiles

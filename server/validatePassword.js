@@ -83,7 +83,7 @@ async function authPassword(password, permissions = [], useCache = true) {
 		}
 	});
 
-	if (!obj.valid) {obj.messsage = "Invalid Password"}
+	if (!obj.valid) {obj.message = "Invalid Password"}
 	else if (!obj.authorized) {
 		obj.message = "Insuffecient Permissions: Has " + obj.permissions.map((perm) => {return perm?"y":"n"}).join("") + ", but needs " + permissions.map((perm) => {return perm?"y":"n"}).join("") + " or more. "
 	}

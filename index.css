@@ -124,3 +124,9 @@ h1, h2 {
 	display: inline-block;
 	padding: 30px;
 }
+
+.renameButton {
+	display: block;
+	margin-left: auto;
+	margin-right: 30px;
+}

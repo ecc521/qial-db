@@ -1,25 +1,27 @@
 const fs = require("fs")
 const path = require("path")
+
+const fetch = require("node-fetch")
 const csvParser = require("csv-parser")
 
 let cache;
 let lastCached;
-module.exports = async function loadDataCSV(filePath = path.join(__dirname, "../", "data", "QCLAB_AD_mice.csv")) {
-	//If in cache, and was last cached more recently than the file changed, then don't bother processing.
-	cache = null; //Temporarily disable cache. generateJSON.js now modifies. 
-	if (!(cache && lastCached > fs.statSync(filePath).mtime)) {
+module.exports = async function loadDataCSV(useCache = false, SHEET_NAME="Mice", FILE_ID="1NLrvb5Y61Gcc-02lrkHya-J0M-mYoypGfB6nTZ0QGmU") {
+	let url = `https://docs.google.com/spreadsheets/d/${FILE_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`
+	let response = await fetch(url)
+
+	if (!cache || !useCache) {
 		let results = await new Promise((resolve, reject) => {
 			let results = []
-			fs.createReadStream(filePath)
-			  .pipe(csvParser())
-			  .on('data', (data) => results.push(data))
+			response.body.pipe(csvParser())
+			  .on('data', (data) => {results.push(data)})
 			  .on('end', () => {
 				resolve(results)
 			  });
 		})
-
 		cache = results
 		lastCached = Date.now()
 	}
+
 	return cache
 }

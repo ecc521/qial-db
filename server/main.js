@@ -33,6 +33,7 @@ async function httprequest(req,res) {
 	if (req.method === "OPTIONS") {
 		res.statusCode = 200
 		res.setHeader("Access-Control-Allow-Headers", "*")
+		res.setHeader("Access-Control-Allow-Methods", "*")
 		res.end()
 		return;
 	}
@@ -54,13 +55,63 @@ async function httprequest(req,res) {
 		return;
 	}
 
-	if (req.method === "POST" && req.url.includes("/upload")) {
-
+	if (["DELETE", "PATCH"].includes(req.method) && req.url.includes("/fileops")) {
 		let password = req.headers['qial-password']
 		let filename = req.headers['qial-filename']
 		console.log(filename)
 
-		let auth = await passewords.authPassword(password, [true, false, false])
+
+		let auth = await passwords.authPassword(password, (req.method==="DELETE")?[false, false, true]:[false, true, false])
+		if (auth.authorized !== true) {
+			res.statusCode = 401
+			res.setHeader('Content-Type', 'text/plain');
+			res.end("Error in password processing: " + auth.message);
+			//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
+			//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
+			//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
+			return;
+		}
+
+		let filePath = path.join(dataDir, filename)
+
+		if (filePath.indexOf(dataDir) !== 0) {
+			res.statusCode = 403
+			res.setHeader('Content-Type', 'text/plain');
+			res.end("Modifying parent directories is prohibited. ");
+			return;
+		}
+		console.log(filePath)
+
+		res.statusCode = 200
+		res.setHeader('Content-Type', 'text/plain');
+
+		if (req.method === "DELETE") {
+			await fs.promises.unlinkSync(filePath)
+			res.end(`${path.basename(filePath)} deleted. Changes should appear on reload. `);
+		}
+		else if (req.method === "PATCH") {
+			let targetFileName = req.headers['qial-target-filename']
+			let targetFilePath = path.join(dataDir, targetFileName)
+
+			if (targetFilePath.indexOf(dataDir) !== 0) {
+				res.statusCode = 403
+				res.setHeader('Content-Type', 'text/plain');
+				res.end("Writing into parent directories is prohibited. ");
+				return;
+			}
+
+			await fs.promises.rename(filePath, targetFilePath)
+			res.end(`${path.basename(filePath)} renamed to ${path.basename(targetFilePath)}. Changes should appear on reload. `);
+		}
+		return
+	}
+
+	if (req.method === "POST" && req.url.includes("/upload")) {
+		let password = req.headers['qial-password']
+		let filename = req.headers['qial-filename']
+		console.log(filename)
+
+		let auth = await passwords.authPassword(password, [true, false, false])
 		if (auth.authorized !== true) {
 			res.statusCode = 401
 			res.setHeader('Content-Type', 'text/plain');
@@ -77,7 +128,6 @@ async function httprequest(req,res) {
 
 		let writePath = path.join(dataDir, filename)
 
-		//Validate the path is in the correct directory. Authorized doesn't mean overwrite our code authorized.
 		if (writePath.indexOf(dataDir) !== 0) {
 			res.statusCode = 403
 			res.setHeader('Content-Type', 'text/plain');
@@ -119,7 +169,6 @@ async function httprequest(req,res) {
 		let urlObj = new URL("localhost:/?" + data.toString())
 		let names = urlObj.searchParams.get("names").split(",")
 
-		//Block reading of parent directories - TODO: Test this. 
 		for (let i=0;i<names.length;i++) {
 			if (path.resolve(dataDir, names[i]).indexOf(dataDir) !== 0) {
 				res.statusCode = 403
