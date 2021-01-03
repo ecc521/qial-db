@@ -46,6 +46,13 @@ sudo tee -a /etc/apache2/sites-available/qial-db.conf > /dev/null << EOF
 		ErrorLog ${APACHE_LOG_DIR}/error.log
 		CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
+
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule http2_module modules/mod_http2.so
+
+ProxyPass /node http://127.0.0.1:3000/node
+Protocols h2 http/1.1
 EOF
 
 sudo a2ensite qial-db.conf
@@ -62,12 +69,13 @@ EOF
 
 #Enable reverse proxy to /node.
 sudo tee -a /etc/apache2/conf-available/NODEQIALDB.conf > /dev/null << EOF
-LoadModule proxy_module modules/mod_proxy.so
-LoadModule proxy_http_module modules/mod_proxy_http.so
-ProxyPass /node http://127.0.0.1:3000/node
+<Directory $HOME/qial-db/>
+    	Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+</Directory>
 
-LoadModule http2_module modules/mod_http2.so
-Protocols h2 http/1.1
+AddOutputFilterByType DEFLATE application/json
 EOF
 
 sudo a2enconf NODEQIALDB #To disable, run sudo a2disconf NODEQIALDB
@@ -77,8 +85,7 @@ sudo systemctl restart apache2
 
 #Install Certbot
 sudo apt-get install -y certbot python-certbot-apache
-sudo certbot --apache
-
+sudo certbot --apache --hsts
 
 echo "Swap file recommended, assuming maximum server memory is low: "
 echo "Google Cloud Compute Engine: https://badlywired.com/2016/08/15/adding-swap-google-compute-engine/"
