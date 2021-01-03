@@ -86,7 +86,7 @@ async function httprequest(req,res) {
 		res.setHeader('Content-Type', 'text/plain');
 
 		if (req.method === "DELETE") {
-			await fs.promises.unlinkSync(filePath)
+			await fs.promises.unlink(filePath)
 			res.end(`${path.basename(filePath)} deleted. Changes should appear on reload. `);
 		}
 		else if (req.method === "PATCH") {

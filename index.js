@@ -6,5 +6,7 @@ if (window.location.host.startsWith("127.0.0.1")) {
 window.Overlay = require("./src/overlay.js")
 require("./src/upload.js")
 require("./src/download.js")
+require("./src/delete.js")
+
 require("./src/previews.js")
 require("./src/selections.js")
