@@ -10,7 +10,7 @@ const passwords = require("./validatePassword.js")
 const generateJSON = require("./generateJSON.js")
 
 const hostname = "0.0.0.0"
-const httpport = 3000
+const httpport = 6928
 
 //Gets the body of a request.
 function getData(request) {
