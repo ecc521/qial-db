@@ -26,6 +26,8 @@ function Item(item) {
 
 	this.componentRows = []
 
+	item["Number of Images"] = String(item?.views?.length ?? "")
+
 	if (item.type === "file") {
 		itemHolder.push(this)
 		addText(`File Name: ${item.name}`)
@@ -203,6 +205,6 @@ window.drawCards = function drawCards(items) {
 	let response = await request.json()
 	window.data = response
 
-	require("./search.js").generateSearchOptions(window.data)
 	drawCards(window.data)
+	require("./search.js").generateSearchOptions(window.data)
 }())

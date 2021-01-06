@@ -2,7 +2,6 @@ let searchOptions = document.getElementById("searchOptions")
 let searchFilters = [] //Functions to filter list through
 
 function generateSearchOptions(items) {
-	let ofOptions = ["type", "Sex", "Genotype"] //Selecting one of a few.
 	let options = [
 		{
 			optionName: "type",
@@ -17,6 +16,10 @@ function generateSearchOptions(items) {
 			type: "of"
 		},
 		{
+			optionName: "Number of Images",
+			type: "of"
+		},
+		{
 			optionName: "weight",
 			type: "range",
 			convertFrom: Number,
@@ -28,6 +31,7 @@ function generateSearchOptions(items) {
 		}
 	]
 
+	//Currently, of filters only support strings.
 	options.forEach(({optionName, type, convertFrom}) => {
 		let selects = [document.createElement("select")]
 
