@@ -65,6 +65,7 @@ EOF
 
 sudo a2ensite qial-db
 
+sudo rm /etc/apache2/conf-available/NODEQIALDB.conf
 sudo tee -a /etc/apache2/conf-available/NODEQIALDB.conf > /dev/null << EOF
 <Directory $HOME/qial-db/>
     	Options Indexes FollowSymLinks
