@@ -102,7 +102,13 @@ function generateSearchOptions(items) {
 
 			let possibilitiesArray = [];
 			for (let possibility in possibilities) {
-				possibilitiesArray.push(possibility)
+				if (possibility === "") {
+					//Move the "From Any" to the front.
+					possibilitiesArray.unshift(possibility)
+				}
+				else {
+					possibilitiesArray.push(possibility)
+				}
 			}
 
 			let iterations = [""]
@@ -115,7 +121,7 @@ function generateSearchOptions(items) {
 					})
 					if (iterationNum === 1) {
 						possibilitiesArray.reverse()
-						//Move the "From Any" to the front.
+						//Move the "From Any" to the front again.
 						possibilitiesArray.unshift(possibilitiesArray.pop())
 					}
 				}
