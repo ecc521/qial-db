@@ -62,12 +62,53 @@ module.exports = async function() {
 		return reclaimedFiles
 	}
 
+
+	let niiFiles = files.filter((fileName) => {
+		return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
+	})
+
+
 	for (let i=0;i<csvJSON.length;i++) {
 		let item = csvJSON[i]
 		item.type = "animal"
 		item.views = []
 		item.componentFiles = []
-		if (item["SAMBA Brunno"]) {
+
+		//These will be used for identification.
+		let normalizedAnimalCode = item.Animal.split("-").join("_")
+		if (normalizedAnimalCode.indexOf(":") !== -1) {
+			normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
+		}
+		let SAMBABrunno = item["SAMBA Brunno"]
+		let GRE = item.GRE //Animal 190610-1:1 has multiple of these. Check this out.
+		let DWI = item.DWI
+
+		let relatedFiles = niiFiles.filter((fileName) => {
+			return (
+				fileName.includes(normalizedAnimalCode)
+				|| (SAMBABrunno && fileName.includes(SAMBABrunno))
+				|| (DWI && fileName.includes(DWI))
+				|| (GRE && fileName.includes(GRE))
+			)
+		})
+
+		//TODO: Handle labels. Probably search filename for word label. 
+		for (let i=0;i<relatedFiles.length;i++) {
+			let fileName = relatedFiles[i]
+			let view = {
+				name: fileName,
+				filePath: fileName,
+				//labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
+			}
+
+			view.thumbnails = await generateThumbnails(path.join(dataDir, view.filePath))
+			item.views.push(view)
+			item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails)) //view.labelPath
+
+		}
+
+
+		/*if (item["SAMBA Brunno"]) {
 			let view = {
 				name: "SAMBA Brunno",
 				filePath: item["SAMBA Brunno"] + "_T1_masked.nii.gz",
@@ -109,7 +150,11 @@ module.exports = async function() {
 					item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails))
 				}
 			}
-		}
+		}*/
+
+
+
+
 
 		item.componentFiles = item.componentFiles.map((fileName) => {
 			let stats = fs.statSync(path.join(dataDir, fileName))
