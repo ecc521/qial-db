@@ -42,7 +42,7 @@ async function generateThumbnails(pathToNIFTI) {
 
 	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
 	let tempPath;
-	if (path.extname(pathToNIFTI) === ".nii.gz") {
+	if (pathToNIFTI.endsWith(".nii.gz")) {
 		console.log("nii.gz!")
 		if (fs.statSync(pathToNIFTI).size > os.freemem() / 6) {
 			console.log("Low Mem!")
