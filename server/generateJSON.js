@@ -4,6 +4,8 @@ const child_process = require("child_process")
 const os = require("os")
 const zlib = require("zlib")
 
+const sharp = require('sharp');
+
 const loadDataCSV = require("./loadDataCSV.js")
 const dataDir = path.join(__dirname, "../", "data")
 
@@ -12,12 +14,16 @@ async function generateThumbnails(pathToNIFTI) {
 
 	let outputName = path.basename(pathToNIFTI)
 	let outputNameRoot = outputName.slice(0, outputName.indexOf("."))
-	let type = "jpg" //JPEG is ~3x smaller, and similar visual quality. These are thumbnails.
-	let outputNames = [
-		outputNameRoot + ".qialdbthumbnail.x." + type,
-		outputNameRoot + ".qialdbthumbnail.y." + type,
-		outputNameRoot + ".qialdbthumbnail.z." + type
-	]
+	let type = "webp"
+	function getNamesForType(type) {
+		return [
+			outputNameRoot + ".qialdbthumbnail.x." + type,
+			outputNameRoot + ".qialdbthumbnail.y." + type,
+			outputNameRoot + ".qialdbthumbnail.z." + type
+		]
+	}
+
+	let outputNames = getNamesForType(type)
 
 	//If we don't need to generate any images, then don't generate any.
 	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
@@ -43,9 +49,7 @@ async function generateThumbnails(pathToNIFTI) {
 	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
 	let tempPath;
 	if (pathToNIFTI.endsWith(".nii.gz")) {
-		console.log("nii.gz!")
-		if (fs.statSync(pathToNIFTI).size > os.freemem() / 6) {
-			console.log("Low Mem!")
+		if (fs.statSync(pathToNIFTI).size > os.freemem() / 8) {
 			tempPath = pathToNIFTI.slice(0, -3)
 			let unzipper = zlib.createGunzip()
 			await new Promise((resolve, reject) => {
@@ -58,16 +62,44 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 
 	try {
+		//TODO: Write temporary images to a memory directory.
+		let tempImages = getNamesForType("png")
 		let process = child_process.spawn("python3", [
 			path.join(__dirname, "generateThumbnails.py"),
 			tempPath || pathToNIFTI,
-		].concat(outputNames), {
+		].concat(tempImages), { //These are exported as PNG. They will be converted.
 			cwd: dataDir
 		})
 
 		await new Promise((resolve, reject) => {
 			process.on('close', resolve);
 		})
+
+		try {
+			let imageProcessors = []
+			for (let i=0;i<tempImages.length;i++) {
+				let imagePath = path.join(dataDir, tempImages[i])
+				imageProcessors.push(await sharp(imagePath))
+			}
+
+			//TODO: Also handle reordering of images here if not in generateThumbnails.py
+			for (let i=0;i<imageProcessors.length;i++) {
+				let imageProcessor = imageProcessors[i]
+				await imageProcessor
+					.resize({height: 180})
+					.webp({
+						reductionEffort: 5, //Could be slow. 0-6 for CPU used to compress. Default 4
+						quality: 70, //Default 80.
+					})
+					.toFile(path.join(dataDir, outputNames[i]))
+				//We don't need to delete the original PNGs - that's handled elsewhere.
+			}
+		}
+		catch (e) {
+			console.error(e)
+			require("process").exit()
+		}
+		//Convert thumbnails to standard size. Max height is 180 pixels, all
 
 		return outputNames
 	}
@@ -78,6 +110,7 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 }
 
+//TODO: Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
 module.exports = async function() {
 	let files = await fs.promises.readdir(dataDir)
 
@@ -150,56 +183,7 @@ module.exports = async function() {
 			view.thumbnails = await generateThumbnails(path.join(dataDir, view.filePath))
 			item.views.push(view)
 			item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails)) //view.labelPath
-
 		}
-
-
-		/*if (item["SAMBA Brunno"]) {
-			let view = {
-				name: "SAMBA Brunno",
-				filePath: item["SAMBA Brunno"] + "_T1_masked.nii.gz",
-				labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
-			}
-
-			let filePath = path.join(dataDir, view.filePath)
-			if (fs.existsSync(filePath)) {
-				view.thumbnails = await generateThumbnails(filePath)
-				if (!fs.existsSync(path.join(dataDir, view.labelPath))) {
-					delete item.labelPath
-				}
-				item.views.push(view)
-				item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.labelPath, view.thumbnails))
-			}
-		}
-		delete item["SAMBA Brunno"]
-
-		let prefix = "Animal_" + item.Animal.split("-").join("_")
-		if (prefix.indexOf(":") !== -1) {
-			prefix = prefix.slice(0, prefix.indexOf(":"))
-		}
-		let relatedFiles = files.filter((fileName) => {
-			if (fileName.indexOf(prefix) === 0) {return true}
-		})
-
-		for (let i =0;i<relatedFiles.length;i++) {
-			let fileName = relatedFiles[i]
-			if (fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")) {
-				let view = {
-					name: fileName.slice(fileName.indexOf("RARE_MEMRI"), fileName.indexOf(".")),
-					filePath: fileName,
-				}
-
-				let filePath = path.join(dataDir, view.filePath)
-				if (fs.existsSync(filePath)) {
-					view.thumbnails = await generateThumbnails(filePath)
-					item.views.push(view)
-					item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails))
-				}
-			}
-		}*/
-
-
-
 
 
 		item.componentFiles = item.componentFiles.map((fileName) => {
