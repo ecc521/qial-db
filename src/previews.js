@@ -94,29 +94,68 @@ function Item(item) {
 		this.thumbnailContainer.className = "thumbnailContainer"
 		this.row.appendChild(this.thumbnailContainer)
 
+		function getFileSize(fileName) {
+			//This may throw IF (and hopefully only if) the same image is used by multiple animals (as the image may be added, without the file being added to
+			//componentFiles, as it was already reclaimed)
+			try {
+				return item.componentFiles.find((componentFile) => {return componentFile.name === fileName}).size
+			}
+			catch (e) {
+				console.error("Error logged below. See code comments for more details. ")
+				console.error(e)
+				console.error(item)
+				console.error(fileName)
+				console.error(item.componentFiles)
+				return //We don't know.
+			}
+		}
+
+		let maxPreviewSize = 10000000 //10 MB
 		function addThumbnails(view, container) {
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
 				img.src = dataDir + fileName
-				img.addEventListener("click", function() {
-					window.open(generateNeuroglancerLink(view.filePath))
-				})
 				container.appendChild(img)
+
+				if (getFileSize(view.filePath) > maxPreviewSize) {
+					img.addEventListener("click", function() {
+						alert("This is a somewhat large file. Please download it to preview. ")
+					})
+				}
+				else {
+					img.addEventListener("click", function() {
+						window.open(generateNeuroglancerLink(view.filePath))
+					})
+				}
 			})
 		}
 
 		function createButton(view) {
 			let preview = document.createElement("button")
-			preview.innerHTML = `View ${view.name} in Neuroglancer`
 			preview.className = "neuroglancerLink"
-			preview.addEventListener("click", function() {
-				window.open(generateNeuroglancerLink(view.filePath))
-			})
+
+			if (getFileSize(view.filePath) > maxPreviewSize) {
+				preview.innerHTML = `Download ${view.name}`
+				preview.addEventListener("click", function() {
+					var link = document.createElement("a");
+				    link.setAttribute('download', view.name);
+				    link.href = dataDir + view.name;
+				    document.body.appendChild(link);
+				    link.click();
+				    link.remove();
+				})
+			}
+			else {
+				preview.innerHTML = `View ${view.name} in Neuroglancer`
+				preview.addEventListener("click", function() {
+					window.open(generateNeuroglancerLink(view.filePath))
+				})
+			}
+
 			return preview
 		}
 
 		for (let i=0;i<item.views.length;i++) {
-
 			let view = item.views[i]
 			let scanContainer = document.createElement("div")
 			scanContainer.style.textAlign = "center"
