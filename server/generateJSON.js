@@ -91,7 +91,7 @@ async function generateThumbnails(pathToNIFTI) {
 					.resize({height: 180})
 					.webp({
 						reductionEffort: 6, //Could be slow. 0-6 for CPU used to compress. Default 4
-						quality: 70, //Default 80.
+						quality: 80, //Default 80.
 					})
 					.toFile(path.join(dataDir, outputNames[i]))
 				//We don't need to delete the original PNGs - that's handled elsewhere.
