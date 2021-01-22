@@ -79,20 +79,31 @@ module.exports = async function() {
 		if (normalizedAnimalCode.indexOf(":") !== -1) {
 			normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
 		}
-		let SAMBABrunno = item["SAMBA Brunno"]
-		let GRE = item.GRE //Animal 190610-1:1 has multiple of these. Check this out.
-		let DWI = item.DWI
+
+		let provisionalItems = [normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
+		let itemsToCheck = []
+
+		//Expand arrays of identifying codes, in case there are multiple (like with Animal 190610-1:1, which has multiple GRE and DWI identifiers)
+		//Also filter out blank identifiers, for empty boxes. 
+		for (let i=0;i<provisionalItems.length;i++) {
+			let item = provisionalItems[i]
+			if (item instanceof Array) {
+				item.forEach((subitem) => {
+					provisionalItems.push(subitem)
+				})
+			}
+			else if (item) {
+				itemsToCheck.push(item)
+			}
+		}
 
 		let relatedFiles = niiFiles.filter((fileName) => {
-			return (
-				fileName.includes(normalizedAnimalCode)
-				|| (SAMBABrunno && fileName.includes(SAMBABrunno))
-				|| (DWI && fileName.includes(DWI))
-				|| (GRE && fileName.includes(GRE))
-			)
+			return itemsToCheck.some((item) => {
+				return fileName.includes(item)
+			})
 		})
 
-		//TODO: Handle labels. Probably search filename for word label. 
+		//TODO: Handle labels. Probably search filename for word label.
 		for (let i=0;i<relatedFiles.length;i++) {
 			let fileName = relatedFiles[i]
 			let view = {
