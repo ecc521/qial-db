@@ -110,129 +110,146 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 }
 
-//TODO: Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
+async function generateJSON() {
+   let files = await fs.promises.readdir(dataDir)
+
+   let csvJSON = await loadDataCSV()
+
+   function reclaimFiles(reclaimedFiles, ...fileNames) {
+	   //Remove a file from files - it is associated with something.
+	   fileNames.forEach((fileName) => {
+		   if (fileName instanceof Array) {reclaimFiles(reclaimedFiles, ...fileName)}
+		   else {
+			   let index = files.indexOf(fileName)
+			   if (index !== -1) {
+				   reclaimedFiles.push(files.splice(index, 1)[0])
+			   }
+		   }
+	   })
+	   return reclaimedFiles
+   }
+
+
+   let niiFiles = files.filter((fileName) => {
+	   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
+   })
+
+
+   for (let i=0;i<csvJSON.length;i++) {
+	   let item = csvJSON[i]
+	   item.type = "animal"
+	   item.views = []
+	   item.componentFiles = []
+
+	   //These will be used for identification.
+	   let normalizedAnimalCode = item.Animal.split("-").join("_")
+	   if (normalizedAnimalCode.indexOf(":") !== -1) {
+		   normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
+	   }
+
+	   let provisionalItems = [normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
+	   let itemsToCheck = []
+
+	   //Expand arrays of identifying codes, in case there are multiple (like with Animal 190610-1:1, which has multiple GRE and DWI identifiers)
+	   //Also filter out blank identifiers, for empty boxes.
+	   for (let i=0;i<provisionalItems.length;i++) {
+		   let item = provisionalItems[i]
+		   if (item instanceof Array) {
+			   item.forEach((subitem) => {
+				   provisionalItems.push(subitem)
+			   })
+		   }
+		   else if (item) {
+			   itemsToCheck.push(item)
+		   }
+	   }
+
+	   let relatedFiles = niiFiles.filter((fileName) => {
+		   return itemsToCheck.some((item) => {
+			   return fileName.includes(item)
+		   })
+	   })
+
+	   //TODO: Handle labels. Probably search filename for word label.
+	   for (let i=0;i<relatedFiles.length;i++) {
+		   let fileName = relatedFiles[i]
+		   let view = {
+			   name: fileName,
+			   filePath: fileName,
+			   //labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
+		   }
+
+		   view.thumbnails = await generateThumbnails(path.join(dataDir, view.filePath))
+		   item.views.push(view)
+		   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails)) //view.labelPath
+	   }
+
+
+	   item.componentFiles = item.componentFiles.map((fileName) => {
+		   let stats = fs.statSync(path.join(dataDir, fileName))
+		   return {
+			   name: fileName,
+			   size: stats.size,
+			   lastModified: new Date(stats.mtime).getTime(),
+			   type: "file"
+		   }
+	   })
+	   //Cleaning up and keeping thumbnails up to date is handled elsewhere.
+	   item.componentFiles = item.componentFiles.filter((obj) => {
+		   if (!obj.name.includes(".qialdbthumbnail.")) {return true}
+		   return false
+	   })
+   }
+
+   //Delete all thumbnails without associated animals.
+   files = files.filter((fileName) => {
+	   if (!fileName.includes(".qialdbthumbnail.")) {return true}
+	   fs.unlinkSync(path.join(dataDir, fileName))
+	   return false
+   })
+
+
+   let fileData = []
+   files.forEach((fileName) => {
+	   let stats = fs.statSync(path.join(dataDir, fileName))
+	   fileData.push({
+		   name: fileName,
+		   size: stats.size,
+		   lastModified: new Date(stats.mtime).getTime(),
+		   type: "file"
+	   })
+   })
+
+   let allData = csvJSON.concat(fileData)
+
+   function calc(item) {
+	   let val = 0;
+	   if (item.type === "animal") {val++}
+	   if (item?.views?.length > 0) {val++}
+	   return val
+   }
+
+   allData.sort((a, b) => {
+	   return calc(b) - calc(a)
+   })
+
+   return allData
+}
+
+let openRequest;
 module.exports = async function() {
-	let files = await fs.promises.readdir(dataDir)
-
-	let csvJSON = await loadDataCSV()
-
-	function reclaimFiles(reclaimedFiles, ...fileNames) {
-		//Remove a file from files - it is associated with something.
-		fileNames.forEach((fileName) => {
-			if (fileName instanceof Array) {reclaimFiles(reclaimedFiles, ...fileName)}
-			else {
-				let index = files.indexOf(fileName)
-				if (index !== -1) {
-					reclaimedFiles.push(files.splice(index, 1)[0])
-				}
-			}
-		})
-		return reclaimedFiles
+	//Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
+	//generateJSON may crash if it is run multiple times at once, or generate invalid thumbnails, etc.
+	if (openRequest) {
+		console.log("Request Open. Returning copy. ")
+		return openRequest
 	}
 
-
-	let niiFiles = files.filter((fileName) => {
-		return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
-	})
-
-
-	for (let i=0;i<csvJSON.length;i++) {
-		let item = csvJSON[i]
-		item.type = "animal"
-		item.views = []
-		item.componentFiles = []
-
-		//These will be used for identification.
-		let normalizedAnimalCode = item.Animal.split("-").join("_")
-		if (normalizedAnimalCode.indexOf(":") !== -1) {
-			normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
-		}
-
-		let provisionalItems = [normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
-		let itemsToCheck = []
-
-		//Expand arrays of identifying codes, in case there are multiple (like with Animal 190610-1:1, which has multiple GRE and DWI identifiers)
-		//Also filter out blank identifiers, for empty boxes.
-		for (let i=0;i<provisionalItems.length;i++) {
-			let item = provisionalItems[i]
-			if (item instanceof Array) {
-				item.forEach((subitem) => {
-					provisionalItems.push(subitem)
-				})
-			}
-			else if (item) {
-				itemsToCheck.push(item)
-			}
-		}
-
-		let relatedFiles = niiFiles.filter((fileName) => {
-			return itemsToCheck.some((item) => {
-				return fileName.includes(item)
-			})
-		})
-
-		//TODO: Handle labels. Probably search filename for word label.
-		for (let i=0;i<relatedFiles.length;i++) {
-			let fileName = relatedFiles[i]
-			let view = {
-				name: fileName,
-				filePath: fileName,
-				//labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
-			}
-
-			view.thumbnails = await generateThumbnails(path.join(dataDir, view.filePath))
-			item.views.push(view)
-			item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails)) //view.labelPath
-		}
-
-
-		item.componentFiles = item.componentFiles.map((fileName) => {
-			let stats = fs.statSync(path.join(dataDir, fileName))
-			return {
-				name: fileName,
-				size: stats.size,
-				lastModified: new Date(stats.mtime).getTime(),
-				type: "file"
-			}
-		})
-		//Cleaning up and keeping thumbnails up to date is handled elsewhere.
-		item.componentFiles = item.componentFiles.filter((obj) => {
-			if (!obj.name.includes(".qialdbthumbnail.")) {return true}
-			return false
-		})
+	try {
+		openRequest = await generateJSON()
+		return openRequest
 	}
-
-	//Delete all thumbnails without associated animals.
-	files = files.filter((fileName) => {
-		if (!fileName.includes(".qialdbthumbnail.")) {return true}
-		fs.unlinkSync(path.join(dataDir, fileName))
-		return false
-	})
-
-
-	let fileData = []
-	files.forEach((fileName) => {
-		let stats = fs.statSync(path.join(dataDir, fileName))
-		fileData.push({
-			name: fileName,
-			size: stats.size,
-			lastModified: new Date(stats.mtime).getTime(),
-			type: "file"
-		})
-	})
-
-	let allData = csvJSON.concat(fileData)
-
-	function calc(item) {
-		let val = 0;
-		if (item.type === "animal") {val++}
-		if (item?.views?.length > 0) {val++}
-		return val
+	finally {
+		openRequest = null;
 	}
-
-	allData.sort((a, b) => {
-		return calc(b) - calc(a)
-	})
-
-	return allData
 }
