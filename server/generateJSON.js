@@ -83,12 +83,14 @@ async function generateThumbnails(pathToNIFTI) {
 			}
 
 			//TODO: Also handle reordering of images here if not in generateThumbnails.py
+
+			//Convert thumbnails to standard size. Max height is 180 pixels.
 			for (let i=0;i<imageProcessors.length;i++) {
 				let imageProcessor = imageProcessors[i]
 				await imageProcessor
 					.resize({height: 180})
 					.webp({
-						reductionEffort: 5, //Could be slow. 0-6 for CPU used to compress. Default 4
+						reductionEffort: 6, //Could be slow. 0-6 for CPU used to compress. Default 4
 						quality: 70, //Default 80.
 					})
 					.toFile(path.join(dataDir, outputNames[i]))
@@ -97,9 +99,7 @@ async function generateThumbnails(pathToNIFTI) {
 		}
 		catch (e) {
 			console.error(e)
-			require("process").exit()
 		}
-		//Convert thumbnails to standard size. Max height is 180 pixels, all
 
 		return outputNames
 	}
@@ -241,13 +241,12 @@ module.exports = async function() {
 	//Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
 	//generateJSON may crash if it is run multiple times at once, or generate invalid thumbnails, etc.
 	if (openRequest) {
-		console.log("Request Open. Returning copy. ")
-		return openRequest
+		return await openRequest
 	}
 
 	try {
-		openRequest = await generateJSON()
-		return openRequest
+		openRequest = generateJSON()
+		return await openRequest
 	}
 	finally {
 		openRequest = null;
