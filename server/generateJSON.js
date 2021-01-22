@@ -1,6 +1,8 @@
 const fs = require("fs")
 const path = require("path")
 const child_process = require("child_process")
+const os = require("os")
+const zlib = require("zlib")
 
 const loadDataCSV = require("./loadDataCSV.js")
 const dataDir = path.join(__dirname, "../", "data")
@@ -27,20 +29,47 @@ async function generateThumbnails(pathToNIFTI) {
 		return false
 	})
 
-	if (filesToProcess.length === 0) {return outputNames}
+	//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails,
+	//however can read portions off disk just fine it appears.
+	//It currently runs out of memory on some systems with larger files, but is fine when the decompressed file is used from disk.
+	//Therefore, decompress large files to disk on systems with little memory.
 
-	let process = child_process.spawn("python3", [
-		path.join(__dirname, "generateThumbnails.py"),
-		pathToNIFTI,
-	].concat(filesToProcess), {
-		cwd: dataDir
-	})
+	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
+	let tempPath;
+	if (path.extname(pathToNIFTI) === ".nii.gz") {
+		if (fs.statSync(pathToNIFTI).size > os.freemem() / 6) {
+			tempPath = pathToNIFTI.slice(0, -3)
+			let unzipper = zlib.createGunzip()
+			await new Promise((resolve, reject) => {
+				let stream = fs.createReadStream(pathToNIFTI)
+				let dest = fs.createWriteStream(tempPath)
+				let writeStream = stream.pipe(unzipper).pipe(dest)
+				writeStream.on("finish", resolve)
+			})
+		}
+	}
 
-	await new Promise((resolve, reject) => {
-		process.on('close', resolve);
-	})
+	try {
+		if (filesToProcess.length === 0) {return outputNames}
 
-	return outputNames
+		let process = child_process.spawn("python3", [
+			path.join(__dirname, "generateThumbnails.py"),
+			tempPath || pathToNIFTI,
+		].concat(filesToProcess), {
+			cwd: dataDir
+		})
+
+		await new Promise((resolve, reject) => {
+			process.on('close', resolve);
+		})
+
+		return outputNames
+	}
+	finally {
+		if (tempPath && fs.existsSync(tempPath)) {
+			fs.unlinkSync(tempPath)
+		}
+	}
 }
 
 module.exports = async function() {
@@ -84,7 +113,7 @@ module.exports = async function() {
 		let itemsToCheck = []
 
 		//Expand arrays of identifying codes, in case there are multiple (like with Animal 190610-1:1, which has multiple GRE and DWI identifiers)
-		//Also filter out blank identifiers, for empty boxes. 
+		//Also filter out blank identifiers, for empty boxes.
 		for (let i=0;i<provisionalItems.length;i++) {
 			let item = provisionalItems[i]
 			if (item instanceof Array) {

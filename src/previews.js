@@ -111,13 +111,13 @@ function Item(item) {
 		}
 
 		let maxPreviewSize = 10000000 //10 MB
-		function addThumbnails(view, container) {
+		function addThumbnails(view, container, fileSize) {
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
 				img.src = dataDir + fileName
 				container.appendChild(img)
 
-				if (getFileSize(view.filePath) > maxPreviewSize) {
+				if (fileSize > maxPreviewSize) {
 					img.addEventListener("click", function() {
 						alert("This is a somewhat large file. Please download it to preview. ")
 					})
@@ -130,11 +130,11 @@ function Item(item) {
 			})
 		}
 
-		function createButton(view) {
+		function createButton(view, fileSize) {
 			let preview = document.createElement("button")
 			preview.className = "neuroglancerLink"
 
-			if (getFileSize(view.filePath) > maxPreviewSize) {
+			if (fileSize > maxPreviewSize) {
 				preview.innerHTML = `Download ${view.name}`
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");
@@ -161,10 +161,12 @@ function Item(item) {
 			scanContainer.style.textAlign = "center"
 			this.thumbnailContainer.appendChild(scanContainer)
 
-			addThumbnails(view, scanContainer)
+			let fileSize = getFileSize(view.filePath)
+
+			addThumbnails(view, scanContainer, fileSize)
 
 			scanContainer.appendChild(document.createElement("br"))
-			let button = createButton(view)
+			let button = createButton(view, fileSize)
 			scanContainer.appendChild(button)
 		}
 	}
