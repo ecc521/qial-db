@@ -19,15 +19,21 @@ async function generateThumbnails(pathToNIFTI) {
 		outputNameRoot + ".qialdbthumbnail.z." + type
 	]
 
-	//Filter out files that we don't need to generate again.
+	//If we don't need to generate any images, then don't generate any.
 	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
-	let filesToProcess = outputNames.filter((fileName) => {
-		let filePath = path.join(dataDir, fileName)
-		if (!fs.existsSync(filePath)) {return true} //Need to regenerate
-		let modified = fs.statSync(filePath).mtime
-		if (modified < modifiedNifti) {return true} //Nifti modified more recently than thumbnail. Thumbnail old.
-		return false
-	})
+	if (
+		outputNames.every((fileName) => {
+			let filePath = path.join(dataDir, fileName)
+			if (!fs.existsSync(filePath)) {return false} //Need to regenerate. Doesn't exist.
+			let modified = fs.statSync(filePath).mtime
+			if (modified < modifiedNifti) {return false} //Nifti modified more recently than thumbnail. Thumbnail old.
+			return true
+		})
+	) {
+		return outputNames
+	}
+
+
 
 	//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails,
 	//however can read portions off disk just fine it appears.
@@ -37,7 +43,9 @@ async function generateThumbnails(pathToNIFTI) {
 	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
 	let tempPath;
 	if (path.extname(pathToNIFTI) === ".nii.gz") {
+		console.log("nii.gz!")
 		if (fs.statSync(pathToNIFTI).size > os.freemem() / 6) {
+			console.log("Low Mem!")
 			tempPath = pathToNIFTI.slice(0, -3)
 			let unzipper = zlib.createGunzip()
 			await new Promise((resolve, reject) => {
@@ -50,12 +58,10 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 
 	try {
-		if (filesToProcess.length === 0) {return outputNames}
-
 		let process = child_process.spawn("python3", [
 			path.join(__dirname, "generateThumbnails.py"),
 			tempPath || pathToNIFTI,
-		].concat(filesToProcess), {
+		].concat(outputNames), {
 			cwd: dataDir
 		})
 
