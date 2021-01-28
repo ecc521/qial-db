@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const fs = require("fs") //For plotly copy
 
 //Non-minified build is much faster, but accidental commits with it are possible. We'll build both.
 
@@ -83,6 +84,22 @@ compiler.watch({
 		  colors: true  // Add console colors
 		})
 	);
+
+
+	//See https://github.com/plotly/plotly.js/blob/master/dist/README.md#partial-bundles
+	//File size is greatly reduced by using a partial bundle. This one supports violn plots.
+	console.log("Copying plotly...")
+	let plotlyBundle = fs.readFileSync("./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js")
+	let currentPlotly = fs.readFileSync("packages/plotly.js")
+
+	if (plotlyBundle.equals(currentPlotly)) {
+		console.log("Plotly already present and up to date")
+	}
+	else {
+		fs.writeFileSync("packages/plotly.js", plotlyBundle)
+		console.log("Copied Plotly")
+	}
+
 
 	console.log("Running minimized build\n")
 
