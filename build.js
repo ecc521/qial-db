@@ -89,14 +89,23 @@ compiler.watch({
 	//See https://github.com/plotly/plotly.js/blob/master/dist/README.md#partial-bundles
 	//File size is greatly reduced by using a partial bundle. This one supports violn plots.
 	console.log("Copying plotly...")
-	let plotlyBundle = fs.readFileSync("./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js")
-	let currentPlotly = fs.readFileSync("packages/plotly.js")
+	
+	let plotlyBundlePath = "./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js"
+	let outputPlotlyPath = "packages/plotly.js"
 
-	if (plotlyBundle.equals(currentPlotly)) {
+	let plotlyBundleBuffer = fs.readFileSync(plotlyBundlePath)
+
+	let outputPlotlyBuffer;
+	if (fs.existsSync(outputPlotlyPath)) {
+		outputPlotlyBuffer = fs.readFileSync(outputPlotlyPath)
+	}
+
+	if (outputPlotlyBuffer && plotlyBundleBuffer.equals(outputPlotlyBuffer)) {
 		console.log("Plotly already present and up to date")
 	}
 	else {
-		fs.writeFileSync("packages/plotly.js", plotlyBundle)
+		if (!fs.existsSync("packages")) {fs.mkdirSync("packages")}
+		fs.writeFileSync(outputPlotlyPath, plotlyBundleBuffer)
 		console.log("Copied Plotly")
 	}
 
