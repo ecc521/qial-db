@@ -21,17 +21,16 @@ module.exports = async function loadDataCSV(useCache = false, SHEET_NAME="Mice",
 		//TODO: Process the CSV line by line instead.
 		results.forEach((item, index) => {
 			item.csvSources = item.csvSources || {}
-			let lineNumber = [index + 1]
+			let lineNumber = index + 1
 			let line = text.split("\n")[lineNumber]
 
 			item.csvSources[SHEET_NAME] = {
-				line,
 				lineNumber,
 				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#gid=0&range=${lineNumber}:${lineNumber}`
 			}
 		})
 
-		cache = results
+		cache = {csvText: text, json: results}
 		lastCached = Date.now()
 	}
 

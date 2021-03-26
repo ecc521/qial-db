@@ -216,8 +216,8 @@ window.drawCards = function drawCards(items) {
 ;(async function() {
 	let request = await fetch(url + "data.json")
 	let response = await request.json()
-	window.data = response
-
+	window.data = response.data
+	window.csvSources = response.csvSources
 	drawCards(window.data)
 	require("./search.js").generateSearchOptions(window.data)
 	//require("./graphs.js")

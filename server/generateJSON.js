@@ -113,7 +113,8 @@ async function generateThumbnails(pathToNIFTI) {
 async function generateJSON() {
    let files = await fs.promises.readdir(dataDir)
 
-   let csvJSON = await loadDataCSV()
+   let parsedCSV = await loadDataCSV()
+   let csvJSON = parsedCSV.json
 
    function reclaimFiles(reclaimedFiles, ...fileNames) {
 	   //Remove a file from files - it is associated with something.
@@ -233,7 +234,12 @@ async function generateJSON() {
 	   return calc(b) - calc(a)
    })
 
-   return allData
+   return {
+	   csvSources: {
+		   "Mice": parsedCSV.csvText
+	   },
+	   data: allData
+   }
 }
 
 let openRequest;

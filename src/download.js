@@ -19,9 +19,15 @@ downloadMenuDiv.appendChild(document.createElement("br"))
 let downloadFullJSON = document.createElement("button")
 downloadMenuDiv.appendChild(downloadFullJSON)
 
+let downloadFullCSV = document.createElement("button")
+downloadMenuDiv.appendChild(downloadFullCSV)
+
 downloadMenuDiv.appendChild(document.createElement("br"))
 let downloadSelectedJSON = document.createElement("button")
 downloadMenuDiv.appendChild(downloadSelectedJSON)
+
+let downloadSelectedCSV = document.createElement("button")
+downloadMenuDiv.appendChild(downloadSelectedCSV)
 
 downloadMenuAdditionalInfo = document.createElement("p")
 downloadMenuAdditionalInfo.innerHTML += `
@@ -91,9 +97,42 @@ downloadSelectedJSON.addEventListener("click", function() {
 	downloadFile("selectedmetadata.json", getSelectionJSONMetadata())
 })
 
+function getFullCSVMetadata() {
+	return window.csvSources["Mice"]
+}
+
+downloadFullCSV.addEventListener("click", function() {
+	downloadFile("fullmetadata.csv", getFullCSVMetadata())
+})
+
+function getSelectionCSVMetadata() {
+	let itemsSelected = parentHolder.filter((item) => {
+		if (!item.checkbox.checked) {return false}
+		return true
+	}).map((item) => {return item.item})
+
+	console.log(itemsSelected)
+
+	let csvLines = window.csvSources["Mice"].split("\n")
+	let output = csvLines[0]
+
+	itemsSelected.forEach((item) => {
+		if (item?.csvSources?.["Mice"].lineNumber) {
+			output += "\n" + csvLines[item?.csvSources?.["Mice"].lineNumber]
+		}
+	})
+	return output
+}
+
+downloadSelectedCSV.addEventListener("click", function() {
+	downloadFile("selectedmetadata.csv", getSelectionCSVMetadata())
+})
+
 function offerAdditionalFiles() {
 	downloadFullJSON.innerHTML = `Download JSON Metadata File (${numberPrettyBytesSI(getFullJSONMetadata().length)})`
 	downloadSelectedJSON.innerHTML = `Download JSON Metadata for Selection (${numberPrettyBytesSI(getSelectionJSONMetadata().length)})`
+	downloadFullCSV.innerHTML = `Download CSV Metadata File (${numberPrettyBytesSI(getFullCSVMetadata().length)})`
+	downloadSelectedCSV.innerHTML = `Download CSV Metadata for Selection (${numberPrettyBytesSI(getSelectionCSVMetadata().length)})`
 }
 
 function getDownloadData() {
