@@ -24,6 +24,7 @@ function Item(item) {
 		let p = document.createElement("p")
 		p.innerHTML = text
 		container.appendChild(p)
+		return p
 	}).bind(this)
 
 	this.componentRows = []
@@ -82,7 +83,18 @@ function Item(item) {
 		setComponentVisibility()
 		this.checkbox.addEventListener("change", setComponentVisibility)
 
-		addText(`Animal: ${item.Animal}`)
+		//Add link to edit the Animal's information. 
+		let animalName = addText(`Animal: ${item.Animal}`)
+		let editLink = document.createElement("a")
+		let editLinkSrc = item.csvSources?.["Mice"]?.editUrl
+		console.log(item.csvSources)
+		if (editLinkSrc) {
+			editLink.href = editLinkSrc
+			editLink.target = "_blank"
+		}
+		animalName.replaceWith(editLink)
+		editLink.appendChild(animalName)
+
 		addText(`Sex: ${item.Sex}`)
 		addText(`Genotype: ${item.Genotype}`)
 		addText(`Weight: ${item.weight}`)

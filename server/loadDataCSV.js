@@ -27,7 +27,7 @@ module.exports = async function loadDataCSV(useCache = false, SHEET_NAME="Mice",
 			item.csvSources[SHEET_NAME] = {
 				line,
 				lineNumber,
-				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#range=${lineNumber}:${lineNumber}`
+				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#gid=0&range=${lineNumber}:${lineNumber}`
 			}
 		})
 
