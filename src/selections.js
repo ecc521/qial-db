@@ -2,13 +2,9 @@ let selectAll = document.getElementById("selectAll")
 let deselectAll = document.getElementById("deselectAll")
 
 function setAll(selected = true) {
-	itemHolder.forEach((child) => {
-		if (child.parent) {
-			//Trigger hide/show behavior.
-			child.parent.checkbox.checked = !selected
-			child.parent.checkbox.click()
-		}
-		child.checkbox.checked = selected
+	parentHolder.forEach((item) => {
+		item.checkbox.checked = !selected
+		item.checkbox.click()
 	})
 }
 

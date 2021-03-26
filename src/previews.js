@@ -4,9 +4,15 @@ const generateNeuroglancerLink = require("./generateNeuroglancerLink.js")
 
 let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
+window.parentHolder = [] //animals and files not part of an animal/
 
 function Item(item) {
 	this.item = item
+
+	if (item.parent) {
+		this.parent = item.parent
+		delete item.parent
+	}
 
 	this.row = document.createElement("div")
 	this.row.className = "itemRow"
@@ -33,6 +39,9 @@ function Item(item) {
 
 	if (item.type === "file") {
 		itemHolder.push(this)
+		if (!this.parent) {
+			parentHolder.push(this)
+		}
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
@@ -57,10 +66,11 @@ function Item(item) {
 		})
 	}
 	else if (item.type === "animal") {
+		parentHolder.push(this)
 		this.componentFiles = item.componentFiles
 		this.componentFiles = this.componentFiles.map((component) => {
+			component.parent = this
 			let item = new Item(component)
-			item.parent = this
 			this.componentRows.push(item.row)
 			return item
 		})
@@ -83,11 +93,10 @@ function Item(item) {
 		setComponentVisibility()
 		this.checkbox.addEventListener("change", setComponentVisibility)
 
-		//Add link to edit the Animal's information. 
+		//Add link to edit the Animal's information.
 		let animalName = addText(`Animal: ${item.Animal}`)
 		let editLink = document.createElement("a")
 		let editLinkSrc = item.csvSources?.["Mice"]?.editUrl
-		console.log(item.csvSources)
 		if (editLinkSrc) {
 			editLink.href = editLinkSrc
 			editLink.target = "_blank"
@@ -192,6 +201,7 @@ function Item(item) {
 
 window.drawCards = function drawCards(items) {
 	itemHolder = []
+	parentHolder = []
 	while(itemContainer.firstChild) {itemContainer.firstChild.remove()}
 	for (let i=0;i<items.length;i++) {
 		let item = items[i]
@@ -210,5 +220,5 @@ window.drawCards = function drawCards(items) {
 
 	drawCards(window.data)
 	require("./search.js").generateSearchOptions(window.data)
-	require("./graphs.js")
+	//require("./graphs.js")
 }())
