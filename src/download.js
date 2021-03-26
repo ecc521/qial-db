@@ -1,9 +1,52 @@
 let getDownloadTemplate = require("./getDownloadTemplate.js")
 
+function addCheckbox(container, labelText, selected = false) {
+	let label = document.createElement("label")
+	label.innerHTML = labelText
+
+	let checkbox = document.createElement("input")
+	checkbox.type = "checkbox"
+	checkbox.selected = selected
+
+	container.appendChild(checkbox)
+	container.appendChild(label)
+	container.appendChild(document.createElement("br"))
+
+	label.addEventListener("click", function() {checkbox.click()})
+	return checkbox
+}
+
 let downloadMenuDiv = document.getElementById("downloadMenu")
-let downloadNodejsScript = document.getElementById("downloadNodejsScript")
-let downloadZip = document.getElementById("downloadZip")
-let downloadInfo = document.getElementById("downloadInfo")
+
+let includeFullJSON = addCheckbox(downloadMenuDiv, "Include Full JSON Data File")
+let includeSelectedJSON = addCheckbox(downloadMenuDiv, "Download JSON Data for Selection")
+
+downloadMenuDiv.appendChild(document.createElement("br"))
+
+let downloadZip = document.createElement("button")
+downloadZip.innerHTML = "Download ZIP"
+downloadMenuDiv.appendChild(downloadZip)
+
+let downloadNodejsScript = document.createElement("button")
+downloadNodejsScript.innerHTML = "Download NodeJS Script"
+downloadMenuDiv.appendChild(downloadNodejsScript)
+
+let downloadInfo = document.createElement("p")
+downloadMenuDiv.appendChild(downloadInfo)
+
+downloadMenuDiv.innerHTML += `
+<br><h3>ZIP file Download: </h3>
+<p> - Recommended for smaller downloads. Downloads over ~5GB should probably use a script, to allow for pause and resume, and to avoid a potential download failure with network fluctuations. </p>
+
+<h3>NodeJS script Download (<a target="_blank" href="https://nodejs.org">install NodeJS</a>): </h3>
+<p> - Script is auto-generated for the files you have selected. Just run it with node. </p>
+<p> - Script can be terminated at any time. Re-running the script will perform clean up, and download remaining files. </p>
+<p> - Prompts for a relative directory to download into, else downloads to the current directory. No existing files will be overwritten. </p>
+<br>`
+
+let closeInstructions = document.createElement("p")
+closeInstructions.innerHTML = `To close this popup, click on the darkened area outside the popup, or use the "Close Download Menu" button on the bar at the bottom of the page.`
+downloadMenuDiv.appendChild(closeInstructions)
 
 downloadMenuDiv.remove()
 

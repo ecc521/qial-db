@@ -17,6 +17,20 @@ module.exports = async function loadDataCSV(useCache = false, SHEET_NAME="Mice",
 			columns: true,
 			columns_duplicates_to_array: true
 		})
+
+		//TODO: Process the CSV line by line instead.
+		results.forEach((item, index) => {
+			item.csvSources = item.csvSources || {}
+			let lineNumber = [index + 1]
+			let line = text.split("\n")[lineNumber]
+
+			item.csvSources[SHEET_NAME] = {
+				line,
+				lineNumber,
+				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#range=${lineNumber}:${lineNumber}`
+			}
+		})
+
 		cache = results
 		lastCached = Date.now()
 	}

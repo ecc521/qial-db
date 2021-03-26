@@ -2,14 +2,15 @@
 function produceGraph({
 	div,
 	groups,
+	yAxisTitle = "",
 	title = "Violin Plot",
 }) {
 	let layout = {
 		title: title,
-		yaxis: {
-			zeroline: false
-		},
-		violinmode: 'group'
+		violinmode: 'overlay',
+		"yaxis": {
+			"title": yAxisTitle,
+		}
 	}
 
 	let data = []
@@ -23,6 +24,7 @@ function produceGraph({
 			legendgroup: prop,
 			scalegroup: prop,
 			name: prop,
+			jitter: 0.05,
 			box: {
 				visible: true
 			},
@@ -30,8 +32,21 @@ function produceGraph({
 				color: group.color
 			},
 			meanline: {
-				visible: true
+				visible: true,
+				width: 2
+			},
+			side: "negative",
+			points: "all",
+			pointpos: -.5,
+			width: 1.5, //Boost width by 50%
+			margin: {
+				pad: 0
 			}
+		}
+
+		if (prop === "Female") {
+			info.side = "positive"
+			info.pointpos = -info.pointpos
 		}
 
 		group.data.forEach((data) => {
@@ -51,27 +66,29 @@ function produceGraph({
 	console.log(data)
 	console.log(layout)
 
-	Plotly.newPlot(div, data, layout)
+	Plotly.newPlot(div, data, layout, {
+		responsive: true,
+	})
 }
 
 let animals = window.data.filter((a) => {return a.type === "animal"})
 let groups = {
 	"Male": {color: "blue", data: []},
 	"Female": {color: "pink", data: []},
-	"Unknown": {color: "grey", data: []}
 }
 
 animals.forEach((item, i) => {
 	if (item.Sex === "male") {groups["Male"].data.push(item)}
 	else if (item.Sex === "female") {groups["Female"].data.push(item)}
-	else {groups["Unknown"].data.push(item)}
+	else {
+		console.warn("Unknown Sex: ", item)
+	}
 });
 
 for (let prop in groups) {
 	let group = groups[prop]
 	group.data = group.data.map((animal) => {
-		let weight = animal.weight?.[0]  //Is an array due to a data issue.
-		console.log(weight)
+		let weight = animal.weight?.[0]  //Weight can be taken at different times - right now it is all under one "weight" metric. 
 		return {
 			x: [animal.Genotype || "Unknown"],
 			y: [weight]
@@ -87,5 +104,6 @@ document.body.insertBefore(cnv, document.body.firstChild)
 produceGraph({
 	groups,
 	title: "Animal Weights",
+	yAxisTitle: "Weight",
 	div: window.cnv
 })
