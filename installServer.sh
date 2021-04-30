@@ -13,6 +13,10 @@ sudo apt-get install -y zip
 sudo apt-get install python3 python3-pip
 pip3 install nibabel numpy argparse pathlib imageio
 
+#For infoGen.py
+pip3 install neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd. 
+
+
 #Clone qial-db
 cd $HOME
 git clone https://github.com/ecc521/qial-db.git
