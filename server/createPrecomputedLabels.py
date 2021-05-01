@@ -9,17 +9,23 @@ from neuroglancer_scripts.scripts.generate_scales_info import main as generate_s
 from neuroglancer_scripts.scripts.compute_scales import main as compute_scales
 import gzip
 
-dirnam = os.path.dirname(__file__)
-
+includeDecompressed = True #For development usage.
+dirnam = os.getcwd()
 
 def main():
     image = nib.load(os.path.normpath(os.path.join(dirnam, sys.argv[1])))
     image = image.get_fdata()
     df = pd.read_excel(os.path.normpath(os.path.join(dirnam, sys.argv[2])))
 
+    #Optional 3rd parameter for output directory name.
     outputDirName = "Output"
+    outputDir = os.path.join(dirnam, outputDirName)
+
     if len(sys.argv) > 3:
         outputDirName = sys.argv[3]
+        if (os.path.exists(outputDir)):
+            print("WARNING: DELETING EXISTING DIRECTORY AT TARGET LOCATION")
+            shutil.rmtree(outputDir)
 
     using1000Method = False
     for x in range(0, len(image)):
@@ -37,7 +43,8 @@ def main():
 
     maxLabel = int(maxLabel)
 
-    info = open(os.path.normpath(os.path.join(dirnam, "info")), "w")
+    infoFilePath = os.path.normpath(os.path.join(dirnam, "info"))
+    info = open(infoFilePath, "w")
     info.write("{\"@type\": \"neuroglancer_segment_properties\", \"inline\": {\"ids\": [\"")
     for x in range(1, maxLabel + 1):
         info.write(str(x))
@@ -78,26 +85,43 @@ def main():
     volume_to_precomputed(argv=["Placeholder", os.path.normpath(os.path.join(dirnam, sys.argv[1])), outputDirName])
     compute_scales(argv=["Placeholder", outputDirName, "--downscaling-method=majority"])
 
-    outputDir = os.path.join(dirnam, outputDirName)
-    shutil.move(os.path.join(os.getcwd(), outputDirName), outputDir)
+    os.remove(infoFilePath) #Clean up.
 
     #We need to flatten the directory path - "0-64/0-64" goes to "0-64_0-64"
     def restructureDirectory(currentDir):
-        for root, dirs, files in os.walk(currentDir, topdown=False):
-           for name in files:
-              if (name.endswith(".gz")):
-                  path = os.path.join(root, name)
-                  relativePath = path[len(currentDir) + 1:]
-                  components = relativePath.split(os.sep)
-                  reformatedName = "_".join(components)
-                  reformattedPath = os.path.join(currentDir, reformatedName)
+        directoriesToDelete = []
+        for root, dirs, files in os.walk(currentDir):
 
-                  noGzipPath = reformattedPath[:-len(".gz")]
+            for name in files:
+                if (name.endswith(".gz")):
+                    path = os.path.join(root, name)
+                    relativePath = path[len(currentDir) + 1:]
+                    components = relativePath.split(os.sep)
+                    reformatedName = "_".join(components)
+                    reformattedPath = os.path.join(currentDir, reformatedName)
 
-                  fin = gzip.open(path, "r")
-                  fout = open(noGzipPath, "wb")
-                  fout.write(fin.read())
-                  #os.remove(path) #If we're going to remove the files, we shold also recurse through the directories and remove them if empty.
+                    #We could decompress these, however the files are very large when decompressed
+                    #compared to their compressed sizes - 100x difference type thing.
+
+                    #Therefore, it's going to be best to decompress only as needed. GZIP is fast.
+                    os.rename(path, reformattedPath)
+
+                    if (includeDecompressed):
+                        unzippedPath = reformattedPath[:-len(".gz")]
+                        fin = gzip.open(reformattedPath, "r")
+                        fout = open(unzippedPath, "wb")
+                        fout.write(fin.read())
+
+            #Delete the now empty directories.
+            for directory in dirs:
+                directoriesToDelete.append(os.path.join(root, directory))
+
+
+        for item in directoriesToDelete:
+            try:
+                shutil.rmtree(item)
+            except:
+                1 #No-op. If the directory doesn't get deleted, it might be because parent was deleted first, and doesn't really matter.
 
     restructureDirectory(os.path.join(outputDir, "100um"))
     restructureDirectory(os.path.join(outputDir, "200um"))
