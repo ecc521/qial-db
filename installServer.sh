@@ -14,7 +14,7 @@ sudo apt-get install python3 python3-pip
 pip3 install nibabel numpy argparse pathlib imageio
 
 #For infoGen.py
-pip3 install neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd. 
+pip3 install neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd.
 
 
 #Clone qial-db
@@ -55,7 +55,7 @@ LoadModule proxy_module modules/mod_proxy.so
 LoadModule proxy_http_module modules/mod_proxy_http.so
 LoadModule http2_module modules/mod_http2.so
 
-ProxyPass /node http://127.0.0.1:6928/node
+ProxyPass / http://127.0.0.1:8000/
 Protocols h2 http/1.1
 
 AddOutputFilterByType DEFLATE application/json
@@ -93,7 +93,7 @@ echo "Google Cloud Compute Engine: https://badlywired.com/2016/08/15/adding-swap
 echo "Adding instructions to crontab. The server is currently scheduled to reboot periodically, which you may want to disable. "
 
 #Run server on reboot. Reboot at 4am every day. Run certbot renew on each reboot.
-(crontab -l ; echo "@reboot mkdir -p ${HOME}/qial-db/server/logs/ && node $HOME/qial-db/server/main.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
+(crontab -l ; echo "@reboot mkdir -p ${HOME}/qial-db/server/logs/ && node $HOME/qial-db/server.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
 (crontab -l ; echo "@reboot sudo certbot renew") | sort - | uniq - | crontab -
 (crontab -l ; echo "0 4   *   *   *    sudo reboot") | sort - | uniq - | crontab -
 
