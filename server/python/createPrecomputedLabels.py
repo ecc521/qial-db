@@ -9,7 +9,7 @@ from neuroglancer_scripts.scripts.generate_scales_info import main as generate_s
 from neuroglancer_scripts.scripts.compute_scales import main as compute_scales
 import gzip
 
-includeDecompressed = True #For development usage.
+includeDecompressed = False #For development usage - neuroglancer requests the files with no extension, but the server will serve the .gz files
 dirnam = os.getcwd()
 
 def main():
@@ -23,6 +23,7 @@ def main():
 
     if len(sys.argv) > 3:
         outputDirName = sys.argv[3]
+        outputDir = os.path.join(dirnam, outputDirName)
         if (os.path.exists(outputDir)):
             print("WARNING: DELETING EXISTING DIRECTORY AT TARGET LOCATION")
             shutil.rmtree(outputDir)

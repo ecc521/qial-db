@@ -1,14 +1,12 @@
-function generateNeuroglancerLink(fileName) {
-	let imageLink = window.dataDir + fileName
-
+function generateNeuroglancerLink({fileName, labelName}) {
 	let obj = {
 		"dimensions": {
 			"x": [
-				0.00009999999403953553,
+				0.0001,
 				"m"
 			],
 			"y": [
-				0.00010000000149011611,
+				0.0001,
 				"m"
 			],
 			"z": [
@@ -34,7 +32,7 @@ function generateNeuroglancerLink(fileName) {
 			{
 				"type": "image",
 				"source": {
-					"url": "nifti://http://127.0.0.1:9400/data/B51315_T1_masked.nii.gz",
+					"url": `nifti://http://127.0.0.1:8000/data/${fileName}`,
 					"transform": {
 						"matrix": [
 							[
@@ -58,11 +56,11 @@ function generateNeuroglancerLink(fileName) {
 						],
 						"outputDimensions": {
 							"x": [
-								0.00009999999403953553,
+								0.0001,
 								"m"
 							],
 							"y": [
-								0.00010000000149011611,
+								0.0001,
 								"m"
 							],
 							"z": [
@@ -72,40 +70,32 @@ function generateNeuroglancerLink(fileName) {
 						}
 					}
 				},
-				"tab": "rendering",
-				"name": "B51315_T1_masked.nii.gz"
+				"tab": "source",
+				"name": fileName
 			},
-			{
-				"type": "segmentation",
-				"source": {
-					"url": "precomputed://http://127.0.0.1:9400/Output",
-					"subsources": {
-						"default": true,
-						"bounds": true
-					},
-					"enableDefaultSubsources": false
-				},
-				"tab": "segments",
-				"colorSeed": 1557235359,
-				"name": "Output"
-			}
 		],
 		"selectedLayer": {
-			"size": 755,
 			"visible": true,
-			"layer": "Output"
+			"layer": fileName
 		},
 		"layout": "4panel",
-		"selection": {
-			"size": 755,
-			"layers": {
-				"Output": {
-					"annotationId": "data-bounds",
-					"annotationSource": 0,
-					"annotationSubsource": "bounds"
-				}
-			}
-		}
+	}
+
+	if (labelName) {
+		obj.layers.push({
+			"type": "segmentation",
+			"source": {
+				"url": `precomputed://http://127.0.0.1:8000/cache/precomputedlabels/${labelName}`,
+				"subsources": {
+					"default": true,
+					"bounds": true
+				},
+				"enableDefaultSubsources": false
+			},
+			"tab": "source",
+			"colorSeed": 1557235359,
+			"name": labelName
+		})
 	}
 
 	let neuroglancerLink = "https://neuroglancer-demo.appspot.com/" + "#!" + encodeURI(JSON.stringify(obj))

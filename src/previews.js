@@ -145,7 +145,7 @@ function Item(item) {
 				}
 				else {
 					img.addEventListener("click", function() {
-						window.open(generateNeuroglancerLink(view.filePath))
+						window.open(generateNeuroglancerLink({fileName: view.filePath, labelName: view.labelPath}))
 					})
 				}
 			})
@@ -169,7 +169,7 @@ function Item(item) {
 			else {
 				preview.innerHTML = `View ${view.name} in Neuroglancer`
 				preview.addEventListener("click", function() {
-					window.open(generateNeuroglancerLink(view.filePath))
+					window.open(generateNeuroglancerLink({fileName: view.filePath, labelName: view.labelPath}))
 				})
 			}
 

@@ -2,7 +2,7 @@ const http = require("http")
 const path = require("path")
 const fs = require("fs")
 const child_process = require("child_process")
-
+const zlib = require("zlib")
 
 global.dataDir = path.join(__dirname, "data")
 fs.mkdirSync(global.dataDir, {recursive: true})
@@ -14,6 +14,10 @@ fs.mkdirSync(global.cacheDir, {recursive: true})
 
 global.thumbnailsDir = path.join(global.cacheDir, "thumbnails")
 fs.mkdirSync(global.thumbnailsDir, {recursive: true})
+
+global.precomputedLabelsDir = path.join(global.cacheDir, "precomputedlabels")
+fs.mkdirSync(global.precomputedLabelsDir, {recursive: true})
+
 
 
 const passwords = require("./server/validatePassword.js")
@@ -200,11 +204,13 @@ app.all("/fileops", async (req, res) => {
 
 //Serve remaining files.
 app.use('*', (req, res, next) => {
+	res.set("Access-Control-Allow-Origin", "*");
+
 	let relativeSrc = req.originalUrl
 
-	let extensions = ["", ".html", "index.html"]
+	let extensions = ["", ".html", "index.html", ".gz"]
 	let src;
-	extensions.find((ext) => {
+	let extension = extensions.find((ext) => {
 		src = path.join(__dirname, relativeSrc + ext)
 		if (fs.existsSync(src)) {
 			return !fs.statSync(src).isDirectory()
@@ -213,7 +219,18 @@ app.use('*', (req, res, next) => {
 
 	if (fs.existsSync(src)) {
 		res.type(path.extname(src))
-		res.end(fs.readFileSync(src))
+		let readStream = fs.createReadStream(src)
+
+		//Stream decompress off of disk.
+		if (extension === ".gz") {
+			res.type("txt") //We'll set a compressable type - this file must be compressible if we have it precompressed.
+
+			let decompressor = zlib.createUnzip()
+			readStream.pipe(decompressor)
+			readStream = decompressor
+		}
+
+		readStream.pipe(res)
 	}
 	else {
 		next()

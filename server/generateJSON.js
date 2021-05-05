@@ -4,6 +4,7 @@ const path = require("path")
 const loadDataCSV = require("./loadDataCSV.js")
 
 const generateThumbnails = require("./generateThumbnails.js")
+const createPrecomputedLabels = require("./createPrecomputedLabels.js")
 
 async function generateJSON() {
    let files = await fs.promises.readdir(global.dataDir)
@@ -88,13 +89,15 @@ async function generateJSON() {
 
 			  if (matchingRAS.length === 1) {
 				  view.labelPath = matchingRAS[0]
+				  //Generate and Cache the precomputed labels.
+				  await createPrecomputedLabels(path.join(global.dataDir, view.labelPath))
 			  }
 			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {console.warn("Potential Matching Issues")}
 
 			   view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 			   item.views.push(view)
 
-			   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, ...labelFiles)) //All label files are components, even if they aren't in a view. 
+			   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, ...labelFiles)) //All label files are components, even if they aren't in a view.
 		   }
 	   }
 
