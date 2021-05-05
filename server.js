@@ -120,7 +120,7 @@ app.post("/upload", async (req, res) => {
 })
 
 
-app.get("/download", async (req, res) => {
+app.post("/download", async (req, res) => {
 	let data = await getData(req)
 
 	//We use the URL object to get search params, so the domain/host can be anything.
