@@ -43,46 +43,60 @@ async function generateJSON() {
 		   normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
 	   }
 
+	   //These are all the different ways that files can be identified along with an animal.
+	   //We keep them seperate so we can pair with labels better.
 	   let provisionalItems = [normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
-	   let itemsToCheck = []
 
-	   //Expand arrays of identifying codes, in case there are multiple (like with Animal 190610-1:1, which has multiple GRE and DWI identifiers)
-	   //Also filter out blank identifiers, for empty boxes.
-	   for (let i=0;i<provisionalItems.length;i++) {
-		   let item = provisionalItems[i]
-		   if (item instanceof Array) {
-			   item.forEach((subitem) => {
-				   provisionalItems.push(subitem)
+	   let relatedFiles = provisionalItems.map((itemsToCheck) => {
+		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
+		   if (!(itemsToCheck instanceof Array)) {itemsToCheck = [itemsToCheck]}
+		   itemsToCheck = itemsToCheck.filter(item => item) //Filter out blank identifiers, for empty boxes.
+
+		   return niiFiles.filter((fileName) => {
+			   return itemsToCheck.some((item) => {
+				   return fileName.includes(item)
 			   })
-		   }
-		   else if (item) {
-			   itemsToCheck.push(item)
-		   }
-	   }
-
-	   //TODO: Probably use a dictionary. If the same identifier is used by both labels and normal files, assume there are labels.
-	   //We should also move our thumbnails to use a directory for each item - probably a better arrangment to have the data and the computed cache items seperated.
-
-	   let relatedFiles = niiFiles.filter((fileName) => {
-		   return itemsToCheck.some((item) => {
-			   return fileName.includes(item)
 		   })
 	   })
 
-	   //TODO: Handle labels. Probably search filename for word label.
+	   //Each batch is all the files that matched with a specific identifier.
+	   //TODO: What if the two different identifiers match the same file?
 	   for (let i=0;i<relatedFiles.length;i++) {
-		   let fileName = relatedFiles[i]
-		   let view = {
-			   name: fileName,
-			   filePath: fileName,
-			   //labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
+		   let filesInBatch = relatedFiles[i]
+
+		   let imageFiles = filesInBatch.filter((fileName) => {
+			   return !fileName.includes("label")
+		   })
+
+		   let labelFiles = filesInBatch.filter((fileName) => {
+			   return fileName.includes("label")
+		   })
+
+		   //TODO: Handle labels. Probably search filename for word label.
+		   for (let i=0;i<imageFiles.length;i++) {
+			   let fileName = imageFiles[i]
+			   let view = {
+				   name: fileName,
+				   filePath: fileName
+			   }
+
+			  let matchingRAS = labelFiles.filter((labelName) => {
+				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
+			  })
+
+			  console.log(fileName, labelFiles, matchingRAS)
+
+			  if (matchingRAS.length === 1) {
+				  view.labelPath = matchingRAS[0]
+			  }
+			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {console.warn("Potential Matching Issues")}
+
+			   view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			   item.views.push(view)
+
+			   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, ...labelFiles)) //All label files are components, even if they aren't in a view. 
 		   }
-
-		   view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
-		   item.views.push(view)
-		   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath)) //view.labelPath
 	   }
-
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {
 		   let stats = fs.statSync(path.join(global.dataDir, fileName))

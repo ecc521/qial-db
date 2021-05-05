@@ -6,7 +6,7 @@ const fs = require("fs") //For plotly copy
 let config = {
 	mode: "production", //Build for production
 	entry: {
-		"packages/index.js": "./index.js",
+		"packages/index.js": "./src/index.js",
 	},
 	target: "web",
 	devtool: "source-map",
@@ -89,7 +89,7 @@ compiler.watch({
 	//See https://github.com/plotly/plotly.js/blob/master/dist/README.md#partial-bundles
 	//File size is greatly reduced by using a partial bundle. This one supports violn plots.
 	console.log("Copying plotly...")
-	
+
 	let plotlyBundlePath = "./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js"
 	let outputPlotlyPath = "packages/plotly.js"
 

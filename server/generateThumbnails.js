@@ -12,7 +12,7 @@ const sharp = require("sharp")
 //We do this with PNGs, as they are lossless - images are renamed, etc, later.
 function pythonGenerateThumbnails(pathToNIFTI, outputNames) {
 	let process = child_process.spawn("python3", [
-		path.join(__dirname, "generateThumbnails.py"),
+		path.join(__dirname, "python", "generateThumbnails.py"),
 		pathToNIFTI,
 	].concat(outputNames), {
 		cwd: global.thumbnailsDir
@@ -90,11 +90,7 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 
 	//Temporary names used for not-yet-processed python generated thumbnails.
-	const tempNames = [
-		"x.png",
-		"y.png",
-		"z.png"
-	]
+	const tempNames = outputNames.map((name) => {return name + ".png"})
 
 	try {
 		await pythonGenerateThumbnails(tempPath || pathToNIFTI, tempNames)
@@ -107,7 +103,7 @@ async function generateThumbnails(pathToNIFTI) {
 			fs.unlinkSync(tempPath)
 		}
 
-		//Clean up the temporary images. 
+		//Clean up the temporary images.
 		tempNames.forEach((name) => {
 			let filePath = path.join(global.thumbnailsDir, name)
 			if (fs.existsSync(filePath)) {fs.unlinkSync(filePath)}

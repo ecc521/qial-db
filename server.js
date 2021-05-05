@@ -205,7 +205,6 @@ app.use('*', (req, res, next) => {
 	let extensions = ["", ".html", "index.html"]
 	let src;
 	extensions.find((ext) => {
-		console.log(req.originalUrl, req.url)
 		src = path.join(__dirname, relativeSrc + ext)
 		if (fs.existsSync(src)) {
 			return !fs.statSync(src).isDirectory()
