@@ -1,117 +1,12 @@
 const fs = require("fs")
 const path = require("path")
-const child_process = require("child_process")
-const os = require("os")
-const zlib = require("zlib")
-
-const sharp = require('sharp');
 
 const loadDataCSV = require("./loadDataCSV.js")
-const dataDir = path.join(__dirname, "../", "data")
 
-async function generateThumbnails(pathToNIFTI) {
-	//Generate thumbnails.
-
-	let outputName = path.basename(pathToNIFTI)
-	let outputNameRoot = outputName.slice(0, outputName.indexOf("."))
-	let type = "webp"
-	function getNamesForType(type) {
-		return [
-			outputNameRoot + ".qialdbthumbnail.x." + type,
-			outputNameRoot + ".qialdbthumbnail.y." + type,
-			outputNameRoot + ".qialdbthumbnail.z." + type
-		]
-	}
-
-	let outputNames = getNamesForType(type)
-
-	//If we don't need to generate any images, then don't generate any.
-	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
-	if (
-		outputNames.every((fileName) => {
-			let filePath = path.join(dataDir, fileName)
-			if (!fs.existsSync(filePath)) {return false} //Need to regenerate. Doesn't exist.
-			let modified = fs.statSync(filePath).mtime
-			if (modified < modifiedNifti) {return false} //Nifti modified more recently than thumbnail. Thumbnail old.
-			return true
-		})
-	) {
-		return outputNames
-	}
-
-
-
-	//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails,
-	//however can read portions off disk just fine it appears.
-	//It currently runs out of memory on some systems with larger files, but is fine when the decompressed file is used from disk.
-	//Therefore, decompress large files to disk on systems with little memory.
-
-	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
-	let tempPath;
-	if (pathToNIFTI.endsWith(".nii.gz")) {
-		if (fs.statSync(pathToNIFTI).size > os.freemem() / 8) {
-			tempPath = pathToNIFTI.slice(0, -3)
-			let unzipper = zlib.createGunzip()
-			await new Promise((resolve, reject) => {
-				let stream = fs.createReadStream(pathToNIFTI)
-				let dest = fs.createWriteStream(tempPath)
-				let writeStream = stream.pipe(unzipper).pipe(dest)
-				writeStream.on("finish", resolve)
-			})
-		}
-	}
-
-	try {
-		//TODO: Write temporary images to a memory directory.
-		let tempImages = getNamesForType("png")
-		let process = child_process.spawn("python3", [
-			path.join(__dirname, "generateThumbnails.py"),
-			tempPath || pathToNIFTI,
-		].concat(tempImages), { //These are exported as PNG. They will be converted.
-			cwd: dataDir
-		})
-
-		await new Promise((resolve, reject) => {
-			process.on('close', resolve);
-		})
-
-		try {
-			let imageProcessors = []
-			for (let i=0;i<tempImages.length;i++) {
-				let imagePath = path.join(dataDir, tempImages[i])
-				imageProcessors.push(await sharp(imagePath))
-			}
-
-			//TODO: Also handle reordering of images here if not in generateThumbnails.py
-
-			//Convert thumbnails to standard size. Max height is 180 pixels.
-			for (let i=0;i<imageProcessors.length;i++) {
-				let imageProcessor = imageProcessors[i]
-				await imageProcessor
-					.resize({height: 180})
-					.webp({
-						reductionEffort: 6, //Could be slow. 0-6 for CPU used to compress. Default 4
-						quality: 80, //Default 80.
-					})
-					.toFile(path.join(dataDir, outputNames[i]))
-				//We don't need to delete the original PNGs - that's handled elsewhere.
-			}
-		}
-		catch (e) {
-			console.error(e)
-		}
-
-		return outputNames
-	}
-	finally {
-		if (tempPath && fs.existsSync(tempPath)) {
-			fs.unlinkSync(tempPath)
-		}
-	}
-}
+const generateThumbnails = require("./generateThumbnails.js")
 
 async function generateJSON() {
-   let files = await fs.promises.readdir(dataDir)
+   let files = await fs.promises.readdir(global.dataDir)
 
    let parsedCSV = await loadDataCSV()
    let csvJSON = parsedCSV.json
@@ -165,6 +60,9 @@ async function generateJSON() {
 		   }
 	   }
 
+	   //TODO: Probably use a dictionary. If the same identifier is used by both labels and normal files, assume there are labels.
+	   //We should also move our thumbnails to use a directory for each item - probably a better arrangment to have the data and the computed cache items seperated.
+
 	   let relatedFiles = niiFiles.filter((fileName) => {
 		   return itemsToCheck.some((item) => {
 			   return fileName.includes(item)
@@ -180,14 +78,14 @@ async function generateJSON() {
 			   //labelPath: item["SAMBA Brunno"] + "_invivoAPOE1_labels.nii.gz",
 		   }
 
-		   view.thumbnails = await generateThumbnails(path.join(dataDir, view.filePath))
+		   view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 		   item.views.push(view)
-		   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, view.thumbnails)) //view.labelPath
+		   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath)) //view.labelPath
 	   }
 
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {
-		   let stats = fs.statSync(path.join(dataDir, fileName))
+		   let stats = fs.statSync(path.join(global.dataDir, fileName))
 		   return {
 			   name: fileName,
 			   size: stats.size,
@@ -195,24 +93,12 @@ async function generateJSON() {
 			   type: "file"
 		   }
 	   })
-	   //Cleaning up and keeping thumbnails up to date is handled elsewhere.
-	   item.componentFiles = item.componentFiles.filter((obj) => {
-		   if (!obj.name.includes(".qialdbthumbnail.")) {return true}
-		   return false
-	   })
    }
-
-   //Delete all thumbnails without associated animals.
-   files = files.filter((fileName) => {
-	   if (!fileName.includes(".qialdbthumbnail.")) {return true}
-	   fs.unlinkSync(path.join(dataDir, fileName))
-	   return false
-   })
 
 
    let fileData = []
    files.forEach((fileName) => {
-	   let stats = fs.statSync(path.join(dataDir, fileName))
+	   let stats = fs.statSync(path.join(global.dataDir, fileName))
 	   fileData.push({
 		   name: fileName,
 		   size: stats.size,

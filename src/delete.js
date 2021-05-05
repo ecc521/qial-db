@@ -53,7 +53,7 @@ deleteButton.addEventListener("click", async function() {
 		results.innerHTML = "Results will appear below: <br>"
 
 		for (var i = 0; i < names.length; i++) {
-			let request = await fetch(url + "fileops", {
+			let request = await fetch("fileops", {
 				method: 'DELETE',
 				headers: {
 					'qial-password': passwordInput.value,

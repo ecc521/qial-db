@@ -62,12 +62,8 @@
 
 			generate.addEventListener("click", async function() {
 				result.innerHTML = "Generating...."
-				let url = "node/auth/generateentry"
-				if (window.location.host.startsWith("127.0.0.1")) {
-					url = "http://" + window.location.hostname + ":6928" + "/auth/generateentry" //Local dev doesn't go through apache.
-				}
 
-				let request = await fetch(url, {
+				let request = await fetch("auth/generateentry", {
 					method: "POST",
 					headers: {
 						"qial-password": passwordInput.value,

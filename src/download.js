@@ -160,7 +160,7 @@ downloadZip.addEventListener("click", function() {
 
 	let form = document.createElement("form")
 	form.setAttribute("method", "post")
-	form.setAttribute("action", window.url + "download")
+	form.setAttribute("action", "download")
 	form.style.display = "none"
 
 	let field = document.createElement("input")

@@ -9,6 +9,7 @@ parser.add_argument("file_path", type=Path)
 parser.add_argument("x_out_path", type=Path)
 parser.add_argument("y_out_path", type=Path)
 parser.add_argument("z_out_path", type=Path)
+
 p = parser.parse_args()
 
 data = nib.load(p.file_path)
@@ -24,6 +25,10 @@ elif(len(data.shape) == 3):
     slice_y = data[:, int(data.shape[1]/2), :]
     slice_z = data[:, :, int(data.shape[2]/2)]
 
-imageio.imwrite(p.x_out_path, slice_x)
-imageio.imwrite(p.y_out_path, slice_y)
-imageio.imwrite(p.z_out_path, slice_z)
+
+def writeImage(outPath, slice):
+    imageio.imwrite(outPath, slice)
+
+writeImage(p.x_out_path, slice_x)
+writeImage(p.y_out_path, slice_y)
+writeImage(p.z_out_path, slice_z)

@@ -45,7 +45,7 @@ async function _uploadFile(file, start, end, setFileProgress) {
 	//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
 	return await new Promise((resolve, reject) => {
 		let request = new XMLHttpRequest();
-		request.open('POST', url + "upload");
+		request.open('POST', "upload");
 
 		request.setRequestHeader("qial-filename", file.name);
 		request.setRequestHeader("qial-password", passwordInput.value);

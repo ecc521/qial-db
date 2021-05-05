@@ -1,5 +1,3 @@
-window.dataDir = window.location.protocol + "//" + window.location.host + "/data/"
-
 const generateNeuroglancerLink = require("./generateNeuroglancerLink.js")
 
 let itemContainer = document.getElementById("items")
@@ -137,7 +135,7 @@ function Item(item) {
 		function addThumbnails(view, container, fileSize) {
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
-				img.src = dataDir + fileName
+				img.src = `cache/thumbnails/${fileName}`
 				container.appendChild(img)
 
 				if (fileSize > maxPreviewSize) {
@@ -162,7 +160,7 @@ function Item(item) {
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");
 				    link.setAttribute('download', view.name);
-				    link.href = dataDir + view.name;
+				    link.href = "data/" + view.name;
 				    document.body.appendChild(link);
 				    link.click();
 				    link.remove();
@@ -214,7 +212,7 @@ window.drawCards = function drawCards(items) {
 }
 
 ;(async function() {
-	let request = await fetch(url + "data.json")
+	let request = await fetch("data.json")
 	let response = await request.json()
 	window.data = response.data
 	window.csvSources = response.csvSources
