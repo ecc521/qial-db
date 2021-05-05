@@ -32,7 +32,7 @@ function generateNeuroglancerLink({fileName, labelName}) {
 			{
 				"type": "image",
 				"source": {
-					"url": `nifti://http://127.0.0.1:8000/data/${fileName}`,
+					"url": `nifti://${window.location.href}data/${fileName}`,
 					"transform": {
 						"matrix": [
 							[
@@ -85,7 +85,7 @@ function generateNeuroglancerLink({fileName, labelName}) {
 		obj.layers.push({
 			"type": "segmentation",
 			"source": {
-				"url": `precomputed://http://127.0.0.1:8000/cache/precomputedlabels/${labelName}`,
+				"url": `precomputed://${window.location.href}cache/precomputedlabels/${labelName}`,
 				"subsources": {
 					"default": true,
 					"bounds": true
