@@ -7,8 +7,6 @@ const child_process = require("child_process")
 //Calls python code to generate labels.
 function createPrecomputedLabels(pathToNIFTI) {
 	//TODO: Confirm that we actually need to regenerate outputDir.
-console.log("Generating " + pathToNIFTI)
-
 	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
 
 	let outputName = path.basename(pathToNIFTI)
@@ -17,18 +15,14 @@ console.log("Generating " + pathToNIFTI)
 	if (fs.existsSync(outputDir)) {
 		let infoFilePath = path.join(outputDir, "info")
 		if (fs.existsSync(infoFilePath)) {
-			console.log("Has Both. ")
 			let modified = fs.statSync(infoFilePath).mtime
 
 			//Info modified more recently than NITFI. No need to regenerate.
 			if (modified > modifiedNifti) {
-				console.log("Already Generated and New")
 				return true
 			}
 		}
 	}
-
-	console.log("Computing " + pathToNIFTI)
 
 
 	let process = child_process.spawn("python3", [

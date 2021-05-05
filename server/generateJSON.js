@@ -7,6 +7,7 @@ const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputedLabels = require("./createPrecomputedLabels.js")
 
 async function generateJSON() {
+	console.time("Gen")
    let files = await fs.promises.readdir(global.dataDir)
 
    let parsedCSV = await loadDataCSV()
@@ -85,8 +86,6 @@ async function generateJSON() {
 				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
 			  })
 
-			  console.log(fileName, labelFiles, matchingRAS)
-
 			  if (matchingRAS.length === 1) {
 				  view.labelPath = matchingRAS[0]
 				  //Generate and Cache the precomputed labels.
@@ -137,6 +136,8 @@ async function generateJSON() {
 	   return calc(b) - calc(a)
    })
 
+   console.timeEnd("Gen")
+
    return {
 	   csvSources: {
 		   "Mice": parsedCSV.csvText
@@ -145,19 +146,28 @@ async function generateJSON() {
    }
 }
 
-let openRequest;
+
+
+let lastGenerated; //This can take a bit of time - return the last request generated.
+
+//Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
+//generateJSON may crash if it is run multiple times at once, or generate invalid thumbnails, etc.
+let currentGeneration;
+
 module.exports = async function() {
-	//Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
-	//generateJSON may crash if it is run multiple times at once, or generate invalid thumbnails, etc.
-	if (openRequest) {
-		return await openRequest
+	if (!currentGeneration) {
+		currentGeneration = generateJSON().then((res) => {
+			lastGenerated = res
+			currentGeneration = undefined
+		}, (err) => {
+			console.error(err)
+			currentGeneration = undefined
+		})
 	}
 
-	try {
-		openRequest = generateJSON()
-		return await openRequest
+	if (!lastGenerated) {
+		await currentGeneration
 	}
-	finally {
-		openRequest = null;
-	}
+
+	return lastGenerated
 }
