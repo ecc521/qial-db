@@ -98,7 +98,7 @@ function generateNeuroglancerLink({fileName, labelName}) {
 		})
 	}
 
-	let neuroglancerLink = "https://neuroglancer-demo.appspot.com/" + "#!" + encodeURI(JSON.stringify(obj))
+	let neuroglancerLink = window.location.href + `neuroglancer/dist/min/#!` + encodeURI(JSON.stringify(obj))
 	return neuroglancerLink
 }
 

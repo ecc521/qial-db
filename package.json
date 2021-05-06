@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "build-neuroglancer": "pushd neuroglancer && npm run build && popd"
   },
   "repository": {
     "type": "git",

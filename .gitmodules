@@ -1,0 +1,3 @@
+[submodule "neuroglancer"]
+	path = neuroglancer
+	url = https://github.com/google/neuroglancer.git
