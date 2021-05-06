@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js",
-    "build-neuroglancer": "pushd neuroglancer && npm run build && popd"
+    "build-neuroglancer": "pushd neuroglancer && npm install && npm run build && popd"
   },
   "repository": {
     "type": "git",
