@@ -20,6 +20,10 @@ pip3 install pandas neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd.
 #Clone qial-db
 cd $HOME
 git clone https://github.com/ecc521/qial-db.git
+git submodule update --init --recursive
+pushd neuroglancer
+npm install
+popd
 
 #Install NodeJS
 curl -sL https://deb.nodesource.com/setup_14.x | sudo bash -
