@@ -13,6 +13,8 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 sudo swapon -s
 
+echo "Add the following line to /etc/fstab:"
+echo "/swapfile none swap sw 0 0"
 
 #Install git
 sudo apt-get install -y git

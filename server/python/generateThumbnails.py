@@ -1,3 +1,7 @@
+#Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails.
+#This works fine with raw .nii files, but gzipped versions are fully decompressed in memory,
+#which can cause OOM errors.
+
 import nibabel as nib
 import numpy as np
 import argparse

@@ -69,40 +69,16 @@ async function generateThumbnails(pathToNIFTI) {
 		return outputNames
 	}
 
-	//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails,
-	//however can read portions off disk just fine it appears.
-	//It currently runs out of memory on some systems with larger files, but is fine when the decompressed file is used from disk.
-	//Therefore, decompress large files to disk on systems with little memory.
-
-	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
-	let tempPath;
-	if (pathToNIFTI.endsWith(".nii.gz")) {
-		if (false && fs.statSync(pathToNIFTI).size > os.freemem() / 8) {
-			tempPath = pathToNIFTI.slice(0, -3)
-			let unzipper = zlib.createGunzip()
-			await new Promise((resolve, reject) => {
-				let stream = fs.createReadStream(pathToNIFTI)
-				let dest = fs.createWriteStream(tempPath)
-				let writeStream = stream.pipe(unzipper).pipe(dest)
-				writeStream.on("finish", resolve)
-			})
-		}
-	}
-
 	//Temporary names used for not-yet-processed python generated thumbnails.
 	const tempNames = outputNames.map((name) => {return name + ".png"})
 
 	try {
-		await pythonGenerateThumbnails(tempPath || pathToNIFTI, tempNames)
+		await pythonGenerateThumbnails(pathToNIFTI, tempNames)
 		await processThumbnails(tempNames, outputNames)
 
 		return outputNames
 	}
 	finally {
-		if (tempPath && fs.existsSync(tempPath)) {
-			fs.unlinkSync(tempPath)
-		}
-
 		//Clean up the temporary images.
 		tempNames.forEach((name) => {
 			let filePath = path.join(global.thumbnailsDir, name)
