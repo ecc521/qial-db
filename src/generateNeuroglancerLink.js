@@ -98,7 +98,11 @@ function generateNeuroglancerLink({fileName, labelName}) {
 		})
 	}
 
-	let neuroglancerLink = window.location.href + `neuroglancer/dist/min/#!` + encodeURI(JSON.stringify(obj))
+	let appspotDemoUrl = "https://neuroglancer-demo.appspot.com/" //Appspot demo is hosted by Google.
+	//This can be used if we need to host our own version. Note that building neuroglancer uses
+	//a gigabyte or so of memory - the files can be uploaded to bypass this requirement. (once built, it's just static files)
+	let selfHostedUrl = window.location.href + `neuroglancer/dist/min/`
+	let neuroglancerLink = selfHostedUrl + `#!` + encodeURI(JSON.stringify(obj))
 	return neuroglancerLink
 }
 

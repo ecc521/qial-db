@@ -4,6 +4,16 @@ read -p "This file is intended to set up a server to host the qial-db website. I
 sudo apt-get update
 sudo apt-get upgrade
 
+
+#Add Swap - Google Cloud has none by default.
+#This isn't *needed* but it can help prevent issues.
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+sudo swapon -s
+
+
 #Install git
 sudo apt-get install -y git
 

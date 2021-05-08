@@ -77,7 +77,7 @@ async function generateThumbnails(pathToNIFTI) {
 	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
 	let tempPath;
 	if (pathToNIFTI.endsWith(".nii.gz")) {
-		if (fs.statSync(pathToNIFTI).size > os.freemem() / 8) {
+		if (false && fs.statSync(pathToNIFTI).size > os.freemem() / 8) {
 			tempPath = pathToNIFTI.slice(0, -3)
 			let unzipper = zlib.createGunzip()
 			await new Promise((resolve, reject) => {
