@@ -30,7 +30,21 @@ const serveIndex = require('serve-index')
 let app = express()
 
 //Compress all responses
-app.use(compression())
+app.use(compression({
+	filter: (req, res) => {
+		let type = res.getHeader("Content-Type")
+		if (
+			type === "image/webp"
+			|| type === "application/gzip"
+		) {
+			return false
+		}
+		else {
+			console.log(type)
+			return true
+		}
+	},
+}))
 
 
 //Gets the body of a request.
@@ -64,7 +78,7 @@ app.get("/data.json", async (req, res) => {
 })
 
 app.post("/upload", async (req, res) => {
-	//TODO: We need to cache uploads somewhere until they finish. 
+	//TODO: We need to cache uploads somewhere until they finish.
 	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
 	console.log(filename)
@@ -224,8 +238,7 @@ app.use('*', (req, res, next) => {
 
 		//Stream decompress off of disk.
 		if (extension === ".gz") {
-			res.type("txt") //We'll set a compressable type - this file must be compressible if we have it precompressed.
-
+			res.type(path.extname(src.slice(0, -3)))
 			let decompressor = zlib.createUnzip()
 			readStream.pipe(decompressor)
 			readStream = decompressor
