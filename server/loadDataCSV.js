@@ -26,7 +26,8 @@ module.exports = async function loadDataCSV(useCache = false, SHEET_NAME="Mice",
 
 			item.csvSources[SHEET_NAME] = {
 				lineNumber,
-				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#gid=0&range=${lineNumber}:${lineNumber}`
+				//Looks like editUrls are 1 indexed, not 0? Either way, they were off by 1. 
+				editUrl: `https://docs.google.com/spreadsheets/d/${FILE_ID}/#gid=0&range=${lineNumber + 1}:${lineNumber + 1}`
 			}
 		})
 
