@@ -81,7 +81,7 @@ async function generateTiffThumbnails(pathToFile) {
 	let slices = [
 		await sharp(xViewBuff, {raw: xViewConfig}),
 		await sharp(yViewBuff, {raw: yViewConfig}),
-		await sharp(pathToFile, {page: Math.round(metadata.pages / 2) - 1}).rotate(270)
+		await sharp(pathToFile, {page: Math.round(metadata.pages / 2) - 1}).rotate(270).flip()
 	]
 
 	for (let i=0;i<slices.length;i++) {
