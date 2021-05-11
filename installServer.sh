@@ -6,7 +6,7 @@ sudo apt-get upgrade
 
 
 #Add Swap - Google Cloud has none by default.
-#This isn't *needed* but it can help prevent issues.
+#This isn't *needed* with enough RAM, but it can help prevent issues.
 sudo fallocate -l 4G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
