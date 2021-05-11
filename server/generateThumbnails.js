@@ -68,31 +68,32 @@ async function generateThumbnails(pathToNIFTI) {
 		return outputNames
 	}
 
-	//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails.
-	//Therefore, on systems with little memory, decompress to disk first.
-
-	//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
-	let tempPath;
-	if (pathToNIFTI.endsWith(".nii.gz")) {
-		//We are decompressing, so if file size is os.freemem(), we will swap.
-		//A bit of swap is fine though. Not a massive amount.
-
-		//TODO: Put these in cache instead of dataDir.
-		if (fs.statSync(pathToNIFTI).size > os.freemem()) {
-			tempPath = path.join(global.cacheDir, outputName + path.extname(pathToNIFTI))
-			let unzipper = zlib.createGunzip()
-			await new Promise((resolve, reject) => {
-				let stream = fs.createReadStream(pathToNIFTI)
-				let dest = fs.createWriteStream(tempPath)
-				let writeStream = stream.pipe(unzipper).pipe(dest)
-				writeStream.on("finish", resolve)
-			})
-		}
-	}
-
 	//Temporary names used for not-yet-processed python generated thumbnails.
 	const tempNames = outputNames.map((name) => {return name + ".png"})
 	try {
+		//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails.
+		//Therefore, on systems with little memory, decompress to disk first.
+
+		//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
+		let tempPath;
+		if (pathToNIFTI.endsWith(".nii.gz")) {
+			//We are decompressing, so if file size is os.freemem(), we will swap.
+			//A bit of swap is fine though. Not a massive amount.
+
+			//TODO: Put these in cache instead of dataDir.
+			if (fs.statSync(pathToNIFTI).size > os.freemem()) {
+				console.warn("WRITING TO DISK!!!")
+				tempPath = path.join(global.cacheDir, outputName + path.extname(pathToNIFTI))
+				let unzipper = zlib.createGunzip()
+				await new Promise((resolve, reject) => {
+					let stream = fs.createReadStream(pathToNIFTI)
+					let dest = fs.createWriteStream(tempPath)
+					let writeStream = stream.pipe(unzipper).pipe(dest)
+					writeStream.on("finish", resolve)
+				})
+			}
+		}
+
 		await pythonGenerateThumbnails(tempPath || pathToNIFTI, tempNames)
 		await processThumbnails(tempNames, outputNames)
 
