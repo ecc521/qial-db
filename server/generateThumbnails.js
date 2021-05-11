@@ -47,7 +47,6 @@ async function processThumbnails(inputNames, outputNames) {
 
 async function generateThumbnails(pathToNIFTI) {
 	//Generate thumbnails.
-
 	let outputName = path.basename(pathToNIFTI)
 
 	let finalType = "webp"
@@ -71,13 +70,13 @@ async function generateThumbnails(pathToNIFTI) {
 
 	//Temporary names used for not-yet-processed python generated thumbnails.
 	const tempNames = outputNames.map((name) => {return name + ".png"})
-
 	try {
 		await pythonGenerateThumbnails(pathToNIFTI, tempNames)
 		await processThumbnails(tempNames, outputNames)
 
 		return outputNames
 	}
+	catch (e) {console.error(pathToNIFTI, e)} //Likely an error in pythonGenerateThumbnails that caused processThumbnails to try to read a nonexistant file (as thumbnails not generated)
 	finally {
 		//Clean up the temporary images.
 		tempNames.forEach((name) => {

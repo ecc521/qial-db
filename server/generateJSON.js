@@ -40,14 +40,15 @@ async function generateJSON() {
 	   item.componentFiles = []
 
 	   //These will be used for identification.
-	   let normalizedAnimalCode = item.Animal.split("-").join("_")
-	   if (normalizedAnimalCode.indexOf(":") !== -1) {
-		   normalizedAnimalCode = normalizedAnimalCode.slice(0, normalizedAnimalCode.indexOf(":"))
+	   let animalCode = item.Animal, normalizedAnimalCode;
+	   if (animalCode.indexOf(":") !== -1) {
+		   animalCode = animalCode.slice(0, animalCode.indexOf(":"))
 	   }
+	   normalizedAnimalCode = animalCode.split("-").join("_") //Some files have this normalized.
 
 	   //These are all the different ways that files can be identified along with an animal.
 	   //We keep them seperate so we can pair with labels better.
-	   let provisionalItems = [normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
+	   let provisionalItems = [animalCode, normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
 
 	   let relatedFiles = provisionalItems.map((itemsToCheck) => {
 		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
@@ -81,7 +82,6 @@ async function generateJSON() {
 				   name: fileName,
 				   filePath: fileName
 			   }
-
 			  let matchingRAS = labelFiles.filter((labelName) => {
 				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
 			  })

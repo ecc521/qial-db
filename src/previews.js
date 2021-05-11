@@ -133,6 +133,7 @@ function Item(item) {
 
 		let maxPreviewSize = 10000000 //10 MB
 		function addThumbnails(view, container, fileSize) {
+			if (!view.thumbnails) {console.warn("No Thumbnails");return;}
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
 				img.src = `cache/thumbnails/${fileName}`
