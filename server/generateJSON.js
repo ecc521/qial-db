@@ -5,6 +5,7 @@ const loadDataCSV = require("./loadDataCSV.js")
 
 const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputedLabels = require("./createPrecomputedLabels.js")
+const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
 async function generateJSON() {
 	console.time("Gen")
@@ -66,6 +67,10 @@ async function generateJSON() {
 			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
 		   }
 
+		   function isTiff(fileName) {
+			   return fileName.endsWith(".tif")
+		   }
+
 		   let imageFiles = filesInBatch.filter((fileName) => {
 			   return isNifti(fileName) && !fileName.includes("label")
 		   })
@@ -100,6 +105,20 @@ async function generateJSON() {
 			  item.componentFiles.push(...reclaimFiles([], view.filePath))
 		   }
 
+		   let tiffImageFiles = filesInBatch.filter((fileName) => {return isTiff(fileName)})
+
+		   for (let i=0;i<tiffImageFiles.length;i++) {
+			   let fileName = tiffImageFiles[i]
+			   let view = {
+				   name: fileName,
+				   filePath: fileName
+			   }
+
+			  view.thumbnails = await generateTiffThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			  item.views.push(view)
+
+			  item.componentFiles.push(...reclaimFiles([], view.filePath))
+		   }
 		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
 	   }
 
