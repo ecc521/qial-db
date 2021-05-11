@@ -8,6 +8,10 @@ function generateSearchOptions(items) {
 			type: "of"
 		},
 		{
+			optionName: "Modality",
+			type: "of"
+		},
+		{
 			optionName: "Sex",
 			type: "of"
 		},
