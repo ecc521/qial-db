@@ -77,9 +77,9 @@ async function generateThumbnails(pathToNIFTI) {
 		//We are decompressing, so if file size is os.freemem(), we will swap.
 		//A bit of swap is fine though. Not a massive amount.
 
-		//TODO: Put these in cache instead of dataDir.
+		//TODO: Put these in cache instead of dataDir. 
 		if (fs.statSync(pathToNIFTI).size > os.freemem()) {
-			tempPath = path.join(global.cacheDir, outputName + path.extname(pathToNIFTI))
+			tempPath = pathToNIFTI.slice(0, -3)
 			let unzipper = zlib.createGunzip()
 			await new Promise((resolve, reject) => {
 				let stream = fs.createReadStream(pathToNIFTI)
