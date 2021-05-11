@@ -12,6 +12,10 @@ function generateSearchOptions(items) {
 			type: "of"
 		},
 		{
+			optionName: "DiseaseModel",
+			type: "of"
+		},
+		{
 			optionName: "Sex",
 			type: "of"
 		},
