@@ -64,6 +64,7 @@ app.get("/data.json", async (req, res) => {
 })
 
 app.post("/upload", async (req, res) => {
+	//TODO: We need to cache uploads somewhere until they finish. 
 	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
 	console.log(filename)

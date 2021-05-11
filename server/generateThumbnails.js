@@ -70,12 +70,12 @@ async function generateThumbnails(pathToNIFTI) {
 
 	//Temporary names used for not-yet-processed python generated thumbnails.
 	const tempNames = outputNames.map((name) => {return name + ".png"})
+	let tempPath;
 	try {
 		//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails.
 		//Therefore, on systems with little memory, decompress to disk first.
 
 		//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
-		let tempPath;
 		if (pathToNIFTI.endsWith(".nii.gz")) {
 			//We are decompressing, so if file size is os.freemem(), we will swap.
 			//A bit of swap is fine though. Not a massive amount.
