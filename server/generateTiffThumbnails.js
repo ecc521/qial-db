@@ -52,28 +52,23 @@ async function generateTiffThumbnails(pathToFile) {
 		//Take the center slice out of this. We'll do it vertically this time.
 		let buff = await sharp("data/210301-5_Material_Decomposition.tif", {page: i}).raw().toBuffer()
 
-		let xSlice = Math.round(xViewConfig.height/2) - 1
-		let ySlice = Math.round(yViewConfig.height/2) - 1
+		let x = Math.round(xViewConfig.height/2) - 1
+		for (let y=0;y<xViewConfig.height;y++) {
+			let pos = xViewConfig.channels * (x + y * metadata.width)
+			//Column number is i. Row number is y.
+			let buffPos = xViewConfig.channels * (i + y * xViewConfig.width)
+			for (let offset=0;offset<xViewConfig.channels;offset++) {
+				xViewBuff[buffPos + offset] = buff[pos + offset]
+			}
+		}
 
-		//TODO: We really don't need to iterate every pixel. This is slow. We can use offsets and skip some.
+		let y = Math.round(yViewConfig.height/2) - 1
 		for (let x=0;x<xViewConfig.width;x++) {
-			for (let y=0;y<xViewConfig.height;y++) {
-				let pos = xViewConfig.channels * (x + y * metadata.width)
+			let pos = xViewConfig.channels * (x + y * metadata.width)
 
-				if (x === xSlice) {
-					//console.log(x, y)
-					//Column number is i. Row number is y.
-					let buffPos = xViewConfig.channels * (i + y * xViewConfig.width)
-					for (let offset=0;offset<xViewConfig.channels;offset++) {
-						xViewBuff[buffPos + offset] = buff[pos + offset]
-					}
-				}
-				if (y === ySlice) {
-					let buffPos = yViewConfig.channels * (i + x * yViewConfig.width)
-					for (let offset=0;offset<yViewConfig.channels;offset++) {
-						yViewBuff[buffPos + offset] = buff[pos + offset]
-					}
-				}
+			let buffPos = yViewConfig.channels * (i + x * yViewConfig.width)
+			for (let offset=0;offset<yViewConfig.channels;offset++) {
+				yViewBuff[buffPos + offset] = buff[pos + offset]
 			}
 		}
 	}
