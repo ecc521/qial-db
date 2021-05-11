@@ -28,11 +28,6 @@ async function generateJSON() {
    }
 
 
-   let niiFiles = files.filter((fileName) => {
-	   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
-   })
-
-
    for (let i=0;i<csvJSON.length;i++) {
 	   let item = csvJSON[i]
 	   item.type = "animal"
@@ -55,7 +50,7 @@ async function generateJSON() {
 		   if (!(itemsToCheck instanceof Array)) {itemsToCheck = [itemsToCheck]}
 		   itemsToCheck = itemsToCheck.filter(item => item) //Filter out blank identifiers, for empty boxes.
 
-		   return niiFiles.filter((fileName) => {
+		   return files.filter((fileName) => {
 			   return itemsToCheck.some((item) => {
 				   return fileName.includes(item)
 			   })
@@ -67,12 +62,16 @@ async function generateJSON() {
 	   for (let i=0;i<relatedFiles.length;i++) {
 		   let filesInBatch = relatedFiles[i]
 
+		   function isNifti(fileName) {
+			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
+		   }
+
 		   let imageFiles = filesInBatch.filter((fileName) => {
-			   return !fileName.includes("label")
+			   return isNifti(fileName) && !fileName.includes("label")
 		   })
 
 		   let labelFiles = filesInBatch.filter((fileName) => {
-			   return fileName.includes("label")
+			   return isNifti(fileName) && fileName.includes("label")
 		   })
 
 		   //TODO: Handle labels. Probably search filename for word label.
@@ -91,13 +90,17 @@ async function generateJSON() {
 				  //Generate and Cache the precomputed labels.
 				  await createPrecomputedLabels(path.join(global.dataDir, view.labelPath))
 			  }
-			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {console.warn("Potential Matching Issues")}
+			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {
+				  console.warn("Potential Matching Issues")
+			  }
 
-			   view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
-			   item.views.push(view)
+			  view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			  item.views.push(view)
 
-			   item.componentFiles = item.componentFiles.concat(reclaimFiles([], view.filePath, ...labelFiles)) //All label files are components, even if they aren't in a view.
+			  item.componentFiles.push(...reclaimFiles([], view.filePath))
 		   }
+
+		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
 	   }
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {
