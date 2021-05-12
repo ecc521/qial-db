@@ -19,15 +19,6 @@ function generateNeuroglancerLink({fileName, labelName}) {
 			100.5,
 			5.5
 		],
-		"crossSectionScale": 0.4604787884355259,
-		"projectionOrientation": [
-			0.02498326078057289,
-			0.10617389529943466,
-			-0.2379075437784195,
-			0.9651439785957336
-		],
-		"projectionScale": 297.88209834137433,
-		"projectionDepth": -332.3518337523922,
 		"layers": [
 			{
 				"type": "image",
