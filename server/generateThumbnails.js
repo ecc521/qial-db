@@ -77,11 +77,7 @@ async function generateThumbnails(pathToNIFTI) {
 
 		//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
 		if (pathToNIFTI.endsWith(".nii.gz")) {
-			//We are decompressing, so if file size is os.freemem(), we will swap.
-			//A bit of swap is fine though. Not a massive amount.
-
-			//TODO: Put these in cache instead of dataDir.
-			if (fs.statSync(pathToNIFTI).size > os.freemem()) {
+			if (fs.statSync(pathToNIFTI).size > os.freemem() / 4) {
 				console.warn("WRITING TO DISK!!!", pathToNIFTI)
 				tempPath = path.join(global.cacheDir, outputName.slice(0, -3))
 				let unzipper = zlib.createGunzip()
