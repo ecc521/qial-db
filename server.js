@@ -151,8 +151,11 @@ app.post("/download", async (req, res) => {
 	}
 
 	//Send the user a zip file.
-	//Since most of our files should be already compressed, and no compression is drastically faster, use compression level 0.
-	let zipper = child_process.spawn("zip", ["-0", "-"].concat(names), {
+	//Most of our files are already compressed, but not all.
+	//We'll use compression level 6 here, which is default. Might need to revert this back if it's too slow/cpu heavy.
+	//That said, the NodeJS download script is far better for big downloads, and GZIP will be used on all files,
+	//except those that are uncompressable (like already gzipped files)
+	let zipper = child_process.spawn("zip", ["-6", "-"].concat(names), {
 		cwd: global.dataDir,
 		stido: ["ignore", "pipe", "pipe"] //Ingore stdin. Pipe others.
 	})
