@@ -83,7 +83,7 @@ async function generateThumbnails(pathToNIFTI) {
 			//TODO: Put these in cache instead of dataDir.
 			if (fs.statSync(pathToNIFTI).size > os.freemem()) {
 				console.warn("WRITING TO DISK!!!", pathToNIFTI)
-				tempPath = path.join(global.cacheDir, outputName)
+				tempPath = path.join(global.cacheDir, outputName.slice(0, -3))
 				let unzipper = zlib.createGunzip()
 				await new Promise((resolve, reject) => {
 					let stream = fs.createReadStream(pathToNIFTI)
