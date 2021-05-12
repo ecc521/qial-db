@@ -7,9 +7,10 @@ from neuroglancer_scripts.scripts.volume_to_precomputed_pyramid import volume_to
 from neuroglancer_scripts.scripts.volume_to_precomputed import main as volume_to_precomputed
 from neuroglancer_scripts.scripts.generate_scales_info import main as generate_scales_info
 from neuroglancer_scripts.scripts.compute_scales import main as compute_scales
+from restructurePrecomputed import restructurePrecomputedDirectory
+
 import gzip
 
-includeDecompressed = False #For development usage - neuroglancer requests the files with no extension, but the server will serve the .gz files
 dirnam = os.getcwd()
 
 def main():
@@ -87,45 +88,7 @@ def main():
     compute_scales(argv=["Placeholder", outputDirName, "--downscaling-method=majority"])
 
     os.remove(infoFilePath) #Clean up.
-
-    #We need to flatten the directory path - "0-64/0-64" goes to "0-64_0-64"
-    def restructureDirectory(currentDir):
-        directoriesToDelete = []
-        for root, dirs, files in os.walk(currentDir):
-
-            for name in files:
-                if (name.endswith(".gz")):
-                    path = os.path.join(root, name)
-                    relativePath = path[len(currentDir) + 1:]
-                    components = relativePath.split(os.sep)
-                    reformatedName = "_".join(components)
-                    reformattedPath = os.path.join(currentDir, reformatedName)
-
-                    #We could decompress these, however the files are very large when decompressed
-                    #compared to their compressed sizes - 100x difference type thing.
-
-                    #Therefore, it's going to be best to decompress only as needed. GZIP is fast.
-                    os.rename(path, reformattedPath)
-
-                    if (includeDecompressed):
-                        unzippedPath = reformattedPath[:-len(".gz")]
-                        fin = gzip.open(reformattedPath, "r")
-                        fout = open(unzippedPath, "wb")
-                        fout.write(fin.read())
-
-            #Delete the now empty directories.
-            for directory in dirs:
-                directoriesToDelete.append(os.path.join(root, directory))
-
-
-        for item in directoriesToDelete:
-            try:
-                shutil.rmtree(item)
-            except:
-                1 #No-op. If the directory doesn't get deleted, it might be because parent was deleted first, and doesn't really matter.
-
-    restructureDirectory(os.path.join(outputDir, "100um"))
-    restructureDirectory(os.path.join(outputDir, "200um"))
+    restructurePrecomputedDirectory(outputDir)
 
 if __name__ == "__main__":
     main()
