@@ -40,7 +40,6 @@ app.use(compression({
 			return false
 		}
 		else {
-			console.log(type)
 			return true
 		}
 	},
