@@ -4,7 +4,7 @@ const path = require("path")
 const loadDataCSV = require("./loadDataCSV.js")
 
 const generateThumbnails = require("./generateThumbnails.js")
-const createPrecomputedLabels = require("./createPrecomputedLabels.js")
+const createPrecomputed = require("./createPrecomputed.js")
 const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
 async function generateJSON() {
@@ -62,6 +62,7 @@ async function generateJSON() {
 	   //TODO: What if the two different identifiers match the same file?
 	   for (let i=0;i<relatedFiles.length;i++) {
 		   let filesInBatch = relatedFiles[i]
+		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
 
 		   function isNifti(fileName) {
 			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
@@ -84,16 +85,22 @@ async function generateJSON() {
 			   let fileName = imageFiles[i]
 			   let view = {
 				   name: fileName,
-				   filePath: fileName
+				   filePath: fileName,
+				   neuroglancer: {
+					   source: fileName
+				   }
 			   }
+			   await createPrecomputed(path.join(global.dataDir, fileName))
+
 			  let matchingRAS = labelFiles.filter((labelName) => {
 				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
 			  })
 
 			  if (matchingRAS.length === 1) {
-				  view.labelPath = matchingRAS[0]
+				  let labelPath = matchingRAS[0]
 				  //Generate and Cache the precomputed labels.
-				  await createPrecomputedLabels(path.join(global.dataDir, view.labelPath))
+				  await createPrecomputed(path.join(global.dataDir, labelPath))
+				  view.neuroglancer.labels = labelPath
 			  }
 			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {
 				  console.warn("Potential Matching Issues")
@@ -101,8 +108,6 @@ async function generateJSON() {
 
 			  view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 			  item.views.push(view)
-
-			  item.componentFiles.push(...reclaimFiles([], view.filePath))
 		   }
 
 		   let tiffImageFiles = filesInBatch.filter((fileName) => {return isTiff(fileName)})
@@ -116,10 +121,7 @@ async function generateJSON() {
 
 			  view.thumbnails = await generateTiffThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 			  item.views.push(view)
-
-			  item.componentFiles.push(...reclaimFiles([], view.filePath))
 		   }
-		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
 	   }
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {

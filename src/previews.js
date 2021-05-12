@@ -131,22 +131,23 @@ function Item(item) {
 			}
 		}
 
-		let maxPreviewSize = 10000000 //10 MB
 		function addThumbnails(view, container, fileSize) {
 			if (!view.thumbnails) {console.warn("No Thumbnails");return;}
 			view.thumbnails.forEach((fileName) => {
 				let img = document.createElement("img")
 				img.src = `cache/thumbnails/${fileName}`
 				container.appendChild(img)
-
-				if (fileSize > maxPreviewSize) {
+				if (!view.neuroglancer) {
 					img.addEventListener("click", function() {
-						alert("This is a somewhat large file. Please download it to preview. ")
+						alert("View in Neuroglancer is not currently available for this file. ")
 					})
 				}
 				else {
 					img.addEventListener("click", function() {
-						window.open(generateNeuroglancerLink({fileName: view.filePath, labelName: view.labelPath}))
+						window.open(generateNeuroglancerLink({
+							fileName: view.neuroglancer.source,
+							labelName: view.neuroglancer.labels
+						}))
 					})
 				}
 			})
@@ -156,7 +157,7 @@ function Item(item) {
 			let preview = document.createElement("button")
 			preview.className = "neuroglancerLink"
 
-			if (fileSize > maxPreviewSize) {
+			if (!view.neuroglancer) {
 				preview.innerHTML = `Download ${view.name}`
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");

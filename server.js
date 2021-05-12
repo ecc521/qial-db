@@ -15,8 +15,8 @@ fs.mkdirSync(global.cacheDir, {recursive: true})
 global.thumbnailsDir = path.join(global.cacheDir, "thumbnails")
 fs.mkdirSync(global.thumbnailsDir, {recursive: true})
 
-global.precomputedLabelsDir = path.join(global.cacheDir, "precomputedlabels")
-fs.mkdirSync(global.precomputedLabelsDir, {recursive: true})
+global.precomputedDir = path.join(global.cacheDir, "precomputed")
+fs.mkdirSync(global.precomputedDir, {recursive: true})
 
 
 
