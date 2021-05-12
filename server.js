@@ -7,7 +7,7 @@ const zlib = require("zlib")
 global.dataDir = path.join(__dirname, "data")
 fs.mkdirSync(global.dataDir, {recursive: true})
 
-//The cacheDir should be able to be deleted at reboots, etc, without damage. Ideally, at any time, just with a delay.
+//The cacheDir should be able to be deleted at reboots, etc, without damage. Ideally, at any time.
 global.cacheDir = path.join(__dirname, "cache")
 fs.mkdirSync(global.cacheDir, {recursive: true})
 
@@ -238,9 +238,16 @@ app.use('*', (req, res, next) => {
 		//Stream decompress off of disk.
 		if (extension === ".gz") {
 			res.type(path.extname(src.slice(0, -3)))
-			let decompressor = zlib.createUnzip()
-			readStream.pipe(decompressor)
-			readStream = decompressor
+			let accepted = req.get("Accept-Encoding")
+			if (accepted.includes("gzip")) {
+				res.set("Content-Encoding", "gzip")
+			}
+			else {
+				console.warn("GZIP not supported by requester. ")
+				let decompressor = zlib.createUnzip()
+				readStream.pipe(decompressor)
+				readStream = decompressor
+			}
 		}
 
 		readStream.pipe(res)
