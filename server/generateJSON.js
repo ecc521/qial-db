@@ -50,10 +50,15 @@ async function generateJSON() {
 		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
 		   if (!(itemsToCheck instanceof Array)) {itemsToCheck = [itemsToCheck]}
 		   itemsToCheck = itemsToCheck.filter(item => item) //Filter out blank identifiers, for empty boxes.
-
+		   itemsToCheck = itemsToCheck.map((item) => {
+			   //If one identifier is an exact subset of another animal's - ex, 191205-1 and 191205-10
+			   //we could have issues, so we'll check to make sure that the next character is not a number.
+			   return new RegExp(item + "[^0-9]")
+		   })
+		   
 		   return files.filter((fileName) => {
 			   return itemsToCheck.some((item) => {
-				   return fileName.includes(item)
+				   return fileName.match(item)
 			   })
 		   })
 	   })

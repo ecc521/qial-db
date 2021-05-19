@@ -2,6 +2,8 @@
 #This works fine with raw .nii files, but gzipped versions are fully decompressed in memory,
 #which can cause OOM errors.
 
+#TODO: It is possible to generate the output images with a stream at O(n) time complexity, thereby eliminating the memory requirement.
+#That should be done if possible. Note that GZIP may complicate the issue.
 import nibabel as nib
 import numpy as np
 import argparse
