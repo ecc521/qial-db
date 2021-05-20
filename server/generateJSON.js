@@ -55,7 +55,7 @@ async function generateJSON() {
 			   //we could have issues, so we'll check to make sure that the next character is not a number.
 			   return new RegExp(item + "[^0-9]")
 		   })
-		   
+
 		   return files.filter((fileName) => {
 			   return itemsToCheck.some((item) => {
 				   return fileName.match(item)
@@ -63,11 +63,20 @@ async function generateJSON() {
 		   })
 	   })
 
+
+	   let processedFiles = [] //To avoid processing the same file twice with different identifiers. 
+
 	   //Each batch is all the files that matched with a specific identifier.
-	   //TODO: What if the two different identifiers match the same file?
 	   for (let i=0;i<relatedFiles.length;i++) {
 		   let filesInBatch = relatedFiles[i]
 		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
+
+		   //Like with Animal: 190909_12:1, multiple identifiers may match the same file.
+		   //We will assume that the label files must have both identifiers as well, and will skip second identifier.
+		   filesInBatch = filesInBatch.filter((item) => {
+			   return !processedFiles.includes(item)
+		   })
+		   processedFiles.push(...filesInBatch)
 
 		   function isNifti(fileName) {
 			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
