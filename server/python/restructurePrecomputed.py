@@ -14,10 +14,6 @@ def restructureDirectory(currentDir):
                 reformatedName = "_".join(components)
                 reformattedPath = os.path.join(currentDir, reformatedName)
 
-                #We could decompress these, however the files are very large when decompressed
-                #compared to their compressed sizes - 100x difference type thing.
-
-                #Therefore, it's going to be best to decompress only as needed. GZIP is fast.
                 os.rename(path, reformattedPath)
 
         #Delete the now empty directories.
