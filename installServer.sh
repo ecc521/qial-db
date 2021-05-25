@@ -28,6 +28,8 @@ pip3 install nibabel numpy argparse pathlib imageio
 #For infoGen.py
 pip3 install pandas neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd.
 
+pip3 install brotli
+
 
 #Clone qial-db
 cd $HOME

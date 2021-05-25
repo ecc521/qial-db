@@ -3,6 +3,7 @@ import sys
 
 import os
 import gzip
+import brotli
 import numpy
 
 def eprint(*args, **kwargs):
@@ -29,18 +30,16 @@ def normalizeDirectory(dir, divisor):
             for i in range(len(arr)):
                 arr[i] = arr[i]/divisor
 
-            # outputPath = path[0:-3] #Remove the .gz extension
-
-            # of = open(outputPath, "wb")
-            # of.write(data)
-            # of.close()
-
             eprint("Processing", path)
-            of = gzip.open(path, "wb", compresslevel = 9)
-            of.write(data)
-            of.close()
 
+            #We'll output these in brotli - usually the same size, maybe slightly smaller, on level 9. (any higher would be too slow)
+            brotliOutputPath = path[0:-3] + ".br" #Remove the .gz extension
 
+            with open(brotliOutputPath, "wb") as fd:
+                fd.write(brotli.compress(data, quality = 9))
+                fd.close()
+
+            os.remove(path)
 
 #Not by any means ideal, but it's decent.
 def getNormalizationValue(dir, percentile = 99.99):
