@@ -110,6 +110,8 @@ echo "Google Cloud Compute Engine: https://badlywired.com/2016/08/15/adding-swap
 
 echo "Adding instructions to crontab. The server is currently scheduled to reboot periodically, which you may want to disable. "
 
+echo "Google Cloud ports may need to be enabled for https, http, and ftp. May also need to set IP to static. "
+
 #Run server on reboot. Reboot at 4am every day. Run certbot renew on each reboot.
 (crontab -l ; echo "@reboot mkdir -p ${HOME}/qial-db/server/logs/ && node $HOME/qial-db/server.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
 (crontab -l ; echo "@reboot sudo certbot renew") | sort - | uniq - | crontab -

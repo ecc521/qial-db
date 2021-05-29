@@ -14,6 +14,7 @@ fs.mkdirSync(global.dataDir, {recursive: true})
 const ftpServer = new FtpSrv({
 	url: `ftp://${url}:${port}`,
 	pasv_url: `ftp://${url}:${port}`,
+	pasv_min: 50000,
 
 	//Make read only.
 	//Really wish there was a simple config, as more commands might appear in the future.
