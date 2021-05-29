@@ -29,8 +29,14 @@ downloadMenuDiv.appendChild(downloadSelectedJSON)
 let downloadSelectedCSV = document.createElement("button")
 downloadMenuDiv.appendChild(downloadSelectedCSV)
 
+let ftpUrl = new URL(window.location)
+ftpUrl.protocol = "ftp"
+ftpUrl.port = 21
+
 downloadMenuAdditionalInfo = document.createElement("p")
 downloadMenuAdditionalInfo.innerHTML += `
+<p>Qial-DB FTP Server (read-only) is located at <a href="${ftpUrl.href}" target="_blank">${ftpUrl.href}</a>. Connect as a guest/anonymous. Downloads not compressed, and not yet encrypted. </p>
+
 <h3>ZIP file Download: </h3>
 <p> - Recommended for smaller downloads. Downloads over ~5GB should probably use a script, to allow for pause and resume, and to avoid a potential download failure with network fluctuations. </p>
 
