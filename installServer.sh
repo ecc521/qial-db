@@ -114,5 +114,6 @@ echo "Adding instructions to crontab. The server is currently scheduled to reboo
 (crontab -l ; echo "@reboot mkdir -p ${HOME}/qial-db/server/logs/ && node $HOME/qial-db/server.js >> $HOME/qial-db/server/logs/main.log") | sort - | uniq - | crontab -
 (crontab -l ; echo "@reboot sudo certbot renew") | sort - | uniq - | crontab -
 (crontab -l ; echo "0 4   *   *   *    sudo reboot") | sort - | uniq - | crontab -
+(sudo crontab -l ; echo "@reboot node $HOME/qial-db/ftpServer.js") | sort - | uniq - | sudo crontab -
 
 echo "Rebooting now is recommended, and should start the site up properly. "
