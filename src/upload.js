@@ -7,7 +7,6 @@ let uploadResults = document.getElementById("uploadResults")
 uploadMenuDiv.remove()
 
 let uploadMenu = new window.Overlay()
-let passwordInput;
 
 let toggleUpload = document.getElementById("toggleUpload")
 toggleUpload.addEventListener("click", function() {
@@ -16,7 +15,7 @@ toggleUpload.addEventListener("click", function() {
 		toggleUpload.innerHTML = "Open Upload Menu"
 	}
 	if (uploadMenu.hidden === true) {
-		passwordInput = uploadMenu.show(uploadMenuDiv, true, hide)
+		uploadMenu.show(uploadMenuDiv, hide)
 		toggleUpload.innerHTML = "Close Upload Menu"
 	}
 	else {
@@ -48,7 +47,6 @@ async function _uploadFile(file, start, end, setFileProgress) {
 		request.open('POST', "upload");
 
 		request.setRequestHeader("qial-filename", file.name);
-		request.setRequestHeader("qial-password", passwordInput.value);
 
 		//If we aren't starting at 0, this must be an append.
 		//If this is in fact a chunk, and it would be overwriting a file, it will be rejected, so upload will be aborted.

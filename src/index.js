@@ -1,3 +1,5 @@
+require("./auth.js")
+
 window.Overlay = require("./overlay.js")
 require("./upload.js")
 require("./download.js")

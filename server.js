@@ -1,8 +1,27 @@
+const process = require("process")
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p);
+  })
+
 const http = require("http")
 const path = require("path")
 const fs = require("fs")
 const child_process = require("child_process")
 const zlib = require("zlib")
+
+const generateJSON = require("./server/generateJSON.js")
+
+const compression = require('compression')
+const express = require('express')
+const session = require('express-session')
+const serveIndex = require('serve-index')
+const bodyParser = require("body-parser")
+const {getAuthorizedUsers, isPasswordCorrect, generateEntry} = require("./server/auth.js")
+
+const passport = require('passport')
+  , LocalStrategy = require('passport-local').Strategy;
+
 
 global.dataDir = path.join(__dirname, "data")
 fs.mkdirSync(global.dataDir, {recursive: true})
@@ -18,14 +37,6 @@ fs.mkdirSync(global.thumbnailsDir, {recursive: true})
 global.precomputedDir = path.join(global.cacheDir, "precomputed")
 fs.mkdirSync(global.precomputedDir, {recursive: true})
 
-
-
-const passwords = require("./server/validatePassword.js")
-const generateJSON = require("./server/generateJSON.js")
-
-const compression = require('compression')
-const express = require('express')
-const serveIndex = require('serve-index')
 
 let app = express()
 
@@ -45,6 +56,65 @@ app.use(compression({
 	},
 }))
 
+//app.set('trust proxy', 1) // trust first proxy
+app.use(session({
+  secret: 'awagewges', //What is this used for? Is it used to stop the client from modifying the cookies without us knowing?
+  resave: false,
+  name: "qial-session",
+  saveUninitialized: true,
+  cookie: {
+	  secure: false, //Local dev.
+	  maxAge: 86400 * 1000 //1 day.
+  }
+}))
+
+app.use(bodyParser.urlencoded({ extended: false }));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function(user, done) {
+  done(null, JSON.stringify(user));
+});
+
+passport.deserializeUser(function(user, done) {
+  done(null, JSON.parse(user));
+});
+
+passport.use(new LocalStrategy(
+  async function(username, password, done) {
+
+	  	let authorizedUsers = await getAuthorizedUsers()
+
+	  	let user = authorizedUsers[username.toLowerCase()]
+	  	if (!user) {
+			return done(null, false, { message: 'Incorrect username.' });
+	  	}
+
+	  	if (!isPasswordCorrect(password, user["Salt/Hash"])) {
+			return done(null, false, { message: 'Incorrect password.' });
+	  	}
+
+		return done(null, user);
+  }
+));
+
+app.post('/login', passport.authenticate('local', {
+	successRedirect: '/',
+	failureRedirect: '/login',
+}));
+
+app.get("/logout", (req, res) => {
+	req.logout();
+	res.redirect('/');
+})
+
+app.get("/user", (req, res) => {
+	console.log(req.user)
+	let obj = req.user
+	res.send(obj)
+	res.end()
+})
 
 //Gets the body of a request.
 function getData(request) {
@@ -62,7 +132,7 @@ function getData(request) {
 app.post("/auth/generateentry", (req, res) => {
 	//Generate a salt and hash entry for the specified password.
 	let password = req.headers['qial-password']
-	let entry = passwords.generateEntry(password)
+	let entry = generateEntry(password)
 	res.statusCode = 200
 	res.setHeader('Content-Type', 'text/plain');
 	res.end(entry);
@@ -82,17 +152,15 @@ app.post("/upload", async (req, res) => {
 	let filename = req.headers['qial-filename']
 	console.log(filename)
 
-	let auth = await passwords.authPassword(password, [true, false, false])
-	if (auth.authorized !== true) {
+	if (req?.user?.Add !== "y") {
 		res.statusCode = 401
 		res.setHeader('Content-Type', 'text/plain');
-		res.end("Error in password processing: " + auth.message);
+		res.end("Missing permissions. You may not be signed in. ");
 		//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
 		//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
 		//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
 		return;
 	}
-
 
 	//Now we can process the actual upload. The user is authorized.
 	let action = req.headers["qial-action"]
@@ -172,12 +240,10 @@ app.all("/fileops", async (req, res) => {
 	let filename = req.headers['qial-filename']
 	console.log(filename)
 
-
-	let auth = await passwords.authPassword(password, (req.method==="DELETE")?[false, false, true]:[false, true, false])
-	if (auth.authorized !== true) {
+	if (req?.user?.Delete !== "y") {
 		res.statusCode = 401
 		res.setHeader('Content-Type', 'text/plain');
-		res.end("Error in password processing: " + auth.message);
+		res.end("Missing permissions. You may not be signed in. ");
 		//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
 		//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
 		//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
@@ -199,7 +265,8 @@ app.all("/fileops", async (req, res) => {
 
 	if (req.method === "DELETE") {
 		await fs.promises.unlink(filePath)
-		res.end(`${path.basename(filePath)} deleted. Changes should appear on reload. `);
+		//TODO: This can throw if filePath doesn't exist.
+		res.end(`${path.basename(filePath)} deleted. Changes should appear shortly. `);
 	}
 	else if (req.method === "PATCH") {
 		let targetFileName = req.headers['qial-target-filename']
@@ -212,8 +279,9 @@ app.all("/fileops", async (req, res) => {
 			return;
 		}
 
+		//TODO: This can throw if it doesn't exist.
 		await fs.promises.rename(filePath, targetFilePath)
-		res.end(`${path.basename(filePath)} renamed to ${path.basename(targetFilePath)}. Changes should appear on reload. `);
+		res.end(`${path.basename(filePath)} renamed to ${path.basename(targetFilePath)}. Changes should appear shortly. `);
 	}
 	return
 })

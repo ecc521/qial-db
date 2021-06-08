@@ -49,10 +49,9 @@ function Item(item) {
 		renameButton.innerHTML = "Rename"
 		this.row.appendChild(renameButton)
 		renameButton.addEventListener("click", function() {
-			fetch(url + "fileops", {
+			fetch("fileops", {
 				method: 'PATCH',
 				headers: {
-					'qial-password': prompt("Please enter Qial-DB Password"),
 				  	'qial-filename': item.name,
 				  	'qial-target-filename': prompt("Please enter new filename (don't forget extension!)"),
 				},
@@ -157,6 +156,9 @@ function Item(item) {
 			let preview = document.createElement("button")
 			preview.className = "neuroglancerLink"
 
+			//Neuroglancer doesn't support 64 bit floats - so we can't always provide a precomputed that is
+			//exactly the same as the input file. We may want to provide a warning on affected files (mostly larger ones),
+			//so that people know they
 			if (!view.neuroglancer) {
 				preview.innerHTML = `Download ${view.name}`
 				preview.addEventListener("click", function() {

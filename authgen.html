@@ -12,33 +12,9 @@
 		<input id="password" type="password" placeholder="Enter New Password">
 		<button id="toggle">Show Password</button>
 		<button id="generate">Generate Salt/Hash Password Combo</button>
-		<div id="permissions">
-			<h2>Password Permissons: </h2>
-		</div>
 		<p id="result"></p>
 
 		<script>
-
-		let permissionElem = document.getElementById("permissions")
-		let permissions = ["Upload", "Rename", "Delete"]
-		let defaults = [true, true, false]
-
-		permissions = permissions.map((permission, index) => {
-			let checkbox = document.createElement("input")
-			checkbox.type = "checkbox"
-			checkbox.checked = defaults[index]
-
-			let label = document.createElement("label")
-			label.innerHTML = permissions[index]
-
-			permissionElem.appendChild(label)
-			permissionElem.appendChild(checkbox)
-
-			permissionElem.appendChild(document.createElement("br"))
-
-			return checkbox
-		})
-
 
 		let passwordInput = document.getElementById("password")
 		let toggle = document.getElementById("toggle")
@@ -71,10 +47,6 @@
 				})
 				let response = await request.text()
 				result.innerHTML = response
-				permissions.forEach((item, i) => {
-					if (item.checked === true) {result.innerHTML += "y"}
-					else if (item.checked === false) {result.innerHTML += "n"}
-				});
 
 			})
 		</script>

@@ -6,7 +6,6 @@ let deleteButton = document.getElementById("deleteButton")
 menuDiv.remove()
 
 let menu = new window.Overlay()
-let passwordInput;
 
 let toggleButton = document.getElementById("toggleDelete")
 toggleButton.addEventListener("click", function() {
@@ -15,7 +14,7 @@ toggleButton.addEventListener("click", function() {
 		toggleButton.innerHTML = "Open Delete Menu"
 	}
 	if (menu.hidden === true) {
-		passwordInput = menu.show(menuDiv, true, hide)
+		menu.show(menuDiv, hide)
 		toggleButton.innerHTML = "Close Delete Menu"
 	}
 	else {
@@ -56,7 +55,6 @@ deleteButton.addEventListener("click", async function() {
 			let request = await fetch("fileops", {
 				method: 'DELETE',
 				headers: {
-					'qial-password': passwordInput.value,
 					'qial-filename': names[i],
 				},
 			})

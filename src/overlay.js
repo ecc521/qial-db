@@ -1,21 +1,3 @@
-let authMenu = document.getElementById("authMenu")
-
-let passwordInput = document.getElementById("password")
-let togglePassword = document.getElementById("togglepassword")
-togglePassword.addEventListener("click", function() {
-	if (passwordInput.type === "password") {
-		passwordInput.type = "text"
-		togglePassword.innerHTML = "Hide Password"
-	}
-	else {
-		passwordInput.type = "password"
-		togglePassword.innerHTML = "Show Password"
-	}
-})
-
-authMenu.remove()
-
-
 let overlayClassInstances = [] //Potential memory leak, so we need to make sure Overlays are NEVER dynamically created.
 
 module.exports = class Overlay {
@@ -32,22 +14,19 @@ module.exports = class Overlay {
 		this.hideCallback = null
 	}
 
-	show(content, includePassword = true, hideCallback) {
+	show(content, hideCallback) {
 		overlayClassInstances.forEach((overlayClassInstance) => {
 			overlayClassInstance.hide()
 		})
 		document.body.appendChild(this.overlay)
 
 		this.overlay.onclick = (function(e) {
-			//Hide when the outside of the overlay is clicked. 
+			//Hide when the outside of the overlay is clicked.
 			if (e.target === this.overlay) {
 				this.hide()
 			}
 		}).bind(this)
 
-		if (includePassword) {
-			this.center.appendChild(authMenu)
-		}
 		if (content) {
 			this.center.appendChild(content)
 		}
@@ -55,7 +34,6 @@ module.exports = class Overlay {
 		if (hideCallback) {
 			this.hideCallback = hideCallback
 		}
-		return passwordInput
 	}
 
 	hide() {

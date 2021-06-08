@@ -6,8 +6,42 @@ body {
 	padding-block-end: 70px; /*Force content above overlay bar at bottom. */
 }
 
+#searchOptions {
+	padding-top: 70px; /*Force below sign in bar at top. */
+}
+
 h1, h2 {
 	text-align: center;
+}
+
+#topBar {
+	background-color: darkblue;
+	color: white;
+	padding-left: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	position: fixed;
+	left: 0;
+	right: 0;
+}
+
+#topBar #acronym {
+	font-size: 2em;
+}
+
+#topBar #title {
+	font-size: 1em;
+}
+
+#topBar #userCard {
+	cursor: pointer;
+	background-color: #3530a4;
+	min-height: 50px;
+	min-width: 140px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 #filedrop {

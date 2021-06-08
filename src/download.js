@@ -62,7 +62,7 @@ toggleDownload.addEventListener("click", function() {
 		toggleDownload.innerHTML = "Open Download Menu"
 	}
 	if (downloadMenu.hidden === true) {
-		downloadMenu.show(downloadMenuDiv, false, hide)
+		downloadMenu.show(downloadMenuDiv, hide)
 		toggleDownload.innerHTML = "Close Download Menu"
 	}
 	else {
