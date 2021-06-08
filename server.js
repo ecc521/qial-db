@@ -240,16 +240,6 @@ app.all("/fileops", async (req, res) => {
 	let filename = req.headers['qial-filename']
 	console.log(filename)
 
-	if (req?.user?.Delete !== "y") {
-		res.statusCode = 401
-		res.setHeader('Content-Type', 'text/plain');
-		res.end("Missing permissions. You may not be signed in. ");
-		//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
-		//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
-		//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
-		return;
-	}
-
 	let filePath = path.join(global.dataDir, filename)
 
 	if (filePath.indexOf(global.dataDir) !== 0) {
@@ -264,11 +254,23 @@ app.all("/fileops", async (req, res) => {
 	res.setHeader('Content-Type', 'text/plain');
 
 	if (req.method === "DELETE") {
+		if (req?.user?.Delete !== "y") {
+			res.statusCode = 401
+			res.setHeader('Content-Type', 'text/plain');
+			res.end("Missing permissions. You may not be signed in. ");
+			return;
+		}
 		await fs.promises.unlink(filePath)
 		//TODO: This can throw if filePath doesn't exist.
 		res.end(`${path.basename(filePath)} deleted. Changes should appear shortly. `);
 	}
 	else if (req.method === "PATCH") {
+		if (req?.user?.Move !== "y") {
+			res.statusCode = 401
+			res.setHeader('Content-Type', 'text/plain');
+			res.end("Missing permissions. You may not be signed in. ");
+			return;
+		}
 		let targetFileName = req.headers['qial-target-filename']
 		let targetFilePath = path.join(global.dataDir, targetFileName)
 
