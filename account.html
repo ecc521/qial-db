@@ -1,26 +1,48 @@
-<script>
-	(async function() {
-		let req = await fetch("user")
-		let resp = await req.text()
+<!DOCTYPE html>
+<html>
+  <head>
+	<title>Account</title>
+  </head>
+  <body>
+	  <div id="info">Loading...</div>
+	  <script>
+	  	(async function() {
+			let infoDiv = document.getElementById("info")
+	  		let req = await fetch("user")
+	  		let resp = await req.text()
 
-		if (resp.length > 0) {
-			let userDetails = JSON.parse(resp)
-			document.body.innerHTML = `
-			<p>Hi ${userDetails.Name}</p>
-			Your Permissions:
-			<ul>
-				<li>Add: ${userDetails.Add === "y"?"Yes":"No"}</li>
-				<li>Move: ${userDetails.Move === "y"?"Yes":"No"}</li>
-				<li>Delete: ${userDetails.Delete === "y"?"Yes":"No"}</li>
-			</ul>
-			<form action="/logout" method="post">
-				<input type="submit" value="Log Out"/>
-			</form>
-			<a target="_blank" href="https://docs.google.com/document/d/1h0dFgl7Q7SaK8jOLzf0H1hqS7asZnhPsEMAEQTMstpQ/edit">Auth Instructions</a>
-			`
-		}
-		else {
-			document.body.innerHTML = `You are not signed in. `
-		}
-	}())
-</script>
+	  		if (resp.length > 0) {
+	  			let userDetails = JSON.parse(resp)
+	  			infoDiv.innerHTML = `
+	  			<p>Hi ${userDetails.Name}</p>
+	  			<p>Your Permissions:</p>
+	  			<ul>
+	  				<li>Add: ${userDetails.Add === "y"?"Yes":"No"}</li>
+	  				<li>Move: ${userDetails.Move === "y"?"Yes":"No"}</li>
+	  				<li>Delete: ${userDetails.Delete === "y"?"Yes":"No"}</li>
+	  			</ul>
+	  			<form action="/logout" method="post">
+	  				<input type="submit" value="Log Out"/>
+	  			</form>
+	  			<a target="_blank" href="https://docs.google.com/document/d/1h0dFgl7Q7SaK8jOLzf0H1hqS7asZnhPsEMAEQTMstpQ/edit">Auth Instructions</a>
+	  			`
+	  		}
+	  		else {
+	  			infoDiv.innerHTML = `You are not signed in. `
+	  		}
+	  	}())
+	  </script>
+
+	  <style>
+
+	  	  p, li, a, input {
+	  		  font-size: 1.2em;
+	  	  }
+
+	  	  input {
+	  		  width: 100%;
+	  	  }
+
+	  </style>
+  </body>
+</html>

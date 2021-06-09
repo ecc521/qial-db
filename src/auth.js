@@ -5,13 +5,21 @@ let accountPopup = document.createElement("iframe")
 accountPopup.className = "accountPopup"
 document.body.appendChild(accountPopup)
 
+function isExpanded() {
+	return accountPopup.classList.contains("accountPopupExpanded")
+}
+
+function hide() {
+	accountPopup.classList.remove("accountPopupExpanded")
+}
+
+function show() {
+	accountPopup.classList.add("accountPopupExpanded")
+}
+
 userCard.addEventListener("click", function() {
-	if (accountPopup.classList.contains("accountPopupExpanded")) {
-		accountPopup.classList.remove("accountPopupExpanded")
-	}
-	else {
-		accountPopup.classList.add("accountPopupExpanded")
-	}
+	if (isExpanded()) {hide()}
+	else {show()}
 })
 
 let accountMenu = document.createElement("div")
@@ -44,3 +52,9 @@ async function syncUserDetails() {
 
 syncUserDetails()
 accountPopup.addEventListener("load", syncUserDetails)
+
+document.addEventListener("click", function(e) {
+	if (e.target !== accountPopup && e.target !== userCard) {
+		hide()
+	}
+})
