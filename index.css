@@ -108,6 +108,7 @@ h1, h2 {
 .infoCard {
 	display: block;
 	min-height: 100%;
+	min-width: 15vw;
 }
 
 .infoCard p {
@@ -131,17 +132,14 @@ h1, h2 {
 
 .neuroglancerLink {
 	border-radius: 1000000px;
-	padding: 8px;
+	padding: 8px 0px;
+	width: 100%;
 }
 
 .selectBox {
 	width: 20px;
 	height: 20px;
 	margin-right: 10px;
-}
-
-.thumbnailContainer {
-	max-width: 85vw;
 }
 
 .bottomBar {

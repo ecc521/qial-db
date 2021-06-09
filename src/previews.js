@@ -161,6 +161,7 @@ function Item(item) {
 			//so that people know they
 			if (!view.neuroglancer) {
 				preview.innerHTML = `Download ${view.name}`
+
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");
 				    link.setAttribute('download', view.name);
@@ -175,6 +176,11 @@ function Item(item) {
 				preview.addEventListener("click", function() {
 					window.open(generateNeuroglancerLink({fileName: view.filePath, labelName: view.labelPath}))
 				})
+			}
+
+			//We'll want to make sure this is somewhat short. Long messages could lead to ugly rendering with lots of empty space.
+			if (preview.innerHTML.length > 50) {
+				preview.innerHTML = preview.innerHTML.slice(0, 47) + "..."
 			}
 
 			return preview
