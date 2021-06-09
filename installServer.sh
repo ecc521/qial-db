@@ -37,6 +37,7 @@ git clone https://github.com/ecc521/qial-db.git
 git submodule update --init --recursive
 pushd neuroglancer
 npm install
+npm run build-min #The latest working version is 6cd3f0a, if this fails to build. 
 popd
 
 #Install NodeJS
