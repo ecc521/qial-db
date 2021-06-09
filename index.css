@@ -15,7 +15,7 @@ h1, h2 {
 }
 
 #topBar {
-	background-color: darkblue;
+	background-color: #012269;
 	color: white;
 	padding-left: 20px;
 	display: flex;
@@ -36,12 +36,30 @@ h1, h2 {
 
 #topBar #userCard {
 	cursor: pointer;
-	background-color: #3530a4;
+	background-color: #03518c;
 	min-height: 50px;
 	min-width: 140px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+}
+
+.accountPopup {
+	position: fixed;
+	right: 0;
+	top: 50px;
+	background-color: #8fb2ff;
+	border: none;
+	width: 240px;
+	height: 0;
+	padding: 0;
+	transition: 0.5s;
+	border-radius: 20px;
+}
+
+.accountPopupExpanded {
+	padding: 30px;
+	height: 50vh;
 }
 
 #filedrop {

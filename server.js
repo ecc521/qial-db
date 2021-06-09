@@ -100,17 +100,16 @@ passport.use(new LocalStrategy(
 ));
 
 app.post('/login', passport.authenticate('local', {
-	successRedirect: '/',
+	successRedirect: '/account',
 	failureRedirect: '/login',
 }));
 
-app.get("/logout", (req, res) => {
+app.post("/logout", (req, res) => {
 	req.logout();
-	res.redirect('/');
+	res.redirect('/login');
 })
 
 app.get("/user", (req, res) => {
-	console.log(req.user)
 	let obj = req.user
 	res.send(obj)
 	res.end()

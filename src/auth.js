@@ -1,11 +1,27 @@
 let userCard = document.getElementById("userCard")
+let userDetails;
+
+let accountPopup = document.createElement("iframe")
+accountPopup.className = "accountPopup"
+document.body.appendChild(accountPopup)
+
+userCard.addEventListener("click", function() {
+	if (accountPopup.classList.contains("accountPopupExpanded")) {
+		accountPopup.classList.remove("accountPopupExpanded")
+	}
+	else {
+		accountPopup.classList.add("accountPopupExpanded")
+	}
+})
+
+let accountMenu = document.createElement("div")
 
 function openLoginMenu() {
-	window.open("login")
+	accountPopup.src = "login"
 }
 
-function openLogoutMenu() {
-	window.open("logout")
+function openAccountMenu() {
+	accountPopup.src = "account"
 }
 
 async function syncUserDetails() {
@@ -13,12 +29,12 @@ async function syncUserDetails() {
 	let resp = await req.text()
 
 	userCard.removeEventListener("click", openLoginMenu)
-	userCard.removeEventListener("click", openLogoutMenu)
+	userCard.removeEventListener("click", openAccountMenu)
 
 	if (resp.length > 0) {
-		let obj = JSON.parse(resp)
-		userCard.innerHTML = "Log Out " + obj.Name
-		userCard.addEventListener("click", openLogoutMenu)
+		userDetails = JSON.parse(resp)
+		userCard.innerHTML = userDetails.Name
+		userCard.addEventListener("click", openAccountMenu)
 	}
 	else {
 		userCard.innerHTML = "Log In"
@@ -27,3 +43,4 @@ async function syncUserDetails() {
 }
 
 syncUserDetails()
+accountPopup.addEventListener("load", syncUserDetails)
