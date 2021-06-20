@@ -1,0 +1,13 @@
+nibabel
+numpy
+argparse
+pathlib
+imageio
+
+
+#For infoGen.py. Any v1 of xlrd.
+pandas
+neuroglancer-scripts
+xlrd==1.2.0
+
+brotli

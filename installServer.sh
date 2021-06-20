@@ -23,13 +23,8 @@ sudo apt-get install -y git
 sudo apt-get install -y zip
 
 sudo apt-get install python3 python3-pip
-pip3 install nibabel numpy argparse pathlib imageio
 
-#For infoGen.py
-pip3 install pandas neuroglancer-scripts xlrd==1.2.0 #Any v1 of xlrd.
-
-pip3 install brotli
-
+pip3 install -r requirements.txt
 
 #Clone qial-db
 cd $HOME
@@ -37,7 +32,7 @@ git clone https://github.com/ecc521/qial-db.git
 git submodule update --init --recursive
 pushd neuroglancer
 npm install
-npm run build-min #The latest working version is 6cd3f0a, if this fails to build. 
+npm run build-min #The latest working version is 6cd3f0a, if this fails to build.
 popd
 
 #Install NodeJS
