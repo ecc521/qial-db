@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js",
-    "build-neuroglancer": "pushd neuroglancer && npm run build && popd"
+    "build-neuroglancer": "sh buildNeuroglancer.sh",
+    "docker-build": "docker build -t qial-db .",
+    "docker-run": "docker run --mount source=qial-db-data,target=/qial-db/data  --mount source=qial-db-cache,target=/qial-db/cache -dp 8000:8000 qial-db",
+    "docker-setup": "docker volume create qial-db-cache && docker volume create qial-db-data"
   },
   "repository": {
     "type": "git",
