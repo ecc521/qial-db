@@ -29,11 +29,6 @@ pip3 install -r requirements.txt
 #Clone qial-db
 cd $HOME
 git clone https://github.com/ecc521/qial-db.git
-git submodule update --init --recursive
-pushd neuroglancer
-npm install
-npm run build-min #The latest working version is 6cd3f0a, if this fails to build.
-popd
 
 #Install NodeJS
 curl -sL https://deb.nodesource.com/setup_14.x | sudo bash -
@@ -42,6 +37,9 @@ sudo apt-get install -y nodejs
 #Build qial-db
 cd qial-db
 npm install
+
+#Build neuroglancer. 
+sh buildNeuroglancer.sh
 
 #Install apache
 sudo apt-get install -y apache2
