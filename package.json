@@ -7,9 +7,9 @@
     "build": "node build.js",
     "build-neuroglancer": "sh buildNeuroglancer.sh",
     "docker-build": "docker build -t qial-db .",
-    "docker-run-bind": "sh docker-bind.sh",
-    "docker-run-volume": "sh docker-volume.sh",
-    "docker-setup-volume": "docker volume create qial-db-cache && docker volume create qial-db-data"
+    "docker-bind": "sh docker-bind.sh",
+    "docker-volume": "sh docker-volume.sh",
+    "docker-setup": "docker volume create qial-db-cache && docker volume create qial-db-data"
   },
   "repository": {
     "type": "git",
