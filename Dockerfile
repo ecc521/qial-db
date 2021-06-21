@@ -14,6 +14,8 @@ RUN pip3 install -r requirements.txt
 COPY package.json .
 RUN npm install
 
-#Neuroglancer build files are copied here - we will build them outside of the container (to reduce size and avoid the need for cleanup). 
+#Neuroglancer build files are copied here - we will build them outside of the container (to reduce size and avoid the need for cleanup).
 COPY . /qial-db
 CMD node server.js
+
+EXPOSE 8000
