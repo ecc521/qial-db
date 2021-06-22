@@ -12,9 +12,9 @@ RUN git clone https://github.com/ecc521/qial-db.git
 
 WORKDIR /qial-db
 
-RUN pip3 install -r requirements.txt
-
 RUN npm install
+
+RUN pip3 install -r requirements.txt
 
 #Install and Build Neuroglancer.
 #The latest known working version is 6cd3f0a.
