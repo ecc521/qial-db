@@ -1,6 +1,6 @@
 .git
 node_modules
-cache
-data
-neuroglancer
-!neuroglancer/dist/min
+public/cache
+public/data
+public/neuroglancer
+!public/neuroglancer/dist/min
