@@ -26,8 +26,8 @@ RUN npm install
 RUN npm run build-min
 RUN cd ../
 
-#End Neuroglancer Build. 
+#End Neuroglancer Build.
 
-CMD node public/server.js
+CMD node server.js
 
 EXPOSE 8000

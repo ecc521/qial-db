@@ -6,7 +6,7 @@ const fs = require("fs") //For plotly copy
 let config = {
 	mode: "production", //Build for production
 	entry: {
-		"public/packages/index.js": "./public/src/index.js",
+		"packages/index.js": "./src/index.js",
 	},
 	target: "web",
 	devtool: "source-map",
@@ -91,7 +91,7 @@ compiler.watch({
 	console.log("Copying plotly...")
 
 	let plotlyBundlePath = "./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js"
-	let outputPlotlyPath = "public/packages/plotly.js"
+	let outputPlotlyPath = "packages/plotly.js"
 
 	let plotlyBundleBuffer = fs.readFileSync(plotlyBundlePath)
 

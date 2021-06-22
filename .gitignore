@@ -1,5 +1,5 @@
 node_modules
-public/data
-public/cache
+data
+cache
 *.pyc
-public/neuroglancer
+neuroglancer
