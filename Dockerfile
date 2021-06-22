@@ -6,16 +6,28 @@ RUN apt-get upgrade -y
 RUN apt-get install -y zip
 RUN apt-get install -y python3-pip
 
+WORKDIR /
+
+RUN git clone https://github.com/ecc521/qial-db.git
+
 WORKDIR /qial-db
 
-COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
-COPY package.json .
 RUN npm install
 
-#Neuroglancer build files are copied here - we will build them outside of the container (to reduce size and avoid the need for cleanup).
-COPY . /qial-db
+#Install and Build Neuroglancer.
+#The latest known working version is 6cd3f0a.
+
+RUN git clone https://github.com/google/neuroglancer.git
+RUN cd neuroglancer
+RUN git reset --hard 6cd3f0a
+RUN npm install
+RUN npm run build-min
+RUN cd ../
+
+#End Neuroglancer Build. 
+
 CMD node public/server.js
 
 EXPOSE 8000
