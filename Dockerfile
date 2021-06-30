@@ -6,11 +6,8 @@ RUN apt-get upgrade -y
 RUN apt-get install -y zip
 RUN apt-get install -y python3-pip
 
-WORKDIR /
-
-RUN git clone https://github.com/ecc521/qial-db.git
-
 WORKDIR /qial-db
+COPY . .
 
 RUN pip3 install -r requirements.txt
 RUN npm install
