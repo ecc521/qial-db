@@ -1,0 +1,101 @@
+stages:
+  - build
+  - scan
+  - tag
+  - deploy
+  - verification
+  - decom
+
+variables:
+  APPLICATION_NAME: alzweb
+  CLUSTER_SERVER: https://ocpconsole.duhs.duke.edu:8443
+  CLUSTER_NAMESPACE: alzweb
+  CLUSTER_BASE_ROUTE: ocp.dhe.duke.edu
+  CHART_URL: https://museum.ocp.dhe.duke.edu
+
+include:
+  - project: 'utility/project-templates/ci-templates'
+    file: '/docker.yml'
+  - project: 'utility/project-templates/ci-templates'
+    file: '/helm.yml'
+
+build:
+  extends: .kaniko_build
+
+scan:
+  extends: .docker_scan
+
+tag:
+  extends: .registry_image_tag
+
+.deploy:
+  extends: .helm_deploy
+  script:
+    - echo $CI_REGISTRY_IMAGE:$IMGTAG
+    - echo "release_name " $RELEASE_NAME "BASE_URL" $BASE_URL "CHART_URL" $CHART_URL
+    - helm repo add chartmuseum ${CHART_URL}
+    - helm upgrade
+      --set registry.secret.username=$CI_DEPLOY_USER
+      --set registry.secret.password="$CI_DEPLOY_PASSWORD"
+      --set registry.name=$CI_REGISTRY_IMAGE
+      --set registry.tag=$IMGTAG
+      --set registry.root=$CI_REGISTRY
+      --set nameOverride=$APPLICATION_NAME
+      --set url=$URL
+      --set apiHost=$CI_ENVIRONMENT_NAME-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE
+      --install $RELEASE_NAME chartmuseum/nginx
+
+deploy-test:
+  extends: .deploy
+  environment: test
+  variables:
+    IMGTAG: dev
+    RELEASE_NAME: test-$APPLICATION_NAME
+    URL: test-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE
+  except:
+    - production
+
+deploy-prod:
+  extends: .deploy
+  environment: production
+  variables:
+    IMGTAG: dev
+    RELEASE_NAME: prod-$APPLICATION_NAME
+    URL: $APPLICATION_NAME.$CLUSTER_BASE_ROUTE
+  only:
+    - production
+
+.verification:
+  stage: verification
+  tags:
+    - simple-shell-executor
+  script:
+    - sleep 15
+    - curl https://$CI_ENVIRONMENT_NAME-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE/
+
+verification-test:
+  extends: .verification
+  environment: test
+  except:
+    - production
+
+verification-prod:
+  extends: .verification
+  environment: production
+  only:
+    - production
+
+
+decom-test:
+  variables:
+    RELEASE_NAME: test-$APPLICATION_NAME
+  extends: .helm_decom
+  except:
+    - production
+
+decom-prod:
+  variables:
+    RELEASE_NAME: prod-$APPLICATION_NAME
+  extends: .helm_decom
+  only:
+    - production
