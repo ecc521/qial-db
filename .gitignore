@@ -3,4 +3,3 @@ data
 cache
 *.pyc
 neuroglancer
-package-lock.json
