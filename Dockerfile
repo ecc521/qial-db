@@ -1,4 +1,4 @@
-FROM node:16.3.0-stretch
+FROM node:current-buster
 
 RUN apt-get update
 RUN apt-get upgrade -y
