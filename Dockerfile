@@ -12,17 +12,18 @@ COPY . .
 RUN pip3 install -r requirements.txt
 RUN npm install
 
-#Install and Build Neuroglancer.
-#The latest known working version is 6cd3f0a.
-RUN git clone https://github.com/google/neuroglancer.git
+RUN sh buildNeuroglancer.sh
 
-WORKDIR /qial-db/neuroglancer
+#Keep only the Neuroglancer build files - remove everything else. Reduces image size a bit.
+#One thing to note - this effectively hides Neuroglancer from the vulnerability scanner (Neuroglancer would cause it to fail otherwise though).
+#Any issues would need to be client side, so there isn't an easy target - RCE would be needed.
+#If we can isolate login cookies from the self-hosted neuroglancer, everything is safe.
+#Can we check the path that is sending the request? iFrames seem risky. Maybe revert to appspot demo, but that's broken at times. 
 
-RUN git reset --hard 6cd3f0a
-RUN npm install
-RUN npm run build-min
-
-WORKDIR /qial-db
+RUN mv neuroglancer/dist ndisttemp
+RUN rm -rf neuroglancer
+RUN mkdir neuroglancer
+RUN mv ndisttemp neuroglancer/dist
 
 CMD node server.js
 
