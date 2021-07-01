@@ -93,7 +93,7 @@ function generateNeuroglancerLink({fileName, labelName}) {
 	//This can be used if we need to host our own version. Note that building neuroglancer uses
 	//a gigabyte or so of memory - the files can be uploaded to bypass this requirement. (once built, it's just static files)
 	let selfHostedUrl = window.location.href + `neuroglancer/dist/min/`
-	let neuroglancerLink = selfHostedUrl + `#!` + encodeURI(JSON.stringify(obj))
+	let neuroglancerLink = appspotDemoUrl + `#!` + encodeURI(JSON.stringify(obj))
 	return neuroglancerLink
 }
 
