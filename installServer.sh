@@ -67,7 +67,7 @@ LoadModule proxy_module modules/mod_proxy.so
 LoadModule proxy_http_module modules/mod_proxy_http.so
 LoadModule http2_module modules/mod_http2.so
 
-ProxyPass / http://127.0.0.1:8000/
+ProxyPass / http://127.0.0.1:8080/
 Protocols h2 http/1.1
 
 AddOutputFilterByType DEFLATE application/json

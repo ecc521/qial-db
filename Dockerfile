@@ -18,4 +18,4 @@ RUN npm install
 
 CMD node server.js
 
-EXPOSE 8000
+EXPOSE 8080
