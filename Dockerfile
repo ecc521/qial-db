@@ -5,9 +5,9 @@ RUN apt-get upgrade -y
 
 RUN apt-get install -y zip
 
-#TODO: Use a version manager to install latest (once it moves to 17+). https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt-get install -y nodejs
+#Install latest NodeJS using n
+RUN curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o n
+RUN bash n latest
 
 WORKDIR /qial-db
 COPY . .
