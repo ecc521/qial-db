@@ -90,10 +90,11 @@ async function uploadFile(file, {filenumber, setProgress}) {
 	uploadResults.appendChild(progress)
 	let label = document.createElement("label")
 	uploadResults.appendChild(label)
-	uploadResults.appendChild(document.createElement("br"))
+	let br = document.createElement("br")
+	uploadResults.appendChild(br)
 
 	function setFileProgress(percentage, bytesLoaded) {
-		setProgress(filenumber + percentage/100)
+		setProgress(filenumber, percentage)
 		progress.value = percentage
 		label.innerHTML = `Uploading ${file.name} - ${Math.round(percentage*10)/10}% (${numberPrettyBytesSI(bytesLoaded, 2)} of ${numberPrettyBytesSI(file.size, 2)})`
 	}
@@ -111,7 +112,7 @@ async function uploadFile(file, {filenumber, setProgress}) {
 		if (status !== 200) {
 			let p = document.createElement("p")
 			p.innerHTML = "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
-			uploadResults.appendChild(p)
+			uploadResults.insertBefore(p, br.nextElementSibling)
 			break;
 		}
 		currentPos = currentEnd
@@ -130,24 +131,50 @@ async function uploadFiles(files) {
 	uploadResults.appendChild(label)
 	uploadResults.appendChild(document.createElement("br"))
 
-	//TODO: Weight files by size.
-	function setProgress(fileIndex) {
-		label.innerHTML = `Uploading File ${Math.min(Math.floor(fileIndex+1), files.length)} of ${files.length}...`
-		progress.value = fileIndex*100/files.length
+	//This isn't ideal with paralell uploads, but it works OK.
+	function setProgress(filenumber, percentage = 0) {
+		console.log(filenumber, percentage, files.length)
+		label.innerHTML = `Uploading File ${filenumber + 1} of ${files.length}...`
+		progress.value = (filenumber + percentage/100)/files.length * 100
 	}
 
-	for (let i=0;i<files.length;i++) {
+	let i = 0
+	let maxConcurrent = 2
+	let originalConcurrent = maxConcurrent
+
+	async function startNext() {
+		let filenumber = i++
+		let file = files[filenumber]
+
+		if (!file) {
+			if (maxConcurrent === originalConcurrent) {
+				let elem = document.createElement("p")
+				elem.innerHTML = "All Uploads Completed"
+				uploadResults.appendChild(elem)
+			}
+			return
+		}
+
+		maxConcurrent--
 		try {
-			let file = files[i]
-			setProgress(i)
+			setProgress(filenumber)
 			let response = await uploadFile(file, {
-				filenumber: i,
+				filenumber,
 				setProgress
 			})
 		}
 		catch(e) {
 			console.error(e)
 		}
+		finally {
+			maxConcurrent++
+			startNext()
+		}
+	}
+
+	//let scope bounds to loop, so the higher scope i is safe.
+	for (let i=0;i<maxConcurrent;i++) {
+		startNext()
 	}
 }
 
