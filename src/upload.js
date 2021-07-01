@@ -40,7 +40,7 @@ function createProgressBar() {
 }
 
 
-async function _uploadFile(file, start, end, setFileProgress) {
+async function _uploadFile(file, start, end, setFileProgress, last) {
 	//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
 	return await new Promise((resolve, reject) => {
 		let request = new XMLHttpRequest();
@@ -48,11 +48,15 @@ async function _uploadFile(file, start, end, setFileProgress) {
 
 		request.setRequestHeader("qial-filename", file.name);
 
-		//If we aren't starting at 0, this must be an append.
-		//If this is in fact a chunk, and it would be overwriting a file, it will be rejected, so upload will be aborted.
-		//(The server currently allows all appends, writes only if doesn't currently exist)
-		if (start !== 0) {
+		if (start === 0) {
+			request.setRequestHeader("qial-action", "create");
+		}
+		else {
 			request.setRequestHeader("qial-action", "append");
+		}
+
+		if (last) {
+			request.setRequestHeader("qial-last", "last");
 		}
 
 		request.upload.addEventListener('progress', function(e) {
@@ -98,7 +102,12 @@ async function uploadFile(file, {filenumber, setProgress}) {
 		let currentEnd = currentPos + chunkSize
 		currentEnd = Math.min(currentEnd, file.size)
 
-		let status = await _uploadFile(file, currentPos, currentEnd, setFileProgress)
+		let complete = false
+		if (currentEnd === file.size) {
+			complete = true
+		}
+
+		let status = await _uploadFile(file, currentPos, currentEnd, setFileProgress, complete)
 		if (status !== 200) {
 			let p = document.createElement("p")
 			p.innerHTML = "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.

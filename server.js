@@ -7,6 +7,7 @@ process
 const http = require("http")
 const path = require("path")
 const fs = require("fs")
+const os = require("os")
 const child_process = require("child_process")
 const zlib = require("zlib")
 
@@ -146,53 +147,115 @@ app.get("/data.json", async (req, res) => {
 })
 
 app.post("/upload", async (req, res) => {
-	//TODO: We need to cache uploads somewhere until they finish.
 	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
-	console.log(filename)
 
 	if (req?.user?.Add !== "y") {
 		res.statusCode = 401
 		res.setHeader('Content-Type', 'text/plain');
+        res.setHeader("Connection", "close") //Causes issues with Apache, where the error is not passed through.
 		res.end("Missing permissions. You may not be signed in. ");
-		//Destroying the socket is causing apache to send a bad gateway error, rather than passing through this error.
-		//Since I haven't been able to find a solution to that problem, and browsers have intentionally deviated from the spec ("too hard to redesign")
-		//we won't close the socket, as Google Cloud ingress isn't charged, and chuncked transfer means we won't waste much anyway.
 		return;
 	}
 
 	//Now we can process the actual upload. The user is authorized.
 	let action = req.headers["qial-action"]
 
-	let writePath = path.join(global.dataDir, filename)
+    let writePath = path.join(global.dataDir, filename) //Final destination.
 
-	if (writePath.indexOf(global.dataDir) !== 0) {
-		res.statusCode = 403
-		res.setHeader('Content-Type', 'text/plain');
-		res.end("Writing into parent directories is prohibited. ");
-		return;
-	}
-	console.log(writePath)
+    //Security check.
+    if (writePath.indexOf(global.dataDir) !== 0) {
+        res.statusCode = 403
+        res.setHeader('Content-Type', 'text/plain');
+        res.end("Writing into parent directories is prohibited. ");
+        return;
+    }
 
-	let writeStream;
-	if (action === "append") {
-		writeStream = fs.createWriteStream(writePath, {
-			flags: "a"
-		})
-	}
-	else {
-		if (fs.existsSync(writePath)) {
-			res.statusCode = 400
-			res.setHeader('Content-Type', 'text/plain');
-			res.end("Uploads may not overwrite a file. You must delete this file seperately. ");
-			return;
-		}
-		writeStream = fs.createWriteStream(writePath, {
+    //Don't allow overwriting files - error.
+    if (fs.existsSync(writePath)) {
+        res.statusCode = 400
+        res.setHeader('Content-Type', 'text/plain');
+        res.end("Uploads may not overwrite a file. Please pick a different name, or delete/move the file. ");
+        return;
+    }
+
+    let tempPath = req?.session?.uploading?.[filename]
+    let writeStream;
+
+    if (action === "create") {
+        //Allocate a temporary file.
+        //These temporary files are user specific, which should prevent others from modifying them.
+        //Note that two people can technically upload the same file at once - so we must verify before we move.
+
+        if (!req.session.uploading) {
+            req.session.uploading = Object.create(null)
+        }
+
+        if (tempPath) {
+            //Delete the existing file.
+            await fs.promises.unlink(tempPath)
+        }
+
+        let tempdir = await fs.promises.mkdtemp(os.tmpdir())
+        tempPath = path.join(tempdir, filename)
+        req.session.uploading[filename] = tempPath
+        req.session.touch()
+
+        //We will check the temporary file every 15 minutes. If it hasn't changed, it will be deleted.
+        let pulseDuration = 1000 * 60 * 15
+
+        let interval = setInterval(function() {
+            //If the file does not exist,
+            if (!fs.existsSync(tempPath)) {
+                fs.promises.rm(tempdir, {recursive: true, force: true})
+                clearInterval(interval)
+            }
+            else if (Date.now() - fs.statSync(tempPath).mtime > pulseDuration) {
+                fs.promises.rm(tempdir, {recursive: true, force: true})
+                delete req.session.uploading[filename]
+                req.session.touch()
+                clearInterval(interval)
+            }
+        }, pulseDuration)
+
+        writeStream = fs.createWriteStream(tempPath, {
 			flags: "w"
 		})
-	}
+    }
+    else if (action === "append") {
+        if (!tempPath) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'text/plain');
+            res.end("No upload in progress. You may have timed out. ");
+            return;
+        }
+        writeStream = fs.createWriteStream(tempPath, {
+			flags: "a"
+		})
+    }
 
-	req.pipe(writeStream)
+    let closePromise = new Promise((resolve, reject) => {
+        writeStream.on("finish", resolve)
+        writeStream.on("error", reject)
+    })
+
+    req.pipe(writeStream)
+
+    let last = (req.headers["qial-last"] === "last")
+    if (last) {
+        await closePromise
+
+        if (fs.existsSync(writePath)) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'text/plain');
+            res.end("Unable to transfer file - destination occupied. A file may have been added or moved during your upload. ");
+            return;
+        }
+
+        delete req.session.uploading[filename]
+        req.session.touch()
+        await fs.promises.rename(tempPath, writePath)
+    }
 
 	res.statusCode = 200
 	res.setHeader('Content-Type', 'text/plain');
@@ -237,7 +300,6 @@ app.post("/download", async (req, res) => {
 app.all("/fileops", async (req, res) => {
 	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
-	console.log(filename)
 
 	let filePath = path.join(global.dataDir, filename)
 
@@ -247,7 +309,6 @@ app.all("/fileops", async (req, res) => {
 		res.end("Modifying parent directories is prohibited. ");
 		return;
 	}
-	console.log(filePath)
 
 	res.statusCode = 200
 	res.setHeader('Content-Type', 'text/plain');
