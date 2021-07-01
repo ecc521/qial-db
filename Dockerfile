@@ -1,13 +1,10 @@
-FROM python:buster
+FROM node:current-buster
 
 RUN apt-get update
 RUN apt-get upgrade -y
 
 RUN apt-get install -y zip
-
-#TODO: Use a version manager to install latest (once it moves to 17+). https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-RUN apt-get install -y nodejs
+RUN apt-get install -y python3-pip
 
 WORKDIR /qial-db
 COPY . .
