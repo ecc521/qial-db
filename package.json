@@ -7,6 +7,7 @@
     "build": "node build.js",
     "build-neuroglancer": "sh buildNeuroglancer.sh",
     "docker-build": "docker build -t qial-db .",
+    "docker-scan": "docker scan qial-db --file Dockerfile --exclude-base",
     "docker-bind": "sh docker-bind.sh",
     "docker-volume": "sh docker-volume.sh",
     "docker-setup": "docker volume create qial-db-cache && docker volume create qial-db-data"
