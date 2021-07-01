@@ -15,7 +15,7 @@ variables:
 
 include:
   - project: 'utility/project-templates/ci-templates'
-    file: '/docker.yml'
+    file: '/docker2.yml'
   - project: 'utility/project-templates/ci-templates'
     file: '/helm.yml'
 
