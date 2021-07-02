@@ -253,7 +253,16 @@ app.post("/upload", async (req, res) => {
         }
 
         delete req.session.uploading[filename]
-        fs.renameSync(tempPath, writePath)
+
+        //On Docker, we can't simply rename, as that would involve moving from the host machine to a volume.
+        //Therefore, we'll copy for now, even though that is a bit slow.
+
+        //We'll want a solution that lets us write to the data volume but keep it clean if it needs to be ported, etc.
+        //Might make sense to put everything in one volume, which would allow for temp within the volume
+
+        //TODO: Avoid copy. This is SLOW, especially compared to what we want.
+        await fs.promises.copy(tempPath, writePath)
+        await fs.promises.unlinkSync(tempPath) 
     }
 
 	res.statusCode = 200
