@@ -27,10 +27,12 @@ const passport = require('passport')
 global.dataDir = path.join(__dirname, "data")
 fs.mkdirSync(global.dataDir, {recursive: true})
 
-//The cacheDir should be able to be deleted at reboots, etc, without damage. Ideally, at any time.
+//Delete the tmp dir in dataDir, if it exists. (upload cache)
+fs.rmSync(path.join(global.dataDir, "tmp"), {force: true, recursive: true})
+
+//The cacheDir can be deleted at server restarts without damage. Potentially any time.
 global.cacheDir = path.join(__dirname, "cache")
 fs.mkdirSync(global.cacheDir, {recursive: true})
-
 
 global.thumbnailsDir = path.join(global.cacheDir, "thumbnails")
 fs.mkdirSync(global.thumbnailsDir, {recursive: true})
@@ -196,7 +198,14 @@ app.post("/upload", async (req, res) => {
             fs.unlinkSync(tempPath)
         }
 
-        let tempdir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "qial"))
+        //We can't use a true tmp dir, as then we'd need to rename into the data volume
+        //Since you can't link across volumes, that would require a copy, which could be VERY expensive.
+        //As such, create a subdirectory in the data directory, named tmp.
+        //It will be deleted on server starts, and ignored elsewhere.
+        let tmpindata = path.join(global.dataDir, "tmp")
+        if (!fs.existsSync(tmpindata)) {fs.mkdirSync(tmpindata, {recursive: true})}
+
+        let tempdir = await fs.promises.mkdtemp(path.join(tmpindata, "qial")) //Review the mkdtemp example in docs before touching this. The design makes little sense. 
         tempPath = path.join(tempdir, filename)
         req.session.uploading[filename] = tempPath
 
@@ -253,16 +262,7 @@ app.post("/upload", async (req, res) => {
         }
 
         delete req.session.uploading[filename]
-
-        //On Docker, we can't simply rename, as that would involve moving from the host machine to a volume.
-        //Therefore, we'll copy for now, even though that is a bit slow.
-
-        //We'll want a solution that lets us write to the data volume but keep it clean if it needs to be ported, etc.
-        //Might make sense to put everything in one volume, which would allow for temp within the volume
-
-        //TODO: Avoid copy. This is SLOW, especially compared to what we want.
-        await fs.promises.copy(tempPath, writePath)
-        await fs.promises.unlinkSync(tempPath) 
+        fs.renameSync(tempPath, writePath)
     }
 
 	res.statusCode = 200
