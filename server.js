@@ -205,9 +205,9 @@ app.post("/upload", async (req, res) => {
         let tmpindata = path.join(global.dataDir, "tmp")
         if (!fs.existsSync(tmpindata)) {fs.mkdirSync(tmpindata, {recursive: true})}
 
-        let tempdir = await fs.promises.mkdtemp(path.join(tmpindata, "qial")) //Review the mkdtemp example in docs before touching this. The design makes little sense. 
+        let tempdir = await fs.promises.mkdtemp(path.join(tmpindata, "qial")) //Review the mkdtemp example in docs before touching this. The design makes little sense.
         tempPath = path.join(tempdir, filename)
-        req.session.uploading[filename] = tempPath
+        req.session.uploading[filename] = tempPath //TODO: Could there be a race condition causing some not to get properly created? Overwritten by another? Seeing occasional no upload in progress errors, which would be related. Needs more investigation.
 
         //We will check the temporary file every 15 minutes. If it hasn't changed, it will be deleted.
         let pulseDuration = 1000 * 60 * 15
@@ -314,9 +314,23 @@ app.all("/fileops", async (req, res) => {
 	if (filePath.indexOf(global.dataDir) !== 0) {
 		res.statusCode = 403
 		res.setHeader('Content-Type', 'text/plain');
-		res.end("Modifying parent directories is prohibited. ");
+		res.end("ERROR: Modifying parent directories is prohibited. ");
 		return;
 	}
+
+    if (!fs.existsSync(filePath)) {
+        res.statusCode = 400
+        res.setHeader('Content-Type', 'text/plain');
+        res.end("File does not exist. ");
+        return;
+    }
+
+    if (fs.lstatSync(filePath).isDirectory()) {
+        res.statusCode = 401
+        res.setHeader('Content-Type', 'text/plain');
+        res.end("Modifying directories is prohibited. ");
+        return;
+    }
 
 	res.statusCode = 200
 	res.setHeader('Content-Type', 'text/plain');
