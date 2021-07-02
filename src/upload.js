@@ -116,7 +116,7 @@ async function uploadFile(file, {filenumber, setProgress}) {
 				p.innerHTML = `Error: ${res.message}`
 			}
 			else {
-				p.innerHTML = "Status " + res.status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry timeouts and disconnects.
+				p.innerHTML = `Error (Status ${res.status}): ${res.message}` //TODO: Retry timeouts and disconnects.
 			}
 
 			break;
