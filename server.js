@@ -191,9 +191,9 @@ app.post("/upload", async (req, res) => {
             req.session.uploading = Object.create(null)
         }
 
-        if (tempPath) {
-            //Delete the existing file. Probably a reupload after previous attempt failed. 
-            await fs.promises.unlink(tempPath)
+        if (tempPath && fs.existsSync(tempPath)) {
+            //Delete the existing file. Probably a reupload after previous attempt failed.
+            fs.unlinkSync(tempPath)
         }
 
         let tempdir = await fs.promises.mkdtemp(os.tmpdir())
