@@ -192,14 +192,13 @@ app.post("/upload", async (req, res) => {
         }
 
         if (tempPath) {
-            //Delete the existing file.
+            //Delete the existing file. Probably a reupload after previous attempt failed. 
             await fs.promises.unlink(tempPath)
         }
 
         let tempdir = await fs.promises.mkdtemp(os.tmpdir())
         tempPath = path.join(tempdir, filename)
         req.session.uploading[filename] = tempPath
-        req.session.touch()
 
         //We will check the temporary file every 15 minutes. If it hasn't changed, it will be deleted.
         let pulseDuration = 1000 * 60 * 15
@@ -213,7 +212,6 @@ app.post("/upload", async (req, res) => {
             else if (Date.now() - fs.statSync(tempPath).mtime > pulseDuration) {
                 fs.promises.rm(tempdir, {recursive: true, force: true})
                 delete req.session.uploading[filename]
-                req.session.touch()
                 clearInterval(interval)
             }
         }, pulseDuration)
@@ -254,7 +252,6 @@ app.post("/upload", async (req, res) => {
         }
 
         delete req.session.uploading[filename]
-        req.session.touch()
         await fs.promises.rename(tempPath, writePath)
     }
 
