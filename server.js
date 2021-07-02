@@ -196,7 +196,7 @@ app.post("/upload", async (req, res) => {
             fs.unlinkSync(tempPath)
         }
 
-        let tempdir = await fs.promises.mkdtemp(os.tmpdir())
+        let tempdir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "qial"))
         tempPath = path.join(tempdir, filename)
         req.session.uploading[filename] = tempPath
 
@@ -233,6 +233,7 @@ app.post("/upload", async (req, res) => {
 		})
     }
 
+
     let closePromise = new Promise((resolve, reject) => {
         writeStream.on("finish", resolve)
         writeStream.on("error", reject)
@@ -252,7 +253,7 @@ app.post("/upload", async (req, res) => {
         }
 
         delete req.session.uploading[filename]
-        await fs.promises.rename(tempPath, writePath)
+        fs.renameSync(tempPath, writePath)
     }
 
 	res.statusCode = 200
