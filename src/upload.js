@@ -107,7 +107,6 @@ async function uploadFile(file, {filenumber, setProgress}) {
 		if (currentEnd === file.size) {
 			complete = true
 		}
-
 		let status = await _uploadFile(file, currentPos, currentEnd, setFileProgress, complete)
 		if (status !== 200) {
 			let p = document.createElement("p")
@@ -133,13 +132,12 @@ async function uploadFiles(files) {
 
 	//This isn't ideal with paralell uploads, but it works OK.
 	function setProgress(filenumber, percentage = 0) {
-		console.log(filenumber, percentage, files.length)
 		label.innerHTML = `Uploading File ${filenumber + 1} of ${files.length}...`
 		progress.value = (filenumber + percentage/100)/files.length * 100
 	}
 
 	let i = 0
-	let maxConcurrent = 2
+	let maxConcurrent = 3
 	let originalConcurrent = maxConcurrent
 
 	async function startNext() {
@@ -155,6 +153,7 @@ async function uploadFiles(files) {
 			return
 		}
 
+		console.log("Started", filenumber)
 		maxConcurrent--
 		try {
 			setProgress(filenumber)
@@ -168,12 +167,13 @@ async function uploadFiles(files) {
 		}
 		finally {
 			maxConcurrent++
+			console.log("Completed", filenumber)
 			startNext()
 		}
 	}
 
 	//let scope bounds to loop, so the higher scope i is safe.
-	for (let i=0;i<maxConcurrent;i++) {
+	for (let i=0;i<originalConcurrent;i++) {
 		startNext()
 	}
 }
