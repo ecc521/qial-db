@@ -153,7 +153,7 @@ app.post("/upload", async (req, res) => {
 	if (req?.user?.Add !== "y") {
 		res.statusCode = 401
 		res.setHeader('Content-Type', 'text/plain');
-        res.setHeader("Connection", "close") //Causes issues with Apache, where the error is not passed through.
+        //res.setHeader("Connection", "close") //Causes issues with Apache, where the error is not passed through.
 		res.end("Missing permissions. You may not be signed in. ");
 		return;
 	}
@@ -229,6 +229,7 @@ app.post("/upload", async (req, res) => {
             res.end("No upload in progress. You may have timed out. ");
             return;
         }
+
         writeStream = fs.createWriteStream(tempPath, {
 			flags: "a"
 		})

@@ -66,15 +66,14 @@ async function _uploadFile(file, start, end, setFileProgress, last) {
 		});
 
 		request.onerror = function(e) {
-			uploadResults.innerHTML += "Error: " + e.message + "<br>"
+			resolve(e)
 		}
 
 		request.addEventListener('load', function(e) {
-			if (request.status !== 200) {
-				uploadResults.innerHTML += "Error Status Received: " + request.status + "<br>"
-				uploadResults.innerHTML += "Message: " + request.response + "<br>"
-			}
-			resolve(request.status);
+			resolve({
+				status: request.status,
+				message: request.response
+			})
 		});
 		request.send(file.slice(start, end));
 	})
@@ -82,6 +81,7 @@ async function _uploadFile(file, start, end, setFileProgress, last) {
 
 async function uploadFile(file, {filenumber, setProgress}) {
 	//Split into chunks
+	let firstChunkSize = 2e5
 	let chunkSize = 5e6
 	let currentPos = 0
 	let totalChunks = 0
@@ -100,18 +100,25 @@ async function uploadFile(file, {filenumber, setProgress}) {
 	}
 
 	while (currentPos < file.size) {
-		let currentEnd = currentPos + chunkSize
+		let currentEnd = currentPos + (currentPos===0)?firstChunkSize:chunkSize
 		currentEnd = Math.min(currentEnd, file.size)
 
 		let complete = false
 		if (currentEnd === file.size) {
 			complete = true
 		}
-		let status = await _uploadFile(file, currentPos, currentEnd, setFileProgress, complete)
-		if (status !== 200) {
+		let res = await _uploadFile(file, currentPos, currentEnd, setFileProgress, complete)
+		if (res instanceof Error || res.status !== 200) {
 			let p = document.createElement("p")
-			p.innerHTML = "Status " + status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry.
 			uploadResults.insertBefore(p, br.nextElementSibling)
+
+			if (res instanceof Error) {
+				p.innerHTML = `Error: ${res.message}`
+			}
+			else {
+				p.innerHTML = "Status " + res.status + " is not 200. Aborting upload of remaining chunks. " //TODO: Retry timeouts and disconnects.
+			}
+
 			break;
 		}
 		currentPos = currentEnd
