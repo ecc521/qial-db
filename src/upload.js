@@ -100,7 +100,7 @@ async function uploadFile(file, {filenumber, setProgress}) {
 	}
 
 	while (currentPos < file.size) {
-		let currentEnd = currentPos + (currentPos===0)?firstChunkSize:chunkSize
+		let currentEnd = currentPos + ((currentPos===0)?firstChunkSize:chunkSize)
 		currentEnd = Math.min(currentEnd, file.size)
 
 		let complete = false
