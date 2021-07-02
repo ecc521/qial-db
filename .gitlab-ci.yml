@@ -70,7 +70,7 @@ deploy-prod:
   tags:
     - simple-shell-executor
   script:
-    - sleep 15
+    - sleep 5
     - curl https://$CI_ENVIRONMENT_NAME-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE/
 
 verification-test:
