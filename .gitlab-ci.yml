@@ -52,8 +52,8 @@ deploy-test:
     IMGTAG: dev
     RELEASE_NAME: test-$APPLICATION_NAME
     URL: test-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE
-  except:
-    - production
+  only:
+    - develop
 
 deploy-prod:
   extends: .deploy
@@ -63,7 +63,7 @@ deploy-prod:
     RELEASE_NAME: prod-$APPLICATION_NAME
     URL: $APPLICATION_NAME.$CLUSTER_BASE_ROUTE
   only:
-    - production
+    - main
 
 .verification:
   stage: verification
@@ -76,14 +76,14 @@ deploy-prod:
 verification-test:
   extends: .verification
   environment: test
-  except:
-    - production
+  only:
+    - develop
 
 verification-prod:
   extends: .verification
   environment: production
   only:
-    - production
+    - main
 
 
 decom-test:
@@ -91,11 +91,11 @@ decom-test:
     RELEASE_NAME: test-$APPLICATION_NAME
   extends: .helm_decom
   except:
-    - production
+    - develop
 
 decom-prod:
   variables:
     RELEASE_NAME: prod-$APPLICATION_NAME
   extends: .helm_decom
   only:
-    - production
+    - main
