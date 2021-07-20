@@ -226,7 +226,11 @@ window.drawCards = function drawCards(items) {
 	let response = await request.json()
 	window.data = response.data
 	window.csvSources = response.csvSources
-	drawCards(window.data)
-	require("./search.js").generateSearchOptions(window.data)
+
+
+	const search = require("./search.js")
+	search.generateSearchOptions(window.data)
+	search.processSearch() //Draws cards. 
+
 	//require("./graphs.js")
 }())

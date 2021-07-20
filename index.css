@@ -6,10 +6,6 @@ body {
 	padding-block-end: 70px; /*Force content above overlay bar at bottom. */
 }
 
-#searchOptions {
-	padding-top: 70px; /*Force below sign in bar at top. */
-}
-
 h1, h2 {
 	text-align: center;
 }
@@ -21,9 +17,11 @@ h1, h2 {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	position: fixed;
+	position: sticky;
 	left: 0;
 	right: 0;
+	top: 0;
+	margin-bottom: 10px;
 }
 
 #topBar #acronym {
@@ -61,6 +59,43 @@ h1, h2 {
 	padding: 30px;
 	height: 50vh;
 }
+
+
+#searchInfo {
+	padding: 8px;
+	margin: 0;
+}
+
+#searchDropdown {
+	background: #eeeeee;
+	padding: 8px;
+	display: flex;
+	justify-content: space-between;
+}
+
+#searchDropdown:hover {
+	filter: brightness(0.8);
+}
+
+
+.searchItemBar {
+	padding: 8px;
+	background-color: #d5fcff;
+}
+
+.searchItemBar:hover {
+	background-color: #c4f5f9;
+}
+
+.searchItemBar *:first-child {
+	display: inline-block;
+	min-width: 100px;
+}
+
+.searchItemBar select {
+	min-width: 100px;
+}
+
 
 #filedrop {
   border: 2px dashed #ccc;

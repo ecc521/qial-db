@@ -1,11 +1,41 @@
-let searchOptions = document.getElementById("searchOptions")
+let search = document.getElementById("search")
+
+let info = document.createElement("p")
+info.id = "searchInfo"
+search.appendChild(info)
+
+let searchDropdown = document.createElement("div")
+searchDropdown.id = "searchDropdown"
+search.appendChild(searchDropdown)
+
+let searchOptions = document.createElement("div")
+
+let expanded;
+function setExpanded(expand) {
+	expanded = expand
+	if (!expand) {
+		searchOptions.remove()
+		searchDropdown.innerHTML = "<span>Search Options</span><span>⬇︎</span>"
+	}
+	else {
+		search.appendChild(searchOptions)
+		searchDropdown.innerHTML = "<span>Search Options</span><span>⬆︎</span>"
+	}
+}
+setExpanded(true) //TODO: Default to false
+
+searchDropdown.addEventListener("click", function() {
+	setExpanded(expanded = !expanded)
+})
+
 let searchFilters = [] //Functions to filter list through
 
 function generateSearchOptions(items) {
 	let options = [
 		{
 			optionName: "type",
-			type: "of"
+			type: "of",
+			displayName: "Data Type"
 		},
 		{
 			optionName: "Modality",
@@ -25,22 +55,25 @@ function generateSearchOptions(items) {
 		},
 		{
 			optionName: "Number of Images",
-			type: "of"
+			type: "of",
+			displayName: "Image Count"
 		},
 		{
 			optionName: "weight",
 			type: "range",
 			convertFrom: Number,
+			displayName: "Weight"
 		},
 		{
 			optionName: "DOB",
 			type: "range",
 			convertFrom: function(a) {return new Date(a).getTime()},
+			displayName: "Date of Birth"
 		}
 	]
 
 	//Currently, of filters only support strings.
-	options.forEach(({optionName, type, convertFrom}) => {
+	options.forEach(({optionName, type, convertFrom, displayName = optionName}) => {
 		let selects = [document.createElement("select")]
 
 		let searchFilter;
@@ -142,26 +175,36 @@ function generateSearchOptions(items) {
 						option.setAttribute("name", value + optionName)
 						selects[iterationNum].appendChild(option)
 					}
-					let name = item + optionName + " - " + (value!==""?value:"Any")
+					let name = item + (value!==""?value:"Any")
 
-					let amount = possibilities[value] //Already computed, but only works for "of" selectors.
-					if (type === "range") {
-						//Pass true for forceEnable, so the search excludes invalid ones.
-						amount = searchFilter(items, iterationNum===0?value:undefined, iterationNum===1?value:undefined, true).length
-					}
+					// let amount = possibilities[value] //Already computed, but only works for "of" selectors.
+					// if (type === "range") {
+					// 	//Pass true for forceEnable, so the search excludes invalid ones.
+					// 	amount = searchFilter(items, iterationNum===0?value:undefined, iterationNum===1?value:undefined, true).length
+					// }
 					//Since i is always zero for of sorts, and all other parameters are undefined, this works for both.
 					let currentAmount = searchFilter(currentItems, iterationNum===0?value:undefined, iterationNum===1?value:undefined).length
 
-					option.innerHTML = name + ` (${currentAmount} - ${amount} total)`
+					option.innerHTML = name + ` (${currentAmount})`
 				});
 			});
 		}
 
 		setPossibilities()
 		window.addEventListener("searchProcessed", setPossibilities)
+
+		let itemBar = document.createElement("div")
+		itemBar.className = "searchItemBar"
+
+		let itemBarInfo = document.createElement("span")
+		itemBarInfo.innerHTML = `${displayName}: `
+		itemBar.appendChild(itemBarInfo)
+
+		searchOptions.appendChild(itemBar)
+
 		selects.forEach((item, i) => {
 			item.addEventListener("change", processSearch)
-			searchOptions.appendChild(item)
+			itemBar.appendChild(item)
 		});
 		searchFilters.push(searchFilter)
 	})
@@ -171,7 +214,8 @@ function processSearch() {
 	let items = window.data
 	searchFilters.forEach((filter) => {items = filter(items)})
 	drawCards(items)
+	info.innerHTML = `Displaying ${items.length} of ${window.data.length} items`
 	window.dispatchEvent(new Event("searchProcessed"))
 }
 
-module.exports = {generateSearchOptions}
+module.exports = {generateSearchOptions, processSearch}
