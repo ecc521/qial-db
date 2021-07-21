@@ -20,7 +20,7 @@ function setExpanded(expand = expanded) {
 		searchDropdown.innerHTML = `<span>Search Filters (Click to Collapse)</span><span>${infoText}</span><span>⬆︎</span>`
 	}
 }
-setExpanded(true) //TODO: Default to false.
+setExpanded(true)
 
 searchDropdown.addEventListener("click", function() {
 	setExpanded(expanded = !expanded)
@@ -151,33 +151,33 @@ function generateSearchOptions(items) {
 			}
 		}
 		else if (type === "range") {
-				searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, minSelection = selects[0].value, maxSelection = selects[1].value) {
-					if (!searchEnabled) {return items}
+			searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, minSelection = selects[0].value, maxSelection = selects[1].value) {
+				if (!searchEnabled) {return items}
 
-					if (convertFrom) {
-									if (!minSelection) {minSelection = -Infinity}
-									else {minSelection = convertFrom(minSelection)}
-									if (!maxSelection) {maxSelection = Infinity}
-									else {maxSelection = convertFrom(maxSelection)}
-					}
-
-					if (maxSelection < minSelection) {
-						let temp = maxSelection
-						maxSelection = minSelection
-						minSelection = temp
-					}
-
-					return items.filter((item) => {
-						if (item[optionName] === undefined) {return false}
-
-						let value = item[optionName]
-						if (convertFrom) {value = convertFrom(value)}
-						if (value >= minSelection && value <= maxSelection) {
-							return true;
-						}
-					})
+				if (convertFrom) {
+					if (!minSelection) {minSelection = -Infinity}
+					else {minSelection = convertFrom(minSelection)}
+					if (!maxSelection) {maxSelection = Infinity}
+					else {maxSelection = convertFrom(maxSelection)}
 				}
+
+				if (maxSelection < minSelection) {
+					let temp = maxSelection
+					maxSelection = minSelection
+					minSelection = temp
+				}
+
+				return items.filter((item) => {
+					if (item[optionName] === undefined) {return false}
+
+					let value = item[optionName]
+					if (convertFrom) {value = convertFrom(value)}
+					if (value >= minSelection && value <= maxSelection) {
+						return true;
+					}
+				})
 			}
+		}
 		else {
 			console.error("Unknown Type", type)
 		}
