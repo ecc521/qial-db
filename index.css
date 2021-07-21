@@ -94,6 +94,21 @@ h1, h2 {
 
 .searchItemBar select {
 	min-width: 100px;
+	margin-right: 10px;
+}
+
+.searchItemBar input:nth-of-type(n+3) {
+	margin-left: 10px;
+}
+
+.searchItemBar label {
+	margin: 3px;
+}
+
+.searchItemBar label:first-of-type {
+	margin-right: 20px;
+	min-width: 120px;
+	display: inline-block;
 }
 
 

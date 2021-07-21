@@ -56,12 +56,12 @@ function generateSearchOptions(items) {
 			type: "of",
 			displayName: "Image Count"
 		},
-		{
-			optionName: "weight",
-			type: "range",
-			convertFrom: Number,
-			displayName: "Weight"
-		},
+		// {
+		// 	optionName: "weight",
+		// 	type: "range",
+		// 	convertFrom: Number,
+		// 	displayName: "Weight"
+		// },
 		{
 			optionName: "DOB",
 			type: "range",
@@ -70,124 +70,8 @@ function generateSearchOptions(items) {
 		}
 	]
 
-	//Currently, of filters only support strings.
+	//Currently, of filters only support strings - TODO: Is this still true? Test it when needed.
 	options.forEach(({optionName, type, convertFrom, displayName = optionName}) => {
-		// let selects = [document.createElement("select")]
-		//
-		// let searchFilter;
-		// if (type === "of") {
-		// 	searchFilter = function searchFilter(items, selection = selects[0].value) {
-		// 		return items.filter((item) => {
-		// 			if (selection === "") {return true}
-		// 			if (item[optionName] === undefined) {return false}
-		// 			return item[optionName] === selection
-		// 		})
-		// 	}
-		// }
-		// else if (type === "range") {
-		// 	selects.push(document.createElement("select"))
-		//
-		// 	searchFilter = function searchFilter(items, minSelection = selects[0].value, maxSelection = selects[1].value, forceEnable = false) {
-		// 		if (minSelection === "" && maxSelection === "" && !forceEnable) {return items} //No search in progress.
-		//
-		// 		if (convertFrom) {
-		// 			if (minSelection === "") {minSelection = -Infinity}
-		// 			else {minSelection = convertFrom(minSelection)}
-		// 			if (maxSelection === "") {maxSelection = Infinity}
-		// 			else {maxSelection = convertFrom(maxSelection)}
-		// 		}
-		//
-		// 		return items.filter((item) => {
-		// 			if (item[optionName] === undefined) {return false}
-		//
-		// 			let value = item[optionName]
-		// 			if (convertFrom) {value = convertFrom(value)}
-		// 			if (value >= minSelection && value <= maxSelection) {
-		// 				return true;
-		// 			}
-		// 		})
-		// 	}
-		// }
-		//
-		// function setPossibilities() {
-		// 	let currentItems = items
-		//
-		// 	//Use all filters but this one in order to show how many match the selection options given the selectors already picked. This will then be passed to getPossibilities.
-		// 	searchFilters.filter((filter) => {return filter !== searchFilter}).forEach((filter) => {
-		// 		currentItems = filter(currentItems)
-		// 	})
-		//
-		// 	//TODO: We may want both a "Off" and "Has property, but Any". Right now, "Any" is an "Off", which makes for some illogical current - total amount indicators.
-		// 	function getPossibilities(items) {
-		// 		let possibilities = {
-		// 			"": 0
-		// 		}
-		// 		items.forEach((item) => {
-		// 			if (item[optionName] === undefined) {return}
-		//
-		// 			if (item[optionName] !== "") {
-		// 				possibilities[""]++
-		// 			}
-		// 			if (!possibilities[item[optionName]]) {
-		// 				possibilities[item[optionName]] = 0
-		// 			}
-		// 			possibilities[item[optionName]]++
-		// 		})
-		// 		console.log(possibilities)
-		// 		return possibilities
-		// 	}
-		//
-		// 	//Call with the original items to get the totals - what there would be with no selectors but this one.
-		// 	let possibilities = getPossibilities(items)
-		//
-		// 	let possibilitiesArray = [];
-		// 	for (let possibility in possibilities) {
-		// 		if (possibility === "") {
-		// 			//Move the "From Any" to the front.
-		// 			possibilitiesArray.unshift(possibility)
-		// 		}
-		// 		else {
-		// 			possibilitiesArray.push(possibility)
-		// 		}
-		// 	}
-		//
-		// 	let iterations = [""]
-		// 	if (type === "range") {iterations = ["From ", "To "]}
-		//
-		// 	iterations.forEach((item, iterationNum) => {
-		// 		if (convertFrom) {
-		// 			possibilitiesArray = possibilitiesArray.sort((a, b) => {
-		// 				return convertFrom(a) - convertFrom(b)
-		// 			})
-		// 			if (iterationNum === 1) {
-		// 				possibilitiesArray.reverse()
-		// 				//Move the "From Any" to the front again.
-		// 				possibilitiesArray.unshift(possibilitiesArray.pop())
-		// 			}
-		// 		}
-		//
-		// 		possibilitiesArray.forEach((value) => {
-		// 			let option = document.getElementsByName(value + optionName)[iterationNum]
-		// 			if (!option) {
-		// 				option = document.createElement("option")
-		// 				option.value = value
-		// 				option.setAttribute("name", value + optionName)
-		// 				selects[iterationNum].appendChild(option)
-		// 			}
-		// 			let name = item + (value!==""?value:"Any")
-		//
-		// 			// let amount = possibilities[value] //Already computed, but only works for "of" selectors.
-		// 			// if (type === "range") {
-		// 			// 	//Pass true for forceEnable, so the search excludes invalid ones.
-		// 			// 	amount = searchFilter(items, iterationNum===0?value:undefined, iterationNum===1?value:undefined, true).length
-		// 			// }
-		// 			//Since i is always zero for of sorts, and all other parameters are undefined, this works for both.
-		// 			let currentAmount = searchFilter(currentItems, iterationNum===0?value:undefined, iterationNum===1?value:undefined).length
-		//
-		// 			option.innerHTML = name + ` (${currentAmount})`
-		// 		});
-		// 	});
-		// }
 
 		let itemBar = document.createElement("div")
 		itemBar.className = "searchItemBar"
@@ -206,9 +90,11 @@ function generateSearchOptions(items) {
 
 		function createLabel(checkbox) {
 			let label = document.createElement("label")
-			label.addEventListener("click", function() {
-				checkbox.click()
-			})
+			if (checkbox) {
+				label.addEventListener("click", function() {
+					checkbox.click()
+				})
+			}
 			return label
 		}
 
@@ -225,7 +111,7 @@ function generateSearchOptions(items) {
 		function getPossibilities(items) {
 			let possibilities = {}
 			items.forEach((item) => {
-				if (item[optionName] === undefined) {return}
+				if (item[optionName] === undefined || item[optionName] === "") {return}
 
 				if (!possibilities[item[optionName]]) {
 					possibilities[item[optionName]] = 0
@@ -233,6 +119,14 @@ function generateSearchOptions(items) {
 				possibilities[item[optionName]]++
 			})
 			return possibilities
+		}
+
+		let selects;
+		if (type === "range") {
+			selects = [document.createElement("select"), document.createElement("select")]
+			selects.forEach((select) => {
+				select.addEventListener("change", processSearch)
+			});
 		}
 
 		let optionElems = {}
@@ -246,11 +140,46 @@ function generateSearchOptions(items) {
 			return obj
 		}
 
-		function searchFilter(items, searchEnabled = enabledCheckbox.checked, options = obtainOptions()) {
-			if (!searchEnabled) {return items}
-			return items.filter((item) => {
-				return options[item?.[optionName]]
-			})
+		let searchFilter;
+
+		if (type === "of") {
+			searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, options = obtainOptions()) {
+				if (!searchEnabled) {return items}
+				return items.filter((item) => {
+					return options[item?.[optionName]]
+				})
+			}
+		}
+		else if (type === "range") {
+				searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, minSelection = selects[0].value, maxSelection = selects[1].value) {
+					if (!searchEnabled) {return items}
+
+					if (convertFrom) {
+									if (!minSelection) {minSelection = -Infinity}
+									else {minSelection = convertFrom(minSelection)}
+									if (!maxSelection) {maxSelection = Infinity}
+									else {maxSelection = convertFrom(maxSelection)}
+					}
+
+					if (maxSelection < minSelection) {
+						let temp = maxSelection
+						maxSelection = minSelection
+						minSelection = temp
+					}
+
+					return items.filter((item) => {
+						if (item[optionName] === undefined) {return false}
+
+						let value = item[optionName]
+						if (convertFrom) {value = convertFrom(value)}
+						if (value >= minSelection && value <= maxSelection) {
+							return true;
+						}
+					})
+				}
+			}
+		else {
+			console.error("Unknown Type", type)
 		}
 
 		function setPossibilities() {
@@ -266,6 +195,7 @@ function generateSearchOptions(items) {
 			let possibilitiesArray = Object.keys(possibilities)
 
 			if (convertFrom) {
+				possibilitiesArray = possibilitiesArray.filter((poss) => {return poss}) //Filter blanks from range search. TODO: Suppress all in getPossibilities
 				possibilitiesArray = possibilitiesArray.sort((a, b) => {
 					return convertFrom(a) - convertFrom(b)
 				})
@@ -274,49 +204,63 @@ function generateSearchOptions(items) {
 			let currentPossibilities = getPossibilities(currentItems)
 
 			possibilitiesArray.forEach((value) => {
-				let elems = optionElems[value]
+				if (type === "of") {
+					let elems = optionElems[value]
 
-				if (!elems) {
-					optionElems[value] = elems = {
-						checkbox: createCheckbox(),
+					if (!elems) {
+						optionElems[value] = elems = {
+							checkbox: createCheckbox(),
+						}
+						elems.checkbox.checked = true //Default to true.
+						elems.checkbox.addEventListener("change", processSearch)
+						elems.label = createLabel(elems.checkbox)
+						itemBar.appendChild(elems.checkbox)
+						itemBar.appendChild(elems.label)
 					}
-					elems.checkbox.checked = true //Default to true.
-					elems.checkbox.addEventListener("change", processSearch)
-					elems.label = createLabel(elems.checkbox)
-					itemBar.appendChild(elems.checkbox)
-					itemBar.appendChild(elems.label)
+
+					elems.checkbox.disabled = !enabledCheckbox.checked
+					elems.label.innerHTML = `${value} (${currentPossibilities[value] || 0})`
+
+				}
+				else if (type === "range") {
+					;[0,1].forEach((iterationNum) => {
+						let label = document.getElementsByName("label" + optionName)[iterationNum]
+						if (!label) {
+							let label = createLabel()
+							label.innerHTML = iterationNum ? "And: ":"Between: "
+							label.setAttribute("name", "label" + optionName)
+							itemBar.appendChild(label)
+							itemBar.appendChild(selects[iterationNum])
+						}
+
+						let option = document.getElementsByName(value + optionName)[iterationNum]
+						if (!option) {
+							option = document.createElement("option")
+							option.value = value
+							option.setAttribute("name", value + optionName)
+							if (iterationNum === 0) {
+								selects[iterationNum].appendChild(option)
+							}
+							else {
+								selects[iterationNum].prepend(option)
+								option.selected = true //Reselect repeatedly until last is selected.
+							}
+						}
+
+						//TODO: Should changing one selection change the other?
+						let amount = searchFilter(currentItems, true, iterationNum===0?value:undefined, iterationNum===1?value:undefined).length
+
+						option.innerHTML = `${value} (${amount})`
+					})
 				}
 
-				elems.checkbox.disabled = !enabledCheckbox.checked
-				elems.label.innerHTML = `${value} (${currentPossibilities[value] || 0})`
-
 				enabledLabel.innerHTML = `Enable Filter (${searchFilter(currentItems, true).length - currentItems.length})`
-
-
-				// let amount = possibilities[value] //Already computed, but only works for "of" selectors.
-				// if (type === "range") {
-				// 	//Pass true for forceEnable, so the search excludes invalid ones.
-				// 	amount = searchFilter(items, iterationNum===0?value:undefined, iterationNum===1?value:undefined, true).length
-				// }
-				//Since i is always zero for of sorts, and all other parameters are undefined, this works for both.
-				//let currentAmount = searchFilter(currentItems, iterationNum===0?value:undefined, iterationNum===1?value:undefined).length
 			});
 		}
 
-
-
-
 		setPossibilities()
 		window.addEventListener("searchProcessed", setPossibilities)
-		console.log(searchFilter(items, false), searchFilter(items, true))
-		console.log(searchFilter(items, true).length, items.length, searchFilter(items, true).length - items.length)
-		//enabledLabel.innerHTML = `Enable Filter (${searchFilter(items, true).length - items.length})`
 
-
-		// selects.forEach((item, i) => {
-		// 	item.addEventListener("change", processSearch)
-		// 	itemBar.appendChild(item)
-		// });
 		searchFilters.push(searchFilter)
 	})
 }
