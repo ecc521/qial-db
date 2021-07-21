@@ -61,20 +61,20 @@ h1, h2 {
 }
 
 
-#searchInfo {
-	padding: 8px;
-	margin: 0;
-}
-
 #searchDropdown {
 	background: #eeeeee;
 	padding: 8px;
 	display: flex;
 	justify-content: space-between;
+	cursor: pointer;
 }
 
 #searchDropdown:hover {
 	filter: brightness(0.8);
+}
+
+#searchDropdown > span:nth-child(2) {
+	flex: 0.3;
 }
 
 

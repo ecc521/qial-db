@@ -227,10 +227,11 @@ window.drawCards = function drawCards(items) {
 	window.data = response.data
 	window.csvSources = response.csvSources
 
+	drawCards(window.data) //Need to get Number of Images set BEFORE search code runs.
 
 	const search = require("./search.js")
 	search.generateSearchOptions(window.data)
-	search.processSearch() //Draws cards. 
+	search.processSearch() //Run again to display details on percentage drawn and stuff. TODO: Double drawing is slow. Use convertTo or something, or assign Number of Images before drawing?
 
 	//require("./graphs.js")
 }())
