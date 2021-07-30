@@ -6,6 +6,5 @@ require("./download.js")
 require("./delete.js")
 
 require("./previews.js")
-require("./search.js")
 
 require("./selections.js")

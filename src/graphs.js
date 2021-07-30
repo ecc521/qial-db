@@ -1,16 +1,21 @@
 
-function produceGraph({
-	div,
+function produceGraph(div, {
 	groups,
+	xAxisTitle = "",
 	yAxisTitle = "",
-	title = "Violin Plot",
+	title = "Violin Plot w/ Filters",
 }) {
 	let layout = {
 		title: title,
-		violinmode: 'overlay',
+		violinmode: 'group', //group or overlay
 		"yaxis": {
 			"title": yAxisTitle,
-		}
+		},
+		xaxis: {
+			title: xAxisTitle
+		},
+		violingap: 0,
+		violingroupgap: 0
 	}
 
 	let data = []
@@ -35,17 +40,19 @@ function produceGraph({
 				visible: true,
 				width: 2
 			},
-			side: "negative",
+			side: "both",
 			points: "all",
-			pointpos: -.5,
-			width: 1.5, //Boost width by 50%
+			pointpos: -.5, //TODO: Compute something that works here - off to the side, but minimally.
+			//width: 1.5, //Boost width by 50% - TODO: Setting width doesn't work with violinmode group (it acts as if violinmode is overlay).
+			//Boosting width also causes single points to overflow massively.
 			margin: {
 				pad: 0
 			}
 		}
 
 		if (prop === "Female") {
-			info.side = "positive"
+			if (info.side === "positive") {info.side = "negative"}
+			else if (info.side === "negative") {info.side = "positive"}
 			info.pointpos = -info.pointpos
 		}
 
@@ -71,39 +78,4 @@ function produceGraph({
 	})
 }
 
-let animals = window.data.filter((a) => {return a.type === "animal"})
-let groups = {
-	"Male": {color: "blue", data: []},
-	"Female": {color: "pink", data: []},
-}
-
-animals.forEach((item, i) => {
-	if (item.Sex === "male") {groups["Male"].data.push(item)}
-	else if (item.Sex === "female") {groups["Female"].data.push(item)}
-	else {
-		console.warn("Unknown Sex: ", item)
-	}
-});
-
-for (let prop in groups) {
-	let group = groups[prop]
-	group.data = group.data.map((animal) => {
-		let weight = animal.weight?.[0]  //Weight can be taken at different times - right now it is all under one "weight" metric. 
-		return {
-			x: [animal.Genotype || "Unknown"],
-			y: [weight]
-		}
-	})
-	console.log(group.data)
-}
-
-
-window.cnv = document.createElement("div")
-document.body.insertBefore(cnv, document.body.firstChild)
-
-produceGraph({
-	groups,
-	title: "Animal Weights",
-	yAxisTitle: "Weight",
-	div: window.cnv
-})
+module.exports = produceGraph

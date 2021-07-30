@@ -1,3 +1,5 @@
+const produceGraph = require("./graphs.js")
+
 let search = document.getElementById("search")
 
 let infoText = "";
@@ -7,17 +9,18 @@ searchDropdown.id = "searchDropdown"
 search.appendChild(searchDropdown)
 
 let searchOptions = document.createElement("div")
+search.appendChild(searchOptions)
 
 let expanded;
 function setExpanded(expand = expanded) {
 	expanded = expand
 	if (!expand) {
-		searchOptions.remove()
-		searchDropdown.innerHTML = `<span>Search Filters (Click to Expand)</span><span>${infoText}</span><span>⬇︎</span>`
+		searchOptions.style.display = "none"
+		searchDropdown.innerHTML = `<span>Search Filters/Graphs (Click to Expand)</span><span>${infoText}</span><span>⬇︎</span>`
 	}
 	else {
-		search.appendChild(searchOptions)
-		searchDropdown.innerHTML = `<span>Search Filters (Click to Collapse)</span><span>${infoText}</span><span>⬆︎</span>`
+		searchOptions.style.display = ""
+		searchDropdown.innerHTML = `<span>Search Filters/Graphs (Click to Collapse)</span><span>${infoText}</span><span>⬆︎</span>`
 	}
 }
 setExpanded(true)
@@ -27,6 +30,22 @@ searchDropdown.addEventListener("click", function() {
 })
 
 let searchFilters = [] //Functions to filter list through
+
+function createCheckbox() {
+	let box = document.createElement("input")
+	box.type = "checkbox"
+	return box
+}
+
+function createLabel(checkbox) {
+	let label = document.createElement("label")
+	if (checkbox) {
+		label.addEventListener("click", function() {
+			checkbox.click()
+		})
+	}
+	return label
+}
 
 function generateSearchOptions(items) {
 	let options = [
@@ -52,16 +71,21 @@ function generateSearchOptions(items) {
 			type: "of"
 		},
 		{
-			optionName: "Number of Images",
+			optionName: "Image Count",
 			type: "of",
-			displayName: "Image Count"
 		},
-		// {
-		// 	optionName: "weight",
-		// 	type: "range",
-		// 	convertFrom: Number,
-		// 	displayName: "Weight"
-		// },
+		{
+			optionName: "weight",
+			type: "range",
+			convertFrom: Number,
+			displayName: "Weight"
+		},
+		{
+			optionName: "weight_at_sacrifice",
+			type: "range",
+			convertFrom: Number,
+			displayName: "Weight @ Sacrifice"
+		},
 		{
 			optionName: "DOB",
 			type: "range",
@@ -81,22 +105,6 @@ function generateSearchOptions(items) {
 		itemBar.appendChild(itemBarInfo)
 
 		searchOptions.appendChild(itemBar)
-
-		function createCheckbox() {
-			let box = document.createElement("input")
-			box.type = "checkbox"
-			return box
-		}
-
-		function createLabel(checkbox) {
-			let label = document.createElement("label")
-			if (checkbox) {
-				label.addEventListener("click", function() {
-					checkbox.click()
-				})
-			}
-			return label
-		}
 
 		//TODO: Disable all other checkboxes when this is on in the searchFilter.
 		//We'll show the difference that pushing a single checkbox would make as a +/- X (ex, +9 or -2).
@@ -265,6 +273,189 @@ function generateSearchOptions(items) {
 	})
 }
 
+
+let numericAxes = []
+let nonNumericAxes = []
+
+let animals = window.data.filter((a) => {return a.type === "animal"})
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		//All numbers or strings that convert to number.
+		if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(animal[prop])) {
+			if (!numericAxes.includes(prop)) {
+				numericAxes.push(prop)
+				console.log(prop)
+				console.log(value)
+			}
+		}
+	}
+})
+
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		if (typeof value === "string" && value !== "") {
+			if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
+				nonNumericAxes.push(prop)
+			}
+		}
+	}
+})
+
+console.log(numericAxes, nonNumericAxes)
+
+
+let graphOptions = {
+	"Violin": {
+		//We'll probably want to use split violin if z is binary (only two options, like M/F).
+		x: {
+			allow: "all",
+			multiple: false
+		},
+		y: {
+			allow: "numeric",
+			multiple: false
+		},
+		z: {
+			allow: "all",
+			multiple: false
+		}
+	}
+}
+
+let graphTypeSelector = document.createElement("select")
+for (let prop in graphOptions) {
+	let option = document.createElement("option")
+	option.value = prop
+	option.innerHTML = prop
+	graphTypeSelector.appendChild(option)
+}
+
+search.appendChild(graphTypeSelector)
+
+//Generates the selector for an axis.
+function axisSelector(props, multiple = false, callback) {
+	if (multiple) {
+		//Generate checkbox list.
+		let div = document.createElement("div")
+		let propsObj = {}
+		props.forEach((prop) => {
+			let box = createCheckbox()
+			let label = createLabel(box)
+			label.innerHTML = prop
+
+			div.appendChild(label)
+			div.appendChild(box)
+
+			propsObj[prop] = box
+			box.addEventListener("change", function() {
+				let selectedProps = []
+				for (let prop in propsObj) {
+					let box = propsObj[prop]
+					if (box.checked) {
+						selectedProps.push(prop)
+					}
+				}
+				callback(selectedProps)
+			})
+		})
+
+	}
+	else {
+		//Generate select element
+		let select = document.createElement("select")
+		let def = document.createElement("option")
+		def.innerHTML = "Select Axis..."
+		def.selected = true
+		select.appendChild(def)
+
+		props.forEach((prop) => {
+			let option = document.createElement("option")
+			option.value = option.innerHTML = prop
+			select.appendChild(option)
+		})
+		select.addEventListener("change", function() {
+			callback(select.value)
+		})
+		return select
+	}
+}
+
+let axes;
+function genGraph(items) {
+	console.log(axes)
+	let graphType = graphTypeSelector.value
+	if (graphType === "Violin") {
+		let groups = {}
+		//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
+		items.forEach((item) => {
+			let val = item[axes[2]]
+			if (!groups[val]) {groups[val] = []}
+			groups[val].push(item)
+		})
+
+		for (let prop in groups) {
+			let groupItems = groups[prop]
+			groups[prop] = {
+				data: groupItems.map((item) => {
+					return {
+						x: [item[axes[0]]],
+						y: [item[axes[1]]]
+					}
+				})
+			}
+		}
+
+		produceGraph(graphDiv, {
+			groups,
+			xAxisTitle: axes[0],
+			yAxisTitle: axes[1],
+		})
+	}
+	else {throw "Unsupported graphType " + graphType}
+}
+
+function setGraphOptions() {
+	let graphType = graphTypeSelector.value
+	let graphInfo = graphOptions[graphType]
+	console.log(graphInfo)
+
+	axes = ["x", "y", "z"]
+	.filter((axis) => {return graphInfo[axis]}) //Filter out any axes that aren't used
+	.map((axis, index) => {
+		let info = graphInfo[axis]
+
+		let params = []
+		if (info.allow === "all") {
+			params.push(numericAxes.concat(nonNumericAxes))
+		}
+		else if (info.allow === "numeric") {
+			params.push(numericAxes)
+		}
+		else {
+			throw "Unknown Allow " + info.allow
+		}
+
+		params.push(info.multiple)
+		params.push(function(res) {
+			axes[index] = res
+			genGraph(animals)
+		})
+
+		let elem = axisSelector(...params)
+		search.appendChild(elem)
+	})
+}
+graphTypeSelector.addEventListener("change", setGraphOptions)
+setGraphOptions()
+
+
+//TODO: Add the stuff from the other spreadsheet as well. Need to add into the JSON.
+let graphDiv = document.createElement("div")
+search.appendChild(graphDiv)
+
+
 function processSearch() {
 	let items = window.data
 	searchFilters.forEach((filter) => {items = filter(items)})
@@ -272,6 +463,46 @@ function processSearch() {
 	infoText = `Displaying ${items.length} of ${window.data.length} Items`
 	setExpanded()
 	window.dispatchEvent(new Event("searchProcessed"))
+
+	genGraph(items)
+
+	//We will generate graphs based off the filtered items, using the axes specified.
+
+
+
+	//Enabling a filter will add it to properties to include in the graph.
+	//We will draw based on currentItems
+	// let animals = items
+	// let groups = {
+	// 	"Male": {color: "blue", data: []},
+	// 	"Female": {color: "pink", data: []},
+	// }
+	//
+	// animals.forEach((item, i) => {
+	// 	if (item.Sex === "male") {groups["Male"].data.push(item)}
+	// 	else if (item.Sex === "female") {groups["Female"].data.push(item)}
+	// 	else {
+	// 		console.warn("Unknown Sex: ", item)
+	// 	}
+	// });
+	//
+	// for (let prop in groups) {
+	// 	let group = groups[prop]
+	// 	group.data = group.data.map((animal) => {
+	// 		let weight = animal.weight
+	// 		return {
+	// 			x: [animal.Genotype || "Unknown"],
+	// 			y: [weight]
+	// 		}
+	// 	})
+	// 	console.log(group.data)
+	// }
+	//
+	// produceGraph(graphDiv, {
+	// 	groups,
+	// 	title: "Animal Weights",
+	// 	yAxisTitle: "Weight",
+	// })
 }
 
 module.exports = {generateSearchOptions, processSearch}
