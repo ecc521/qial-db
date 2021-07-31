@@ -37,17 +37,29 @@ let graphOptions = {
 		//We'll probably want to use split violin if z is binary (only two options, like M/F).
 		x: {
 			allow: "all",
-			multiple: false
 		},
 		y: {
 			allow: "numeric",
-			multiple: false
 		},
 		z: {
 			allow: "all",
-			multiple: false
 		}
-	}
+	},
+	"Dot": {
+		x: {
+			allow: "all"
+		},
+		y: {
+			allow: "numeric",
+			multiple: "true"
+		}
+	},
+	// "Correlation": {
+	// 	x: {
+	// 		allow: "numeric",
+	// 		multiple: true
+	// 	}
+	// }
 }
 
 let graphTypeSelector = document.createElement("select")
@@ -59,6 +71,12 @@ for (let prop in graphOptions) {
 }
 
 graphsDiv.appendChild(graphTypeSelector)
+
+let axisSelectorDiv = document.createElement("div")
+graphsDiv.appendChild(axisSelectorDiv)
+
+let plotlyContainer = document.createElement("div")
+graphsDiv.appendChild(plotlyContainer)
 
 //Generates the selector for an axis.
 function axisSelector(props, multiple = false, callback) {
@@ -88,8 +106,8 @@ function axisSelector(props, multiple = false, callback) {
 			let label = createLabel(box)
 			label.innerHTML = prop
 
-			div.appendChild(label)
 			div.appendChild(box)
+			div.appendChild(label)
 
 			propsObj[prop] = box
 			box.addEventListener("change", function() {
@@ -103,7 +121,7 @@ function axisSelector(props, multiple = false, callback) {
 				callback(selectedProps)
 			})
 		})
-
+		return div
 	}
 	else {
 		//Generate select element
@@ -129,8 +147,11 @@ function axisSelector(props, multiple = false, callback) {
 let axes;
 function genGraph() {
 	let items = window.lastSearchItems
-	console.log(axes)
+
 	let graphType = graphTypeSelector.value
+	let data = []
+	let layout = {}
+console.log(axes)
 	if (graphType === "Violin") {
 		let groups = {}
 		items.forEach((item) => {
@@ -148,10 +169,6 @@ function genGraph() {
 					let xVal = item[axes[0]]
 					let yVal = item[axes[1]]
 
-					if (xVal === undefined || yVal === undefined) {
-						return undefined
-					}
-
 					return {
 						x: [xVal],
 						y: [yVal]
@@ -160,18 +177,132 @@ function genGraph() {
 			}
 		}
 
-		produceGraph(plotlyContainer, {
-			groups,
-			xAxisTitle: axes[0],
-			yAxisTitle: axes[1],
+		let props = Object.keys(groups)
+		let useSplitViolin = (props.length === 2)
+
+		layout = {
+			title: "Violin Plot",
+			violinmode: useSplitViolin ? "overlay" : "group",
+			xaxis: {
+				title: axes[0]
+			},
+			yaxis: {
+				title: axes[1],
+			},
+			violingap: 0,
+			violingroupgap: 0
+		}
+
+		props.forEach((prop, index) => {
+			let group  = groups[prop]
+
+			let info = {
+				type: 'violin',
+				x: [],
+				y: [],
+				name: prop,
+				jitter: 0.05,
+				box: {
+					visible: true
+				},
+				meanline: {
+					visible: true,
+					width: 2
+				},
+				side: useSplitViolin ? "negative":"both",
+				points: "all",
+				pointpos: -.5, //TODO: Compute something that works here - off to the side, but minimally.
+				//width: 1.5, //Boost width by 50% - TODO: Setting width doesn't work with violinmode group (it acts as if violinmode is overlay).
+				//Boosting width also causes single points to overflow massively.
+				margin: {
+					pad: 0
+				}
+			}
+
+			if (useSplitViolin && index === 1) {
+				if (info.side === "positive") {info.side = "negative"}
+				else if (info.side === "negative") {info.side = "positive"}
+				info.pointpos = -info.pointpos
+			}
+
+			group.data.forEach((data) => {
+				data.x.forEach((xVal, i) => {
+					let correspondingY = data.y[i]
+					if (correspondingY !== undefined && xVal !== undefined) {
+						info.x.push(xVal)
+						info.y.push(correspondingY)
+					}
+				});
+
+			});
+
+			data.push(info)
 		})
 	}
+	else if (graphType === "Dot") {
+		layout = {
+			title: "Dot Plot",
+			xaxis: {
+				title: axes[0]
+			},
+			yaxis: {
+				title: axes[1],
+			},
+		}
+
+		axes[1].forEach((yProp) => {
+			let traceItems = items.map((item) => {
+				let xVal = item[axes[0]]
+				let yVal = item[yProp]
+
+				return {
+					x: [xVal],
+					y: [yVal]
+				}
+			}).filter((item) => {return item}) //Remove undefined items
+
+			let info = {
+				x: [],
+				y: [],
+				mode: 'markers',
+				type: 'scatter',
+				name: yProp,
+				marker: { size: 12 }
+			}
+
+			traceItems.forEach((data) => {
+				data.x.forEach((xVal, i) => {
+					let correspondingY = data.y[i]
+					if (correspondingY !== undefined && xVal !== undefined) {
+						info.x.push(xVal)
+						info.y.push(correspondingY)
+					}
+				});
+			});
+
+			data.push(info)
+		})
+	}
+	// else if (graphType === "Correlation") {
+	// 	//TODO: Generate correlation table.
+	// 	data.push({
+	// 		z: [[1, null, 30, 50, 1], [20, 1, 60, 80, 30], [30, 60, 1, -10, 20]],
+	// 		x: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+	// 		y: ['Morning', 'Afternoon', 'Evening'],
+	// 		type: 'heatmap',
+	// 		hoverongaps: false
+	// 	})
+	// }
 	else {throw "Unsupported graphType " + graphType}
+
+	console.log(data)
+	console.log(layout)
+
+	Plotly.newPlot(plotlyContainer, data, layout, {
+		responsive: true,
+	})
 }
 window.addEventListener("searchProcessed", genGraph)
-
-let axisSelectorDiv = document.createElement("div")
-graphsDiv.appendChild(axisSelectorDiv)
 
 function setGraphOptions() {
 	while (axisSelectorDiv.lastChild) {axisSelectorDiv.lastChild.remove()}
@@ -206,93 +337,11 @@ function setGraphOptions() {
 		axisSelectorDiv.appendChild(elem)
 	})
 }
-graphTypeSelector.addEventListener("change", setGraphOptions)
+graphTypeSelector.addEventListener("change", function() {
+	setGraphOptions()
+	genGraph()
+})
 setGraphOptions()
 
-
-let plotlyContainer = document.createElement("div")
-graphsDiv.appendChild(plotlyContainer)
-
-function produceGraph(div, {
-	groups,
-	xAxisTitle = "",
-	yAxisTitle = "",
-	title = "Violin Plot w/ Filters",
-}) {
-	let data = []
-	let props = Object.keys(groups)
-	let useSplitViolin = (props.length === 2)
-
-	let layout = {
-		title: title,
-		violinmode: useSplitViolin ? "overlay" : "group",
-		yaxis: {
-			title: yAxisTitle,
-		},
-		xaxis: {
-			title: xAxisTitle
-		},
-		violingap: 0,
-		violingroupgap: 0
-	}
-
-	props.forEach((prop, index) => {
-		let group  = groups[prop]
-
-		let info = {
-			type: 'violin',
-			x: [],
-			y: [],
-			legendgroup: prop,
-			scalegroup: prop,
-			name: prop,
-			jitter: 0.05,
-			box: {
-				visible: true
-			},
-			line: {
-				color: group.color
-			},
-			meanline: {
-				visible: true,
-				width: 2
-			},
-			side: useSplitViolin ? "negative":"both",
-			points: "all",
-			pointpos: -.5, //TODO: Compute something that works here - off to the side, but minimally.
-			//width: 1.5, //Boost width by 50% - TODO: Setting width doesn't work with violinmode group (it acts as if violinmode is overlay).
-			//Boosting width also causes single points to overflow massively.
-			margin: {
-				pad: 0
-			}
-		}
-
-		if (useSplitViolin && index === 1) {
-			if (info.side === "positive") {info.side = "negative"}
-			else if (info.side === "negative") {info.side = "positive"}
-			info.pointpos = -info.pointpos
-		}
-
-		group.data.forEach((data) => {
-			data.x.forEach((xVal, i) => {
-				let correspondingY = data.y[i]
-				if (correspondingY !== undefined && xVal !== undefined) {
-					info.x.push(xVal)
-					info.y.push(correspondingY)
-				}
-			});
-
-		});
-
-		data.push(info)
-	})
-
-	console.log(data)
-	console.log(layout)
-
-	Plotly.newPlot(div, data, layout, {
-		responsive: true,
-	})
-}
 
 module.exports = {genGraph, graphsDiv}
