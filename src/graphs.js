@@ -110,6 +110,7 @@ function axisSelector(props, multiple = false, callback) {
 		let select = document.createElement("select")
 		let def = document.createElement("option")
 		def.innerHTML = "Select Axis..."
+		def.value = ""
 		def.selected = true
 		select.appendChild(def)
 
@@ -119,7 +120,7 @@ function axisSelector(props, multiple = false, callback) {
 			select.appendChild(option)
 		})
 		select.addEventListener("change", function() {
-			callback(select.value)
+			callback(select.value || undefined)
 		})
 		return select
 	}
@@ -132,9 +133,10 @@ function genGraph() {
 	let graphType = graphTypeSelector.value
 	if (graphType === "Violin") {
 		let groups = {}
-		//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
 		items.forEach((item) => {
 			let val = item[axes[2]]
+			//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
+			if (axes[2] !== undefined && val === undefined) {return}
 			if (!groups[val]) {groups[val] = []}
 			groups[val].push(item)
 		})
@@ -143,11 +145,18 @@ function genGraph() {
 			let groupItems = groups[prop]
 			groups[prop] = {
 				data: groupItems.map((item) => {
-					return {
-						x: [item[axes[0]]],
-						y: [item[axes[1]]]
+					let xVal = item[axes[0]]
+					let yVal = item[axes[1]]
+
+					if (xVal === undefined || yVal === undefined) {
+						return undefined
 					}
-				})
+
+					return {
+						x: [xVal],
+						y: [yVal]
+					}
+				}).filter((item) => {return item}) //Remove undefined items
 			}
 		}
 
@@ -210,11 +219,15 @@ function produceGraph(div, {
 	yAxisTitle = "",
 	title = "Violin Plot w/ Filters",
 }) {
+	let data = []
+	let props = Object.keys(groups)
+	let useSplitViolin = (props.length === 2)
+
 	let layout = {
 		title: title,
-		violinmode: 'group', //group or overlay
-		"yaxis": {
-			"title": yAxisTitle,
+		violinmode: useSplitViolin ? "overlay" : "group",
+		yaxis: {
+			title: yAxisTitle,
 		},
 		xaxis: {
 			title: xAxisTitle
@@ -223,8 +236,7 @@ function produceGraph(div, {
 		violingroupgap: 0
 	}
 
-	let data = []
-	for (let prop in groups) {
+	props.forEach((prop, index) => {
 		let group  = groups[prop]
 
 		let info = {
@@ -245,7 +257,7 @@ function produceGraph(div, {
 				visible: true,
 				width: 2
 			},
-			side: "both",
+			side: useSplitViolin ? "negative":"both",
 			points: "all",
 			pointpos: -.5, //TODO: Compute something that works here - off to the side, but minimally.
 			//width: 1.5, //Boost width by 50% - TODO: Setting width doesn't work with violinmode group (it acts as if violinmode is overlay).
@@ -255,7 +267,7 @@ function produceGraph(div, {
 			}
 		}
 
-		if (prop === "Female") {
+		if (useSplitViolin && index === 1) {
 			if (info.side === "positive") {info.side = "negative"}
 			else if (info.side === "negative") {info.side = "positive"}
 			info.pointpos = -info.pointpos
@@ -273,7 +285,7 @@ function produceGraph(div, {
 		});
 
 		data.push(info)
-	}
+	})
 
 	console.log(data)
 	console.log(layout)
