@@ -52,6 +52,9 @@ let graphOptions = {
 		y: {
 			allow: "numeric",
 			multiple: "true"
+		},
+		z: {
+			allow: "all"
 		}
 	},
 	// "Correlation": {
@@ -173,7 +176,7 @@ console.log(axes)
 						x: [xVal],
 						y: [yVal]
 					}
-				}).filter((item) => {return item}) //Remove undefined items
+				})
 			}
 		}
 
@@ -240,6 +243,7 @@ console.log(axes)
 		})
 	}
 	else if (graphType === "Dot") {
+		//TODO: Add regression.
 		layout = {
 			title: "Dot Plot",
 			xaxis: {
@@ -250,38 +254,58 @@ console.log(axes)
 			},
 		}
 
-		axes[1].forEach((yProp) => {
-			let traceItems = items.map((item) => {
-				let xVal = item[axes[0]]
-				let yVal = item[yProp]
-
-				return {
-					x: [xVal],
-					y: [yVal]
-				}
-			}).filter((item) => {return item}) //Remove undefined items
-
-			let info = {
-				x: [],
-				y: [],
-				mode: 'markers',
-				type: 'scatter',
-				name: yProp,
-				marker: { size: 12 }
-			}
-
-			traceItems.forEach((data) => {
-				data.x.forEach((xVal, i) => {
-					let correspondingY = data.y[i]
-					if (correspondingY !== undefined && xVal !== undefined) {
-						info.x.push(xVal)
-						info.y.push(correspondingY)
-					}
-				});
-			});
-
-			data.push(info)
+		let groups = {}
+		items.forEach((item) => {
+			let val = item[axes[2]]
+			//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
+			if (axes[2] !== undefined && val === undefined) {return}
+			if (!groups[val]) {groups[val] = []}
+			groups[val].push(item)
 		})
+
+		let yCount = axes[1].length
+		let groupCount = Object.keys(groups).length
+
+		for (let groupName in groups) {
+			let groupItems = groups[groupName]
+
+			axes[1].forEach((yProp) => {
+				let traceItems = groupItems.map((item) => {
+					let xVal = item[axes[0]]
+					let yVal = item[yProp]
+
+					return {
+						x: [xVal],
+						y: [yVal]
+					}
+				})
+
+				let name = yProp
+				if (yCount < 2) {name = groupName}
+				else if (groupCount > 1) {name = groupName + "/" + yProp}
+
+				let info = {
+					x: [],
+					y: [],
+					mode: 'markers',
+					type: 'scatter',
+					name,
+					marker: { size: 12 }
+				}
+
+				traceItems.forEach((data) => {
+					data.x.forEach((xVal, i) => {
+						let correspondingY = data.y[i]
+						if (correspondingY !== undefined && xVal !== undefined) {
+							info.x.push(xVal)
+							info.y.push(correspondingY)
+						}
+					});
+				});
+
+				data.push(info)
+			})
+		}
 	}
 	// else if (graphType === "Correlation") {
 	// 	//TODO: Generate correlation table.
