@@ -1,3 +1,208 @@
+let graphsDiv = document.createElement("div")
+
+let numericAxes = []
+let nonNumericAxes = []
+
+let animals = window.data.filter((a) => {return a.type === "animal"})
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		//All numbers or strings that convert to number.
+		if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(animal[prop])) {
+			if (!numericAxes.includes(prop)) {
+				numericAxes.push(prop)
+				console.log(prop)
+				console.log(value)
+			}
+		}
+	}
+})
+
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		if (typeof value === "string" && value !== "") {
+			if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
+				nonNumericAxes.push(prop)
+			}
+		}
+	}
+})
+
+console.log(numericAxes, nonNumericAxes)
+
+
+let graphOptions = {
+	"Violin": {
+		//We'll probably want to use split violin if z is binary (only two options, like M/F).
+		x: {
+			allow: "all",
+			multiple: false
+		},
+		y: {
+			allow: "numeric",
+			multiple: false
+		},
+		z: {
+			allow: "all",
+			multiple: false
+		}
+	}
+}
+
+let graphTypeSelector = document.createElement("select")
+for (let prop in graphOptions) {
+	let option = document.createElement("option")
+	option.value = prop
+	option.innerHTML = prop
+	graphTypeSelector.appendChild(option)
+}
+
+graphsDiv.appendChild(graphTypeSelector)
+
+//Generates the selector for an axis.
+function axisSelector(props, multiple = false, callback) {
+	if (multiple) {
+		//Generate checkbox list.
+		let div = document.createElement("div")
+		let propsObj = {}
+		props.forEach((prop) => {
+			//TODO: createCheckbox and createLabel are copied from search.js
+			function createCheckbox() {
+				let box = document.createElement("input")
+				box.type = "checkbox"
+				return box
+			}
+
+			function createLabel(checkbox) {
+				let label = document.createElement("label")
+				if (checkbox) {
+					label.addEventListener("click", function() {
+						checkbox.click()
+					})
+				}
+				return label
+			}
+
+			let box = createCheckbox()
+			let label = createLabel(box)
+			label.innerHTML = prop
+
+			div.appendChild(label)
+			div.appendChild(box)
+
+			propsObj[prop] = box
+			box.addEventListener("change", function() {
+				let selectedProps = []
+				for (let prop in propsObj) {
+					let box = propsObj[prop]
+					if (box.checked) {
+						selectedProps.push(prop)
+					}
+				}
+				callback(selectedProps)
+			})
+		})
+
+	}
+	else {
+		//Generate select element
+		let select = document.createElement("select")
+		let def = document.createElement("option")
+		def.innerHTML = "Select Axis..."
+		def.selected = true
+		select.appendChild(def)
+
+		props.forEach((prop) => {
+			let option = document.createElement("option")
+			option.value = option.innerHTML = prop
+			select.appendChild(option)
+		})
+		select.addEventListener("change", function() {
+			callback(select.value)
+		})
+		return select
+	}
+}
+
+let axes;
+function genGraph() {
+	let items = window.lastSearchItems
+	console.log(axes)
+	let graphType = graphTypeSelector.value
+	if (graphType === "Violin") {
+		let groups = {}
+		//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
+		items.forEach((item) => {
+			let val = item[axes[2]]
+			if (!groups[val]) {groups[val] = []}
+			groups[val].push(item)
+		})
+
+		for (let prop in groups) {
+			let groupItems = groups[prop]
+			groups[prop] = {
+				data: groupItems.map((item) => {
+					return {
+						x: [item[axes[0]]],
+						y: [item[axes[1]]]
+					}
+				})
+			}
+		}
+
+		produceGraph(plotlyContainer, {
+			groups,
+			xAxisTitle: axes[0],
+			yAxisTitle: axes[1],
+		})
+	}
+	else {throw "Unsupported graphType " + graphType}
+}
+window.addEventListener("searchProcessed", genGraph)
+
+let axisSelectorDiv = document.createElement("div")
+graphsDiv.appendChild(axisSelectorDiv)
+
+function setGraphOptions() {
+	while (axisSelectorDiv.lastChild) {axisSelectorDiv.lastChild.remove()}
+
+	let graphType = graphTypeSelector.value
+	let graphInfo = graphOptions[graphType]
+	console.log(graphInfo)
+
+	axes = ["x", "y", "z"]
+	.filter((axis) => {return graphInfo[axis]}) //Filter out any axes that aren't used
+	.map((axis, index) => {
+		let info = graphInfo[axis]
+
+		let params = []
+		if (info.allow === "all") {
+			params.push(numericAxes.concat(nonNumericAxes))
+		}
+		else if (info.allow === "numeric") {
+			params.push(numericAxes)
+		}
+		else {
+			throw "Unknown Allow " + info.allow
+		}
+
+		params.push(info.multiple)
+		params.push(function(res) {
+			axes[index] = res
+			genGraph()
+		})
+
+		let elem = axisSelector(...params)
+		axisSelectorDiv.appendChild(elem)
+	})
+}
+graphTypeSelector.addEventListener("change", setGraphOptions)
+setGraphOptions()
+
+
+let plotlyContainer = document.createElement("div")
+graphsDiv.appendChild(plotlyContainer)
 
 function produceGraph(div, {
 	groups,
@@ -78,4 +283,4 @@ function produceGraph(div, {
 	})
 }
 
-module.exports = produceGraph
+module.exports = {genGraph, graphsDiv}
