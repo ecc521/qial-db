@@ -90,7 +90,7 @@ compiler.watch({
 	//File size is greatly reduced by using a partial bundle. This one supports violn plots.
 	console.log("Copying plotly...")
 
-	let plotlyBundlePath = "./node_modules/plotly.js-cartesian-dist-min/plotly-cartesian.min.js"
+	let plotlyBundlePath = "./node_modules/plotly.js-dist-min/plotly.min.js"
 	let outputPlotlyPath = "packages/plotly.js"
 
 	let plotlyBundleBuffer = fs.readFileSync(plotlyBundlePath)

@@ -41,7 +41,7 @@ let graphOptions = {
 		y: {
 			allow: "numeric",
 		},
-		z: {
+		w: {
 			allow: "all",
 		}
 	},
@@ -53,7 +53,7 @@ let graphOptions = {
 			allow: "numeric",
 			multiple: "true"
 		},
-		z: {
+		w: {
 			allow: "all"
 		}
 	},
@@ -65,8 +65,10 @@ let graphOptions = {
 			allow: "all"
 		},
 		z: {
-			allow: "all", //TODO: Just numeric?
-			multiple: true
+			allow: "all",
+		},
+		w: {
+			allow: "all"
 		}
 	}
 	// "Correlation": {
@@ -161,6 +163,7 @@ function axisSelector(props, multiple = false, callback) {
 
 let axes;
 function genGraph() {
+	console.log(axes)
 	let items = window.lastSearchItems
 
 	let graphType = graphTypeSelector.value
@@ -168,24 +171,25 @@ function genGraph() {
 	let layout = {
 		title: graphType,
 		xaxis: {
-			title: axes[0]
+			title: axes.x
 		},
 		yaxis: {
-			title: axes[1]
+			title: axes.y
 		},
 		zaxis: {
-			title: axes[2]
+			title: axes.z
 		}
 	}
 
 
-	function splitZAxis(items) {
-		//Splits into groups based on z axis.
+	function splitWAxis(items) {
+		//Splits into groups based on w axis.
+		console.log(axes.w)
 		let groups = {}
 		items.forEach((item) => {
-			let val = item[axes[2]]
-			//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
-			if (axes[2] !== undefined && val === undefined) {return}
+			let val = item[axes.w]
+			//If there isn't a w axis, this still works - the only w is "undefined" (and with only one w, labels aren't displayed)
+			if (axes.w !== undefined && val === undefined) {return}
 			if (!groups[val]) {groups[val] = []}
 			groups[val].push(item)
 		})
@@ -193,22 +197,7 @@ function genGraph() {
 	}
 
 	if (graphType === "Violin") {
-		let groups = splitZAxis(items)
-
-		for (let prop in groups) {
-			let groupItems = groups[prop]
-			groups[prop] = {
-				data: groupItems.map((item) => {
-					let xVal = item[axes[0]]
-					let yVal = item[axes[1]]
-
-					return {
-						x: [xVal],
-						y: [yVal]
-					}
-				})
-			}
-		}
+		let groups = splitWAxis(items)
 
 		let props = Object.keys(groups)
 		let useSplitViolin = (props.length === 2)
@@ -218,9 +207,10 @@ function genGraph() {
 			violingap: 0,
 			violingroupgap: 0
 		})
+		let yProp = axes.y
 
 		props.forEach((prop, index) => {
-			let group  = groups[prop]
+			let groupItems = groups[prop]
 
 			let info = {
 				type: 'violin',
@@ -251,16 +241,15 @@ function genGraph() {
 				info.pointpos = -info.pointpos
 			}
 
-			group.data.forEach((data) => {
-				data.x.forEach((xVal, i) => {
-					let correspondingY = data.y[i]
-					if (correspondingY !== undefined && xVal !== undefined) {
-						info.x.push(xVal)
-						info.y.push(correspondingY)
-					}
-				});
+			groupItems.forEach((item) => {
+				let xVal = item[axes.x]
+				let yVal = item[yProp]
 
-			});
+				if (xVal !== undefined && yVal !== undefined) {
+					info.x.push(xVal)
+					info.y.push(yVal)
+				}
+			})
 
 			data.push(info)
 		})
@@ -268,15 +257,15 @@ function genGraph() {
 	else if (graphType === "Scatter Plot") {
 		//TODO: Add regression.
 
-		let groups = splitZAxis(items)
+		let groups = splitWAxis(items)
 
-		let yCount = axes[1].length
+		let yCount = axes.y.length
 		let groupCount = Object.keys(groups).length
 
 		for (let groupName in groups) {
 			let groupItems = groups[groupName]
 
-			axes[1].forEach((yProp) => {
+			axes.y.forEach((yProp) => {
 				let name = yProp
 				if (yCount < 2) {name = groupName}
 				else if (groupCount > 1) {name = groupName + "/" + yProp}
@@ -290,32 +279,61 @@ function genGraph() {
 					marker: { size: 12 }
 				}
 
-				let traceItems = groupItems.map((item) => {
-					let xVal = item[axes[0]]
+				groupItems.forEach((item) => {
+					let xVal = item[axes.x]
 					let yVal = item[yProp]
 
-					return {
-						x: [xVal],
-						y: [yVal]
+					if (xVal !== undefined && yVal !== undefined) {
+						info.x.push(xVal)
+						info.y.push(yVal)
 					}
 				})
-
-				traceItems.forEach((data) => {
-					data.x.forEach((xVal, i) => {
-						let correspondingY = data.y[i]
-						if (correspondingY !== undefined && xVal !== undefined) {
-							info.x.push(xVal)
-							info.y.push(correspondingY)
-						}
-					});
-				});
 
 				data.push(info)
 			})
 		}
 	}
 	else if (graphType === "3D Scatter Plot") {
+		let groups = splitWAxis(items)
 
+		Object.assign(layout, {
+			margin: {
+				l: 0,
+				r: 0,
+				b: 0,
+				t: 0
+			}
+		})
+
+		for (let groupName in groups) {
+			let groupItems = groups[groupName]
+
+			let info = {
+				x: [],
+				y: [],
+				z: [],
+				name: groupName,
+				mode: 'markers',
+				marker: {
+					size: 12,
+				},
+				type: 'scatter3d'
+			}
+
+			groupItems.forEach((item) => {
+				let xVal = item[axes.x]
+				let yVal = item[axes.y]
+				let zVal = item[axes.z]
+
+				if (xVal !== undefined && yVal !== undefined && zVal !== undefined) {
+					info.x.push(xVal)
+					info.y.push(yVal)
+					info.z.push(zVal)
+				}
+			})
+
+			data.push(info)
+		}
 	}
 	// else if (graphType === "Correlation") {
 	// 	//TODO: Generate correlation table.
@@ -345,10 +363,12 @@ function setGraphOptions() {
 	let graphInfo = graphOptions[graphType]
 	console.log(graphInfo)
 
-	axes = ["x", "y", "z"]
-	.filter((axis) => {return graphInfo[axis]}) //Filter out any axes that aren't used
-	.map((axis, index) => {
+	axes = {}
+	let axesCodes = ["x","y","z","w"]
+
+	axesCodes.forEach((axis) => {
 		let info = graphInfo[axis]
+		if (!info) {return}
 
 		let params = []
 		if (info.allow === "all") {
@@ -363,7 +383,7 @@ function setGraphOptions() {
 
 		params.push(info.multiple)
 		params.push(function(res) {
-			axes[index] = res
+			axes[axis] = res
 			genGraph()
 		})
 
