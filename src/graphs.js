@@ -45,7 +45,7 @@ let graphOptions = {
 			allow: "all",
 		}
 	},
-	"Dot": {
+	"Scatter Plot": {
 		x: {
 			allow: "all"
 		},
@@ -57,6 +57,18 @@ let graphOptions = {
 			allow: "all"
 		}
 	},
+	"3D Scatter Plot": {
+		x: {
+			allow: "all"
+		},
+		y: {
+			allow: "all"
+		},
+		z: {
+			allow: "all", //TODO: Just numeric?
+			multiple: true
+		}
+	}
 	// "Correlation": {
 	// 	x: {
 	// 		allow: "numeric",
@@ -153,9 +165,22 @@ function genGraph() {
 
 	let graphType = graphTypeSelector.value
 	let data = []
-	let layout = {}
-console.log(axes)
-	if (graphType === "Violin") {
+	let layout = {
+		title: graphType,
+		xaxis: {
+			title: axes[0]
+		},
+		yaxis: {
+			title: axes[1]
+		},
+		zaxis: {
+			title: axes[2]
+		}
+	}
+
+
+	function splitZAxis(items) {
+		//Splits into groups based on z axis.
 		let groups = {}
 		items.forEach((item) => {
 			let val = item[axes[2]]
@@ -164,6 +189,11 @@ console.log(axes)
 			if (!groups[val]) {groups[val] = []}
 			groups[val].push(item)
 		})
+		return groups
+	}
+
+	if (graphType === "Violin") {
+		let groups = splitZAxis(items)
 
 		for (let prop in groups) {
 			let groupItems = groups[prop]
@@ -183,18 +213,11 @@ console.log(axes)
 		let props = Object.keys(groups)
 		let useSplitViolin = (props.length === 2)
 
-		layout = {
-			title: "Violin Plot",
+		Object.assign(layout, {
 			violinmode: useSplitViolin ? "overlay" : "group",
-			xaxis: {
-				title: axes[0]
-			},
-			yaxis: {
-				title: axes[1],
-			},
 			violingap: 0,
 			violingroupgap: 0
-		}
+		})
 
 		props.forEach((prop, index) => {
 			let group  = groups[prop]
@@ -242,26 +265,10 @@ console.log(axes)
 			data.push(info)
 		})
 	}
-	else if (graphType === "Dot") {
+	else if (graphType === "Scatter Plot") {
 		//TODO: Add regression.
-		layout = {
-			title: "Dot Plot",
-			xaxis: {
-				title: axes[0]
-			},
-			yaxis: {
-				title: axes[1],
-			},
-		}
 
-		let groups = {}
-		items.forEach((item) => {
-			let val = item[axes[2]]
-			//If there isn't a z axis, this still works, the only z is "undefined" (and with only one z, labels aren't displayed)
-			if (axes[2] !== undefined && val === undefined) {return}
-			if (!groups[val]) {groups[val] = []}
-			groups[val].push(item)
-		})
+		let groups = splitZAxis(items)
 
 		let yCount = axes[1].length
 		let groupCount = Object.keys(groups).length
@@ -270,16 +277,6 @@ console.log(axes)
 			let groupItems = groups[groupName]
 
 			axes[1].forEach((yProp) => {
-				let traceItems = groupItems.map((item) => {
-					let xVal = item[axes[0]]
-					let yVal = item[yProp]
-
-					return {
-						x: [xVal],
-						y: [yVal]
-					}
-				})
-
 				let name = yProp
 				if (yCount < 2) {name = groupName}
 				else if (groupCount > 1) {name = groupName + "/" + yProp}
@@ -292,6 +289,16 @@ console.log(axes)
 					name,
 					marker: { size: 12 }
 				}
+
+				let traceItems = groupItems.map((item) => {
+					let xVal = item[axes[0]]
+					let yVal = item[yProp]
+
+					return {
+						x: [xVal],
+						y: [yVal]
+					}
+				})
 
 				traceItems.forEach((data) => {
 					data.x.forEach((xVal, i) => {
@@ -306,6 +313,9 @@ console.log(axes)
 				data.push(info)
 			})
 		}
+	}
+	else if (graphType === "3D Scatter Plot") {
+
 	}
 	// else if (graphType === "Correlation") {
 	// 	//TODO: Generate correlation table.
