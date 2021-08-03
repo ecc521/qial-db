@@ -1,39 +1,8 @@
 let graphsDiv = document.createElement("div")
-
-let numericAxes = []
-let nonNumericAxes = []
-
-let animals = window.data.filter((a) => {return a.type === "animal"})
-animals.forEach((animal) => {
-	for (let prop in animal) {
-		let value = animal[prop]
-		//All numbers or strings that convert to number.
-		if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(animal[prop])) {
-			if (!numericAxes.includes(prop)) {
-				numericAxes.push(prop)
-				console.log(prop)
-				console.log(value)
-			}
-		}
-	}
-})
-
-animals.forEach((animal) => {
-	for (let prop in animal) {
-		let value = animal[prop]
-		if (typeof value === "string" && value !== "") {
-			if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
-				nonNumericAxes.push(prop)
-			}
-		}
-	}
-})
-
-console.log(numericAxes, nonNumericAxes)
-
+document.body.insertBefore(graphsDiv, document.getElementById("search").nextElementSibling)
 
 let graphOptions = {
-	"Violin": {
+	"Violin Plot": {
 		//We'll probably want to use split violin if z is binary (only two options, like M/F).
 		x: {
 			allow: "all",
@@ -88,6 +57,50 @@ for (let prop in graphOptions) {
 }
 
 graphsDiv.appendChild(graphTypeSelector)
+
+
+let addGraphButton = document.createElement("button")
+function setButtonText() {
+	console.log(graphTypeSelector.value)
+	//addGraphButton.innerHTML = "Create " + graphTypeSelector.value
+	addGraphButton.innerHTML = "Create Plot"
+}
+setButtonText()
+graphTypeSelector.addEventListener("change", setButtonText)
+
+graphsDiv.appendChild(addGraphButton)
+
+
+let numericAxes = []
+let nonNumericAxes = []
+
+let animals = window.data.filter((a) => {return a.type === "animal"})
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		//All numbers or strings that convert to number.
+		if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(animal[prop])) {
+			if (!numericAxes.includes(prop)) {
+				numericAxes.push(prop)
+				console.log(prop)
+				console.log(value)
+			}
+		}
+	}
+})
+
+animals.forEach((animal) => {
+	for (let prop in animal) {
+		let value = animal[prop]
+		if (typeof value === "string" && value !== "") {
+			if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
+				nonNumericAxes.push(prop)
+			}
+		}
+	}
+})
+
+console.log(numericAxes, nonNumericAxes)
 
 let axisSelectorDiv = document.createElement("div")
 graphsDiv.appendChild(axisSelectorDiv)
@@ -196,7 +209,7 @@ function genGraph() {
 		return groups
 	}
 
-	if (graphType === "Violin") {
+	if (graphType === "Violin Plot") {
 		let groups = splitWAxis(items)
 
 		let props = Object.keys(groups)
@@ -398,4 +411,4 @@ graphTypeSelector.addEventListener("change", function() {
 setGraphOptions()
 
 
-module.exports = {genGraph, graphsDiv}
+module.exports = {genGraph}

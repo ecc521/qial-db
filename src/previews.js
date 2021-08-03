@@ -230,6 +230,8 @@ window.drawCards = function drawCards(items) {
 	drawCards(window.data) //Need to get Image Count set BEFORE search code runs. TODO: Double drawing is slow. Use convertTo or something, or assign Image Count before drawing?
 
 	const search = require("./search.js")
-	search.generateSearchOptions(window.data)
-	search.processSearch() //Run again to display details on percentage drawn and stuff.
+	search.runSearch() //Run again to display details on percentage drawn and stuff.
+
+	const graphs = require("./graphs.js")
+	
 }())

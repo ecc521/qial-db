@@ -1,35 +1,9 @@
-const {genGraph, graphsDiv} = require("./graphs.js")
+//const {genGraph, graphsDiv} = require("./graphs.js")
 
 let search = document.getElementById("search")
-
-let infoText = "";
-
-let searchDropdown = document.createElement("div")
-searchDropdown.id = "searchDropdown"
-search.appendChild(searchDropdown)
-
-let searchOptions = document.createElement("div")
-search.appendChild(searchOptions)
-
-let expanded;
-function setExpanded(expand = expanded) {
-	expanded = expand
-	if (!expand) {
-		searchOptions.style.display = graphsDiv.style.display = "none"
-		searchDropdown.innerHTML = `<span>Search Filters/Graphs (Click to Expand)</span><span>${infoText}</span><span>⬇︎</span>`
-	}
-	else {
-		searchOptions.style.display = graphsDiv.style.display = ""
-		searchDropdown.innerHTML = `<span>Search Filters/Graphs (Click to Collapse)</span><span>${infoText}</span><span>⬆︎</span>`
-	}
-}
-setExpanded(true)
-
-searchDropdown.addEventListener("click", function() {
-	setExpanded(expanded = !expanded)
-})
-
-let searchFilters = [] //Functions to filter list through
+let infoP = document.createElement("p")
+infoP.id = "searchInfo"
+search.appendChild(infoP)
 
 function createCheckbox() {
 	let box = document.createElement("input")
@@ -47,242 +21,314 @@ function createLabel(checkbox) {
 	return label
 }
 
-function generateSearchOptions(items) {
-	let options = [
-		{
-			optionName: "type",
-			type: "of",
-			displayName: "Data Type"
-		},
-		{
-			optionName: "Modality",
-			type: "of"
-		},
-		{
-			optionName: "DiseaseModel",
-			type: "of"
-		},
-		{
-			optionName: "Sex",
-			type: "of"
-		},
-		{
-			optionName: "Genotype",
-			type: "of"
-		},
-		{
-			optionName: "Image Count",
-			type: "of",
-		},
-		{
-			optionName: "weight",
-			type: "range",
-			convertFrom: Number,
-			displayName: "Weight"
-		},
-		{
-			optionName: "weight_at_sacrifice",
-			type: "range",
-			convertFrom: Number,
-			displayName: "Weight @ Sacrifice"
-		},
-		{
-			optionName: "DOB",
-			type: "range",
-			convertFrom: function(a) {return new Date(a).getTime()},
-			displayName: "Date of Birth"
-		}
-	]
+//Search filter structure:
+// {
+// 	prop: "Sex",
+// 	values: ["male", "female"] //When the search filter is constructed, it's type will be determined.
+// }
 
-	//Currently, of filters only support strings - TODO: Is this still true? Test it when needed.
-	options.forEach(({optionName, type, convertFrom, displayName = optionName}) => {
+//.values becomes a getter that returns the array based on selections.
+//.filter runs the current filter.
 
-		let itemBar = document.createElement("div")
-		itemBar.className = "searchItemBar"
+let searchFilters = []
 
-		let itemBarInfo = document.createElement("span")
-		itemBarInfo.innerHTML = `${displayName}: `
-		itemBar.appendChild(itemBarInfo)
+let processedProperties = new Map()
+let availableProperties = []
+let datalist = document.createElement("datalist")
+search.appendChild(datalist)
 
-		searchOptions.appendChild(itemBar)
-
-		//TODO: Disable all other checkboxes when this is on in the searchFilter.
-		//We'll show the difference that pushing a single checkbox would make as a +/- X (ex, +9 or -2).
-		let enabledCheckbox = createCheckbox()
-		enabledCheckbox.addEventListener("change", processSearch)
-		itemBar.appendChild(enabledCheckbox)
-
-		let enabledLabel = createLabel(enabledCheckbox)
-		itemBar.appendChild(enabledLabel)
-
-		//Extract all the different properties and the amount of times that they occur.
-		function getPossibilities(items) {
-			let possibilities = {}
-			items.forEach((item) => {
-				if (item[optionName] === undefined || item[optionName] === "") {return}
-
-				if (!possibilities[item[optionName]]) {
-					possibilities[item[optionName]] = 0
-				}
-				possibilities[item[optionName]]++
-			})
-			return possibilities
-		}
-
-		let selects;
-		if (type === "range") {
-			selects = [document.createElement("select"), document.createElement("select")]
-			selects.forEach((select) => {
-				select.addEventListener("change", processSearch)
-			});
-		}
-
-		let optionElems = {}
-
-		function obtainOptions() {
-			let obj = {}
-			for (let optionName in optionElems) {
-				obj[optionName] = optionElems[optionName].checkbox.checked
-
+window.data.forEach((item) => {
+	let props = Object.keys(item)
+	props.forEach((prop) => {
+		if (!processedProperties.has(prop)) {
+			if (obtainPropertyValues(prop).length > 0) {
+				availableProperties.push(prop)
+				let option = document.createElement("option")
+				option.value = prop
+				option.innerHTML = prop
+				datalist.appendChild(option)
 			}
-			return obj
+			processedProperties.set(prop, true)
 		}
+	})
+})
 
-		let searchFilter;
+datalist.id = "availableProperties"
 
-		if (type === "of") {
-			searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, options = obtainOptions()) {
-				if (!searchEnabled) {return items}
-				return items.filter((item) => {
-					return options[item?.[optionName]]
-				})
-			}
-		}
-		else if (type === "range") {
-			searchFilter = function searchFilter(items, searchEnabled = enabledCheckbox.checked, minSelection = selects[0].value, maxSelection = selects[1].value) {
-				if (!searchEnabled) {return items}
-
-				if (convertFrom) {
-					if (!minSelection) {minSelection = -Infinity}
-					else {minSelection = convertFrom(minSelection)}
-					if (!maxSelection) {maxSelection = Infinity}
-					else {maxSelection = convertFrom(maxSelection)}
-				}
-
-				if (maxSelection < minSelection) {
-					let temp = maxSelection
-					maxSelection = minSelection
-					minSelection = temp
-				}
-
-				return items.filter((item) => {
-					if (item[optionName] === undefined) {return false}
-
-					let value = item[optionName]
-					if (convertFrom) {value = convertFrom(value)}
-					if (value >= minSelection && value <= maxSelection) {
-						return true;
-					}
-				})
-			}
-		}
-		else {
-			console.error("Unknown Type", type)
-		}
-
-		function setPossibilities() {
-			let currentItems = items
-
-			//Use all filters but this one in order to show how many match the selection options given the selectors already picked. This will then be passed to getPossibilities.
-			searchFilters.filter((filter) => {return filter !== searchFilter}).forEach((filter) => {
-				currentItems = filter(currentItems)
-			})
-
-			//Call with the original items to get the totals - what there would be with no selectors but this one.
-			let possibilities = getPossibilities(items)
-			let possibilitiesArray = Object.keys(possibilities)
-
-			if (convertFrom) {
-				possibilitiesArray = possibilitiesArray.filter((poss) => {return poss}) //Filter blanks from range search. TODO: Suppress all in getPossibilities
-				possibilitiesArray = possibilitiesArray.sort((a, b) => {
-					return convertFrom(a) - convertFrom(b)
-				})
-			}
-
-			let currentPossibilities = getPossibilities(currentItems)
-
-			possibilitiesArray.forEach((value) => {
-				if (type === "of") {
-					let elems = optionElems[value]
-
-					if (!elems) {
-						optionElems[value] = elems = {
-							checkbox: createCheckbox(),
-						}
-						elems.checkbox.checked = true //Default to true.
-						elems.checkbox.addEventListener("change", processSearch)
-						elems.label = createLabel(elems.checkbox)
-						itemBar.appendChild(elems.checkbox)
-						itemBar.appendChild(elems.label)
-					}
-
-					elems.checkbox.disabled = !enabledCheckbox.checked
-					elems.label.innerHTML = `${value} (${currentPossibilities[value] || 0})`
-
-				}
-				else if (type === "range") {
-					;[0,1].forEach((iterationNum) => {
-						let label = document.getElementsByName("label" + optionName)[iterationNum]
-						if (!label) {
-							let label = createLabel()
-							label.innerHTML = iterationNum ? "And: ":"Between: "
-							label.setAttribute("name", "label" + optionName)
-							itemBar.appendChild(label)
-							itemBar.appendChild(selects[iterationNum])
-						}
-
-						let option = document.getElementsByName(value + optionName)[iterationNum]
-						if (!option) {
-							option = document.createElement("option")
-							option.value = value
-							option.setAttribute("name", value + optionName)
-							if (iterationNum === 0) {
-								selects[iterationNum].appendChild(option)
-							}
-							else {
-								selects[iterationNum].prepend(option)
-								option.selected = true //Reselect repeatedly until last is selected.
-							}
-						}
-
-						//TODO: Should changing one selection change the other?
-						let amount = searchFilter(currentItems, true, iterationNum===0?value:undefined, iterationNum===1?value:undefined).length
-
-						option.innerHTML = `${value} (${amount})`
-					})
-				}
-
-				enabledLabel.innerHTML = `Enable Filter (${searchFilter(currentItems, true).length - currentItems.length})`
-			});
-		}
-
-		setPossibilities()
-		window.addEventListener("searchProcessed", setPossibilities)
-
-		searchFilters.push(searchFilter)
+function obtainPropertyValues(prop) {
+	return window.data.map((item) => {
+		if (item.type !== "animal") {return}
+		return item[prop]
+	}).filter((item) => {
+		return item !== undefined
+			&& item !== ""
+			&& (typeof item === "number" || typeof item === "string")
 	})
 }
 
-search.appendChild(graphsDiv)
+let searchItemBarCount = 0 //Used to auto-add and auto-delete.
+//TODO: Also stop duplicate searchItems.
 
-function processSearch() {
+function searchItemBar(obj = {}) {
+	//Prop and values are default values used along with searchFilter
+	let prop = obj.prop
+	let values = obj.values
+
+	searchItemBarCount++
+	let div = document.createElement("div")
+	div.className = "searchItemBar"
+
+	let filter;
+	let selectSpan = document.createElement("span") //Span containing elements used by searchFilter
+
+	function removeFilter() {
+		while (selectSpan.firstChild) {selectSpan.firstChild.remove()}
+		if (filter) {
+			searchFilters.splice(searchFilters.indexOf(filter), 1)
+			filter = null
+		}
+	}
+	function addFilter(prop) {
+		console.log("Adding")
+		removeFilter()
+		filter = searchFilter({prop, values}, selectSpan)
+		searchFilters.push(filter)
+	}
+
+	//This is used to select the property, the rest is handed with searchFilter.
+	let input = document.createElement("input")
+	input.placeholder = "Enter Search Property..."
+	input.className = "searchPropertySelector"
+	input.setAttribute("list", "availableProperties")
+	if (prop) {input.value = prop}
+
+	function processInput() {
+		console.log("Processing")
+		let prop = input.value
+		if (!availableProperties.includes(prop)) {
+			removeFilter()
+			input.style.border = ""
+			if (prop === "") {
+				//TODO: Remove the other empty filter instead. Then change back to "Clear" instead of "Delete"
+				if (searchItemBarCount - 1 > searchFilters.length) {
+					searchItemBarCount--
+					div.remove()
+				}
+			}
+			else {
+				input.style.border = "2px solid red"
+			}
+		}
+		else {
+			addFilter(prop)
+			if (searchFilters.length === searchItemBarCount) {
+				search.appendChild(searchItemBar())
+			}
+		}
+		runSearch()
+	}
+	input.addEventListener("change", processInput)
+	setTimeout(processInput, 0) //setTimeout to prevent newly created searchItemBars from being appended before this, among other issues
+
+	let clear = document.createElement("button")
+	clear.innerHTML = "Delete"
+	clear.addEventListener("click", function() {
+		input.value = ""
+		processInput()
+	})
+
+	div.appendChild(input)
+	div.appendChild(clear)
+	div.appendChild(selectSpan)
+
+	return div
+}
+
+function searchFilter({prop, values}, elemToAppend) {
+	//prop must be defined. values only if constructing from searchlink.
+	//We now need to determine what type of filter this is, generate the selectors (default to any provided values), and define getters for values.
+
+	//We define as either numeric or other. Dates go under numeric.
+	let obj = {prop}
+
+	let propVals = obtainPropertyValues(prop)
+
+	//Remove all duplicates.
+	//TODO: Consider adding the number of each prop that exist to the labels and updating them as new filters are added
+	//Like male (19) and female (43)
+	propVals = [...new Set(propVals)];
+
+	function allNumeric(arr, convertTo) {
+		return arr.every((val) => {
+			return !isNaN(convertTo(val))
+		})
+	}
+
+	let type = "range", convertTo;
+	let dateConvert = function(d) {return new Date(d).getTime()}
+
+	if (allNumeric(propVals, Number)) {
+		obj.convertTo = Number
+	}
+	else if (allNumeric(propVals, dateConvert)) {
+		obj.convertTo = dateConvert
+	}
+	else {
+		type = "of"
+	}
+
+	obj.type = type
+
+	let valueGetters = []
+	let elems = []
+
+	if (type === "of") {
+		propVals.forEach((value) => {
+			let box = createCheckbox()
+			//Default to existing values
+			if (!values || values.includes(value)) {
+				box.checked = true
+			}
+			let label = createLabel(box)
+			label.innerHTML = value
+			box.addEventListener("change", runSearch)
+			elems.push(box)
+			elems.push(label)
+
+			valueGetters.push(function() {
+				if (box.checked) {return value}
+			})
+		})
+	}
+	else if (type === "range") {
+		let converted = propVals.map((val) => {
+			return [
+				val,
+				obj.convertTo(val)
+			]
+		})
+
+		function createSelect(reverse = false) {
+			converted.sort(function(a, b) {
+				return a[1] - b[1]
+			})
+			if (reverse) {converted.reverse()}
+
+			let select = document.createElement("select")
+			valueGetters.push(function() {
+				return select.value
+			})
+
+			let label = createLabel()
+			label.innerHTML = reverse ? "And" : "Between"
+			elems.push(label)
+			elems.push(select)
+
+			converted.forEach((item, index) => {
+				let option = document.createElement("option")
+				if (index === 0) {
+					option.selected = true
+				}
+				option.value = item[0]
+				option.innerHTML = item[0]
+				select.appendChild(option)
+			})
+
+			select.addEventListener("change", runSearch)
+			return select
+		}
+
+		createSelect().value = values?.[0]
+		createSelect(true).value = values?.[1]
+	}
+	else {console.error("Unknown type", type)}
+
+	elems.forEach(function(elem) {
+		elemToAppend.appendChild(elem)
+	})
+
+	Object.defineProperty(obj, 'values', {
+		get: function() {
+			let values = valueGetters
+				.map(func => func())
+			if (type === "of") {
+				return values.filter((val) => {return val !== undefined})
+			}
+			else if (type === "range") {
+				return values
+			}
+			else {console.error("Unknown Type", type)}
+		}
+	});
+
+	if (type === "of") {
+		obj.filter = function(items) {
+			let accepted = obj.values
+			return items.filter((item) => {
+				return accepted.includes(item[prop])
+			})
+		}
+	}
+	else if (type === "range") {
+		obj.filter = function(items) {
+			let vals = obj.values.map(val => obj.convertTo(val))
+			let minVal = Math.min(...vals)
+			let maxVal = Math.max(...vals)
+
+			return items.filter((item) => {
+				let converted = obj.convertTo(item[prop])
+				return converted >= minVal && converted <= maxVal
+			})
+		}
+	}
+
+	obj.toJSON = function() {
+		return {
+			prop,
+			values: obj.values
+		}
+	}
+
+	return obj
+}
+
+
+function setupFromParams() {
+	let params = new URLSearchParams(window.location.hash.slice(1))
+	let arr = params.get("search")
+
+	try {
+		arr = JSON.parse(arr)
+		console.log(arr)
+		arr.forEach((obj) => {
+			search.appendChild(searchItemBar(obj))
+		})
+	}
+	catch (e) {console.error(e)}
+}
+
+setupFromParams()
+search.appendChild(searchItemBar())
+
+function runSearch() {
 	let items = window.data
-	searchFilters.forEach((filter) => {items = filter(items)})
+	searchFilters.forEach((searchFilter) => {
+		items = searchFilter.filter(items)
+	})
 	window.lastSearchItems = items
 	drawCards(items)
-	infoText = `Displaying ${items.length} of ${window.data.length} Items`
-	setExpanded()
+
+	let params = new URLSearchParams(window.location.hash.slice(1))
+	let url = new URL(window.location.href)
+
+	params.set("search", JSON.stringify(searchFilters))
+
+	url.hash = params
+
+	infoP.innerHTML = `Displaying ${items.length} of ${window.data.length} Items. <a href="${url.href}" target="_blank">Sharable link to your current view</a>`
 	window.dispatchEvent(new Event("searchProcessed"))
 }
 
-module.exports = {generateSearchOptions, processSearch}
+
+
+module.exports = {runSearch}

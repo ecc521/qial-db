@@ -77,6 +77,13 @@ h1, h2 {
 	flex: 0.3;
 }
 
+#searchInfo {
+	margin: 8px;
+}
+
+.searchItemBar .searchPropertySelector {
+	min-width: 175px;
+}
 
 .searchItemBar {
 	padding: 8px;
@@ -87,28 +94,16 @@ h1, h2 {
 	background-color: #c4f5f9;
 }
 
-.searchItemBar *:first-child {
-	display: inline-block;
-	min-width: 100px;
+.searchItemBar button {
+	margin-right: 8px;
 }
 
 .searchItemBar select {
 	min-width: 100px;
-	margin-right: 10px;
-}
-
-.searchItemBar input:nth-of-type(n+3) {
-	margin-left: 10px;
 }
 
 .searchItemBar label {
 	margin: 3px;
-}
-
-.searchItemBar label:first-of-type {
-	margin-right: 20px;
-	min-width: 120px;
-	display: inline-block;
 }
 
 
