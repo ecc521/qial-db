@@ -243,8 +243,13 @@ function searchFilter({prop, values}, elemToAppend) {
 			return select
 		}
 
-		createSelect().value = values?.[0]
-		createSelect(true).value = values?.[1]
+		let select0 = createSelect()
+		let select1 = createSelect(true)
+
+		if (values) {
+			select0.value = values[0]
+			select1.value = values[1]
+		}
 	}
 	else {console.error("Unknown type", type)}
 
