@@ -3,6 +3,11 @@
 let search = document.getElementById("search")
 let infoP = document.createElement("p")
 infoP.id = "searchInfo"
+
+window.currentViewLink = document.createElement("a")
+currentViewLink.target = "_blank"
+currentViewLink.innerHTML = "Sharable link to your current search and graphs"
+
 search.appendChild(infoP)
 
 function createCheckbox() {
@@ -325,10 +330,11 @@ function runSearch() {
 
 	url.hash = params
 
-	infoP.innerHTML = `Displaying ${items.length} of ${window.data.length} Items. <a href="${url.href}" target="_blank">Sharable link to your current view</a>`
+	infoP.innerHTML = `Displaying ${items.length} of ${window.data.length} Items. `
+	currentViewLink.href = url.href
+	infoP.appendChild(currentViewLink)
 	window.dispatchEvent(new Event("searchProcessed"))
 }
-
 
 
 module.exports = {runSearch}
