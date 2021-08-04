@@ -8,6 +8,8 @@ window.currentViewLink = document.createElement("a")
 currentViewLink.target = "_blank"
 currentViewLink.innerHTML = "Sharable link to your current search and graphs"
 
+window.currentParams = new URLSearchParams(window.location.hash.slice(1)) //Used to keep currentViewLink in sync between search.js and graphs.js
+
 search.appendChild(infoP)
 
 function createCheckbox() {
@@ -304,7 +306,7 @@ function searchFilter({prop, values}, elemToAppend) {
 
 
 function setupFromParams() {
-	let params = new URLSearchParams(window.location.hash.slice(1))
+	let params = window.currentParams
 	let arr = params.get("search")
 
 	try {
@@ -328,7 +330,7 @@ function runSearch() {
 	window.lastSearchItems = items
 	drawCards(items)
 
-	let params = new URLSearchParams(window.location.hash.slice(1))
+	let params = window.currentParams
 	let url = new URL(window.location.href)
 
 	params.set("search", JSON.stringify(searchFilters))

@@ -450,7 +450,7 @@ function createGraphComponent({graphType, axes = {}}) {
 }
 
 function setupFromParams() {
-	let params = new URLSearchParams(window.location.hash.slice(1))
+	let params = window.currentParams
 	let arr = params.get("graphs")
 
 	try {
@@ -465,7 +465,7 @@ function setupFromParams() {
 setupFromParams()
 
 function updateSearchLink() {
-	let params = new URLSearchParams(window.location.hash.slice(1))
+	let params = window.currentParams
 	let url = new URL(window.location.href)
 
 	params.set("graphs", JSON.stringify(graphSelections))
