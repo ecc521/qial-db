@@ -1,3 +1,5 @@
+const {marginOfError, percentile_z} = require("./stats.js")
+
 let graphsDiv = document.createElement("div")
 graphsDiv.id = "graphsDiv"
 document.body.insertBefore(graphsDiv, document.getElementById("search").nextElementSibling)
@@ -25,7 +27,8 @@ let graphOptions = {
 		},
 		w: {
 			allow: "all"
-		}
+		},
+		regression: true
 	},
 	"3D Scatter Plot": {
 		x: {
@@ -78,7 +81,8 @@ graphCreationTools.appendChild(addGraphButton)
 addGraphButton.addEventListener("click", function() {
 	//Insert as the first graph.
 	let beforeNode = document.querySelector(".graphContainerDiv")
-
+	//TODO: This ordering CHANGES when the search link is followed.
+	//We should probably insert below and scroll to it, or insert above in BOTH places.
 	graphsDiv.insertBefore(createGraphComponent({
 		graphType: graphTypeSelector.value
 	}), beforeNode)
@@ -119,6 +123,81 @@ animals.forEach((animal) => {
 console.log(numericAxes, nonNumericAxes)
 
 
+
+//Generates the selector for an axis.
+function axisSelector(props, multiple = false, callback, initialValue) {
+	if (multiple) {
+		//Generate checkbox list.
+		let div = document.createElement("div")
+		let propsObj = {}
+		props.forEach((prop) => {
+			//TODO: createCheckbox and createLabel are copied from search.js
+			function createCheckbox() {
+				let box = document.createElement("input")
+				box.type = "checkbox"
+				return box
+			}
+
+			function createLabel(checkbox) {
+				let label = document.createElement("label")
+				if (checkbox) {
+					label.addEventListener("click", function() {
+						checkbox.click()
+					})
+				}
+				return label
+			}
+
+			let box = createCheckbox()
+			let label = createLabel(box)
+			label.innerHTML = prop
+
+			if (initialValue && initialValue.includes(prop)) {
+				box.checked = true
+			}
+
+			div.appendChild(box)
+			div.appendChild(label)
+
+			propsObj[prop] = box
+			box.addEventListener("change", function() {
+				let selectedProps = []
+				for (let prop in propsObj) {
+					let box = propsObj[prop]
+					if (box.checked) {
+						selectedProps.push(prop)
+					}
+				}
+				callback(selectedProps)
+			})
+		})
+		return div
+	}
+	else {
+		//Generate select element
+		let select = document.createElement("select")
+		let def = document.createElement("option")
+		def.innerHTML = "Select Axis..."
+		def.value = ""
+		def.selected = true
+		select.appendChild(def)
+
+		props.forEach((prop) => {
+			let option = document.createElement("option")
+			option.value = option.innerHTML = prop
+			select.appendChild(option)
+		})
+		select.addEventListener("change", function() {
+			callback(select.value || undefined)
+		})
+		if (initialValue) {
+			select.value = initialValue
+		}
+		return select
+	}
+}
+
+
 let graphSelections = []
 
 function createGraphComponent({graphType, axes = {}}) {
@@ -135,82 +214,24 @@ function createGraphComponent({graphType, axes = {}}) {
 	plotlyContainer.className = "plotlyContainer"
 	graphDiv.appendChild(plotlyContainer)
 
-
-	//Generates the selector for an axis.
-	function axisSelector(props, multiple = false, callback, initialValue) {
-		if (multiple) {
-			//Generate checkbox list.
-			let div = document.createElement("div")
-			let propsObj = {}
-			props.forEach((prop) => {
-				//TODO: createCheckbox and createLabel are copied from search.js
-				function createCheckbox() {
-					let box = document.createElement("input")
-					box.type = "checkbox"
-					return box
-				}
-
-				function createLabel(checkbox) {
-					let label = document.createElement("label")
-					if (checkbox) {
-						label.addEventListener("click", function() {
-							checkbox.click()
-						})
-					}
-					return label
-				}
-
-				let box = createCheckbox()
-				let label = createLabel(box)
-				label.innerHTML = prop
-
-				if (initialValue && initialValue.includes(prop)) {
-					box.checked = true
-				}
-
-				div.appendChild(box)
-				div.appendChild(label)
-
-				propsObj[prop] = box
-				box.addEventListener("change", function() {
-					let selectedProps = []
-					for (let prop in propsObj) {
-						let box = propsObj[prop]
-						if (box.checked) {
-							selectedProps.push(prop)
-						}
-					}
-					callback(selectedProps)
-				})
-			})
-			return div
-		}
-		else {
-			//Generate select element
-			let select = document.createElement("select")
-			let def = document.createElement("option")
-			def.innerHTML = "Select Axis..."
-			def.value = ""
-			def.selected = true
-			select.appendChild(def)
-
-			props.forEach((prop) => {
-				let option = document.createElement("option")
-				option.value = option.innerHTML = prop
-				select.appendChild(option)
-			})
-			select.addEventListener("change", function() {
-				callback(select.value || undefined)
-			})
-			if (initialValue) {
-				select.value = initialValue
-			}
-			return select
-		}
-	}
-
 	function genGraph() {
 		updateSearchLink()
+
+		//https://stackoverflow.com/questions/40673490/how-to-get-plotly-js-default-colors-list
+		//We need the list of CSS colors so that we can do fills as the same color.
+		let graphColors = [
+		  '#1f77b4',
+		  '#ff7f0e',
+		  '#2ca02c',
+		  '#d62728',
+		  '#9467bd',
+		  '#8c564b',
+		  '#e377c2',
+		  '#7f7f7f',
+		  '#bcbd22',
+		  '#17becf'
+		];
+
 		let items = window.lastSearchItems
 
 		let data = []
@@ -271,6 +292,7 @@ function createGraphComponent({graphType, axes = {}}) {
 						visible: true,
 						width: 2
 					},
+					line: {color: graphColors.shift()},
 					side: useSplitViolin ? "negative":"both",
 					points: "all",
 					pointpos: -.5, //TODO: Compute something that works here - off to the side, but minimally.
@@ -301,9 +323,9 @@ function createGraphComponent({graphType, axes = {}}) {
 			})
 		}
 		else if (graphType === "Scatter Plot") {
-			//TODO: Add regression.
-
 			let groups = splitWAxis(items)
+			let CI = 0.95
+			let Z = percentile_z(1 - ((1 - CI) / 2))
 
 			let yCount = axes.y.length
 			let groupCount = Object.keys(groups).length
@@ -313,8 +335,13 @@ function createGraphComponent({graphType, axes = {}}) {
 
 				axes.y.forEach((yProp) => {
 					let name = yProp
-					if (yCount < 2) {name = groupName}
-					else if (groupCount > 1) {name = groupName + "/" + yProp}
+					if (groupCount > 1) {
+						name = groupName
+
+						if (yCount > 1) {
+							name += "/" + yProp //Multiple y axes per group - they need group and yProp in name.
+						}
+					}
 
 					let info = {
 						x: [],
@@ -322,20 +349,148 @@ function createGraphComponent({graphType, axes = {}}) {
 						mode: 'markers',
 						type: 'scatter',
 						name,
-						marker: { size: 12 }
+						marker: { size: 12, color: graphColors.shift() }
 					}
 
+					let domain = [Infinity, -Infinity]
 					groupItems.forEach((item) => {
 						let xVal = item[axes.x]
 						let yVal = item[yProp]
 
-						if (xVal !== undefined && yVal !== undefined) {
+						if (xVal !== undefined && yVal !== undefined && xVal !== "" && yVal !== "") {
+							xVal = Number(xVal)
+							yVal = Number(yVal)
+
 							info.x.push(xVal)
 							info.y.push(yVal)
+
+							if (xVal < domain[0]) {domain[0] = xVal}
+							if (xVal > domain[1]) {domain[1] = xVal}
 						}
 					})
 
 					data.push(info)
+
+					console.log(axes.regression)
+
+					axes.regression.forEach((type) => {
+						//TODO: Zero values break exponential and power law.
+
+						//Reformat data for regression.
+						let points = []
+						info.x.forEach((x, index) => {
+							let y = info.y[index]
+							points.push([x,y])
+						})
+
+						//We need to set precision extremely high. This library rounds internally during calculation, so rounding errors accumulate.
+						let config = {precision: 10}
+						if (type === "Linear") {config.order = 1}
+						else if (type === "Quadratic") {config.order = 2}
+						else if (type === "Cubic") {config.order = 3}
+						else if (type === "Quartic") {config.order = 4}
+
+						let result;
+
+						if (config.order) {
+							result = regression.polynomial(points, config)
+						}
+						else if (type === "Exponential") {
+							result = regression.exponential(points, config)
+						}
+						else if (type === "Logarithmic") {
+							result = regression.logarithmic(points, config)
+						}
+						else if (type === "Power Law") {
+							result = regression.power(points, config)
+						}
+						else {
+							console.error("Unknown Type", type)
+							return
+						}
+
+						console.log(points, result)
+
+						let color = graphColors.shift()
+
+						let reginfo = {
+							x: [],
+							y: [],
+							type: 'line',
+							name: `${type} Reg ${name}`,
+							opacity: 0.75,
+							line: { width: 4, color },
+							hovertemplate: `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
+						}
+
+						//Calculate and render regression lines.
+						let pointCount = 400 //Number of points that make up regression line.
+						let range = domain[1] - domain[0]
+						let increment = range / pointCount
+
+						//Go a bit beyond the domain.
+						let startPos = domain[0] - range * 0.01
+						let endPos = domain[1] + range * 0.01
+
+						//We'll go an extra increment further.
+						for (let x=startPos;x<=endPos;x+=increment) {
+							reginfo.x.push(x)
+							reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
+						}
+
+						data.push(reginfo)
+
+						if (config.order === 1) {
+							//TODO: Wrap around to put both bounds in one line.
+							let moeGen = marginOfError(points, 0, 1) //0 and 1 are properties.
+							let text = []
+							//TODO: Also show equation.
+							//TODO: Show MOE for that point (read the doc - insert text based on text array)
+							let moeinfo = {
+								x: [],
+								y: [],
+								text,
+								type: 'line',
+								name: `${type} Reg ${name}`,
+								fill: "tozerox",
+								fillcolor: color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
+								line: {
+									color: "transparent"
+								},
+								hovertemplate: `%{text} (CI=${CI * 100}%)<br>(%{x}, %{y})`
+							}
+
+							//To fill, go all the way around - so x is [1,2,3,3,2,1,1], y is [7,8,9,2,3,4,7]
+							;[-1, 1].forEach((mult) => {
+
+								for (let i=0;i<reginfo.x.length;i++) {
+									let indexToUse = i
+									let pointText = "Lower Bound"
+									if (mult === 1) {
+										pointText = "Upper Bound"
+										indexToUse = reginfo.x.length - 1 - i
+									}
+									let x = reginfo.x[indexToUse]
+									let y = reginfo.y[indexToUse]
+
+									let moe = moeGen(x) * Z
+									pointText += `<br>MOE: ${moe}`
+									text.push(pointText)
+
+									moeinfo.x.push(x)
+									moeinfo.y.push(y + moe * mult)
+								}
+							})
+
+							console.log(text)
+
+							//Duplicate the first value - close the shape.
+							moeinfo.x.push(moeinfo.x[0])
+							moeinfo.y.push(moeinfo.y[0])
+
+							data.push(moeinfo)
+						}
+					})
 				})
 			}
 		}
@@ -432,6 +587,22 @@ function createGraphComponent({graphType, axes = {}}) {
 			let elem = axisSelector(...params, axes[axis])
 			axisSelectorDiv.appendChild(elem)
 		})
+
+		if (graphInfo.regression) {
+			//TODO: Add regression.
+
+			//TODO: Replace Cubic and Quartic with Polynomial (arbitrary base) - maybe replace quadratic and linear as well.
+			//TODO: Allow base selection for Logarithmic (even though it doesn't really matter)
+			let currentOptions = ["Linear", "Quadratic", "Cubic", "Quartic", "Exponential", "Logarithmic", "Power Law"]
+
+			axes.regression = axes.regression || ["Linear"]
+			let regressionOptions = axisSelector(currentOptions, true, function(selected) {
+				console.log(selected)
+				axes.regression = selected
+				genGraph()
+			}, axes.regression)
+			axisSelectorDiv.appendChild(regressionOptions)
+		}
 	}
 	setGraphOptions()
 
