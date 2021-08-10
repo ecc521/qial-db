@@ -1,6 +1,13 @@
 /*! decimal.js v9.0.1 https://github.com/MikeMcl/decimal.js/LICENCE */
 
 /**
+ *  @fileoverview Pearson correlation score algorithm.
+ *  @author matt.west@kojilabs.com (Matt West)
+ *  @license Copyright 2013 Matt West.
+ *  Licensed under MIT (http://opensource.org/licenses/MIT).
+ */
+
+/**
  * @license Complex.js v2.0.3 11/02/2016
  *
  * Copyright (c) 2016, Robert Eisele (robert@xarg.org)

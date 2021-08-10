@@ -1,5 +1,6 @@
 const regression = require("regression")
 const Loess = require("loess").default
+const pearsonCorrelation = require("./pearsonCorrelation.js")
 
 const {marginOfError, percentile_z} = require("./stats.js")
 
@@ -46,13 +47,13 @@ let graphOptions = {
 		w: {
 			allow: "all"
 		}
+	},
+	"Correlation Table": {
+		x: {
+			allow: "numeric",
+			multiple: true
+		}
 	}
-	// "Correlation": {
-	// 	x: {
-	// 		allow: "numeric",
-	// 		multiple: true
-	// 	}
-	// }
 }
 
 let graphCreationTools = document.createElement("div")
@@ -333,7 +334,6 @@ function createGraphComponent({graphType, axes = {}}) {
 						itemPoints = newPoints
 					}
 				})
-				console.log(itemPoints.length)
 				points.push(...itemPoints)
 			}
 
@@ -518,6 +518,7 @@ function createGraphComponent({graphType, axes = {}}) {
 								let increment = range / pointCount
 
 								//Go a bit beyond the domain.
+								//TODO: Consider going FAR beyond (like 2x), and setting zauto, minm and max
 								let startPos = domain[0] - range * 0.01
 								let endPos = domain[1] + range * 0.01
 
@@ -634,16 +635,58 @@ function createGraphComponent({graphType, axes = {}}) {
 				data.push(info)
 			}
 		}
-		// else if (graphType === "Correlation") {
-		// 	//TODO: Generate correlation table.
-		// 	data.push({
-		// 		z: [[1, null, 30, 50, 1], [20, 1, 60, 80, 30], [30, 60, 1, -10, 20]],
-		// 		x: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-		// 		y: ['Morning', 'Afternoon', 'Evening'],
-		// 		type: 'heatmap',
-		// 		hoverongaps: false
-		// 	})
-		// }
+		else if (graphType === "Correlation Table") {
+			//Default plotly RdBu colorscale
+			var colorscaleValue = [
+		        [0, 'rgb(5,10,172)'], [0.35, 'rgb(106,137,247)'],
+		        [0.5, 'rgb(190,190,190)'], [0.6, 'rgb(220,170,132)'],
+		        [0.7, 'rgb(230,145,90)'], [1, 'rgb(178,10,28)']
+		    ]
+
+			let topDivisor = 0.01 //The very top of the colorscale will be used for the center line.
+			colorscaleValue.forEach((item) => {
+				item[0] /= (1 + topDivisor)
+			})
+
+			colorscaleValue.push([1, "rgb(0,0,0)"])
+
+			let info = {
+				z: [],
+				type: 'heatmap',
+				hoverongaps: false,
+				zauto: false,
+				zmin: -1,
+				zmax: 1 + topDivisor * 2,
+				colorscale: colorscaleValue,
+			}
+			info.x = info.y = axes.x
+
+			axes.x.forEach((x1) => {
+				let arr = []
+				info.z.push(arr)
+				axes.x.forEach((x2) => {
+					if (x1 === x2) {
+						arr.push(99) //Correlates perfectly with itself - TODO: Should we color differently or leave blank to avoid confusion?
+					}
+					else {
+						let points = obtainGroupPoints(items, x1, x2)
+
+						let obj = {x: [], y: []}
+						points.forEach((point) => {
+							obj.x.push(point[0])
+							obj.y.push(point[1])
+						})
+						//TODO: Specify this is Pearson, allow choosing Spearman. 
+						let corr = pearsonCorrelation(obj, "x", "y")
+
+						arr.push(corr)
+					}
+				})
+			})
+
+			//TODO: Generate correlation table.
+			data.push(info)
+		}
 		else {throw "Unsupported graphType " + graphType}
 
 		console.log(data)
