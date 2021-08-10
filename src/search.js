@@ -64,7 +64,6 @@ datalist.id = "availableProperties"
 
 function obtainPropertyValues(prop) {
 	return window.data.map((item) => {
-		if (item.type !== "animal") {return}
 		return item[prop]
 	}).filter((item) => {
 		return item !== undefined
