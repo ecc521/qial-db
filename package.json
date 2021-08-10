@@ -46,6 +46,7 @@
     "express": "^4.17.1",
     "express-session": "^1.17.2",
     "ftp-srv": "^4.4.0",
+    "loess": "^1.3.5",
     "node-fetch": "^2.6.1",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",

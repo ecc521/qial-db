@@ -1,3 +1,6 @@
+const regression = require("regression")
+const Loess = require("loess").default
+
 const {marginOfError, percentile_z} = require("./stats.js")
 
 let graphsDiv = document.createElement("div")
@@ -248,6 +251,8 @@ function createGraphComponent({graphType, axes = {}}) {
 			}
 		}
 
+		//There can be multiple y axes - If there's only one item selected though, label it.
+		if (layout.yaxis?.title?.length === 1) {layout.yaxis.title = layout.yaxis.title[0]}
 
 		function splitWAxis(items) {
 			//Splits into groups based on w axis.
@@ -353,20 +358,46 @@ function createGraphComponent({graphType, axes = {}}) {
 					}
 
 					let domain = [Infinity, -Infinity]
+					let points = []
+
 					groupItems.forEach((item) => {
-						let xVal = item[axes.x]
-						let yVal = item[yProp]
+						let xVals = item[axes.x]
+						let yVals = item[yProp]
 
-						if (xVal !== undefined && yVal !== undefined && xVal !== "" && yVal !== "") {
-							xVal = Number(xVal)
-							yVal = Number(yVal)
-
-							info.x.push(xVal)
-							info.y.push(yVal)
-
-							if (xVal < domain[0]) {domain[0] = xVal}
-							if (xVal > domain[1]) {domain[1] = xVal}
+						if (xVals instanceof Array && yVals instanceof Array) {
+							console.warn("Both Arrays") //This could get weird.
 						}
+
+						if (!(xVals instanceof Array)) {
+							xVals = [xVals]
+						}
+						if (!(yVals instanceof Array)) {
+							yVals = [yVals]
+						}
+
+						xVals.forEach((xVal) => {
+							yVals.forEach((yVal) => {
+								if (xVal !== undefined && yVal !== undefined && xVal !== "" && yVal !== "") {
+									xVal = Number(xVal)
+									yVal = Number(yVal)
+
+									points.push([xVal, yVal])
+
+									if (xVal < domain[0]) {domain[0] = xVal}
+									if (xVal > domain[1]) {domain[1] = xVal}
+								}
+							})
+						})
+					})
+
+					//Sort points - not needed for anything besides LOESS regression right now (which doesn't sort for us)
+					points.sort((a, b) => {
+						return a[0] - b[0]
+					})
+
+					points.forEach(([x, y]) => {
+						info.x.push(x)
+						info.y.push(y)
 					})
 
 					data.push(info)
@@ -375,13 +406,6 @@ function createGraphComponent({graphType, axes = {}}) {
 
 					axes.regression.forEach((type) => {
 						//TODO: Zero values break exponential and power law.
-
-						//Reformat data for regression.
-						let points = []
-						info.x.forEach((x, index) => {
-							let y = info.y[index]
-							points.push([x,y])
-						})
 
 						//We need to set precision extremely high. This library rounds internally during calculation, so rounding errors accumulate.
 						let config = {precision: 10}
@@ -404,6 +428,15 @@ function createGraphComponent({graphType, axes = {}}) {
 						else if (type === "Power Law") {
 							result = regression.power(points, config)
 						}
+						else if (type === "LOESS") {
+							//Band uses confidence intervals just like our code (confirmed by reading the LOESS source)
+							let options = {span: 0.3, band: CI, degree: 1} //TODO: Allow customization.
+							let model = new Loess({
+								x: info.x,
+								y: info.y
+							}, options)
+							result = model.predict()
+						}
 						else {
 							console.error("Unknown Type", type)
 							return
@@ -420,44 +453,60 @@ function createGraphComponent({graphType, axes = {}}) {
 							name: `${type} Reg ${name}`,
 							opacity: 0.75,
 							line: { width: 4, color },
-							hovertemplate: `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
 						}
-
-						//Calculate and render regression lines.
-						let pointCount = 400 //Number of points that make up regression line.
-						let range = domain[1] - domain[0]
-						let increment = range / pointCount
-
-						//Go a bit beyond the domain.
-						let startPos = domain[0] - range * 0.01
-						let endPos = domain[1] + range * 0.01
-
-						//We'll go an extra increment further.
-						for (let x=startPos;x<=endPos;x+=increment) {
-							reginfo.x.push(x)
-							reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
-						}
-
 						data.push(reginfo)
 
-						if (config.order === 1) {
-							//TODO: Wrap around to put both bounds in one line.
-							let moeGen = marginOfError(points, 0, 1) //0 and 1 are properties.
+						if (type === "LOESS") {
+							info.x.forEach((x, index) => {
+								let fittedY = result.fitted[index]
+
+								reginfo.x.push(x)
+								reginfo.y.push(fittedY)
+							})
+						}
+						else {
+							reginfo.hovertemplate = `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
+
+							//Calculate and render regression lines.
+							let pointCount = 400 //Number of points that make up regression line.
+							let range = domain[1] - domain[0]
+							let increment = range / pointCount
+
+							//Go a bit beyond the domain.
+							let startPos = domain[0] - range * 0.01
+							let endPos = domain[1] + range * 0.01
+
+							//We'll go an extra increment further.
+							for (let x=startPos;x<=endPos;x+=increment) {
+								reginfo.x.push(x)
+								reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
+							}
+						}
+
+						//TODO: Do LOESS Margin of Error based on halfwidth.
+
+						if (config.order === 1 || type === "LOESS") {
 							let text = []
-							//TODO: Also show equation.
-							//TODO: Show MOE for that point (read the doc - insert text based on text array)
 							let moeinfo = {
 								x: [],
 								y: [],
 								text,
 								type: 'line',
-								name: `${type} Reg ${name}`,
 								fill: "tozerox",
 								fillcolor: color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
 								line: {
 									color: "transparent"
 								},
 								hovertemplate: `%{text} (CI=${CI * 100}%)<br>(%{x}, %{y})`
+							}
+
+							let moeGen;
+							if (config.order === 1) {
+								moeinfo.name = `${type} Reg ${name}`
+								moeGen = marginOfError(points, 0, 1) //0 and 1 are properties (0 for x, 1 for y).
+							}
+							else if (type === "LOESS") {
+								moeinfo.name = `${type} ${name}`
 							}
 
 							//To fill, go all the way around - so x is [1,2,3,3,2,1,1], y is [7,8,9,2,3,4,7]
@@ -473,7 +522,13 @@ function createGraphComponent({graphType, axes = {}}) {
 									let x = reginfo.x[indexToUse]
 									let y = reginfo.y[indexToUse]
 
-									let moe = moeGen(x) * Z
+									let moe;
+									if (config.order === 1) {
+										moe = moeGen(x) * Z
+									}
+									else {
+										moe = result.halfwidth[indexToUse] //TODO: How does Z work with this?
+									}
 									pointText += `<br>MOE: ${moe}`
 									text.push(pointText)
 
@@ -593,7 +648,7 @@ function createGraphComponent({graphType, axes = {}}) {
 
 			//TODO: Replace Cubic and Quartic with Polynomial (arbitrary base) - maybe replace quadratic and linear as well.
 			//TODO: Allow base selection for Logarithmic (even though it doesn't really matter)
-			let currentOptions = ["Linear", "Quadratic", "Cubic", "Quartic", "Exponential", "Logarithmic", "Power Law"]
+			let currentOptions = ["LOESS", "Linear", "Quadratic", "Cubic", "Quartic", "Exponential", "Logarithmic", "Power Law"]
 
 			axes.regression = axes.regression || ["Linear"]
 			let regressionOptions = axisSelector(currentOptions, true, function(selected) {
