@@ -102,24 +102,32 @@ let nonNumericAxes = []
 let animals = window.data.filter((a) => {return a.type === "animal"})
 animals.forEach((animal) => {
 	for (let prop in animal) {
-		let value = animal[prop]
-		//All numbers or strings that convert to number.
-		if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(animal[prop])) {
-			if (!numericAxes.includes(prop)) {
-				numericAxes.push(prop)
+		let values = animal[prop]
+		if (!(values instanceof Array)) {values = [values]}
+
+		values.forEach((value) => {
+			//All numbers or strings that convert to number.
+			if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(value)) {
+				if (!numericAxes.includes(prop)) {
+					numericAxes.push(prop)
+				}
 			}
-		}
+		})
 	}
 })
 
 animals.forEach((animal) => {
 	for (let prop in animal) {
-		let value = animal[prop]
-		if (typeof value === "string" && value !== "") {
-			if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
-				nonNumericAxes.push(prop)
+		let values = animal[prop]
+		if (!(values instanceof Array)) {values = [values]}
+
+		values.forEach((value) => {
+			if (typeof value === "string" && value !== "") {
+				if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
+					nonNumericAxes.push(prop)
+				}
 			}
-		}
+		})
 	}
 })
 
@@ -268,6 +276,78 @@ function createGraphComponent({graphType, axes = {}}) {
 			return groups
 		}
 
+		function obtainGroupPoints(groupItems, ...props) {
+			let points = []
+
+			for (let i=0;i<groupItems.length;i++) {
+				let item = groupItems[i]
+
+				propVals = props.map((prop) => {
+					let vals = item[prop]
+
+					if (!(vals instanceof Array)) {
+						vals = [vals]
+					}
+
+					vals = vals.filter((val) => {
+						return val !== undefined && val !== ""
+					}).map((val) => {
+						//Convert vals to numbers where possible.
+						if (!isNaN(Number(val))) {
+							return Number(val)
+						}
+						return val
+					})
+
+					return vals
+				})
+
+				if (!propVals.every(vals => vals.length > 0)) {
+					continue
+				}
+
+				//propVals contains an array of arrays. Each subarray is a valid value for that specific prop.
+
+				//TODO:
+				//The axes might be related, whereby they should not be compounded (two arrays of 5 => 25 points)
+				//but rather paired (each index corresponds with the same index in the other axis)
+
+				let itemPoints = propVals[0].map(val => [val])
+
+				propVals.slice(1).forEach((vals) => {
+					if (vals.length === 1) {
+						//Perf improvement by not cloning - the vals.length === 1 check isn't necessary.
+						itemPoints.forEach((itemPoint) => {
+							vals.forEach(val => itemPoint.push(val))
+						})
+					}
+					else {
+						let newPoints = []
+						itemPoints.forEach((itemPoint) => {
+							vals.forEach((val) => {
+								let newPoint = itemPoint.slice(0)
+								newPoint.push(val)
+								newPoints.push(newPoint)
+							})
+						})
+						itemPoints = newPoints
+					}
+				})
+				console.log(itemPoints.length)
+				points.push(...itemPoints)
+			}
+
+			//Sort points based on x axis.
+			//This is used in LOESS regression, and makes it easy for other code to determine domain.
+			points.sort((a, b) => {
+				return a[0] - b[0]
+			})
+
+			return points
+		}
+
+
+
 		if (graphType === "Violin Plot") {
 			let groups = splitWAxis(items)
 
@@ -279,7 +359,6 @@ function createGraphComponent({graphType, axes = {}}) {
 				violingap: 0,
 				violingroupgap: 0
 			})
-			let yProp = axes.y
 
 			props.forEach((prop, index) => {
 				let groupItems = groups[prop]
@@ -314,14 +393,10 @@ function createGraphComponent({graphType, axes = {}}) {
 					info.pointpos = -info.pointpos
 				}
 
-				groupItems.forEach((item) => {
-					let xVal = item[axes.x]
-					let yVal = item[yProp]
-
-					if (xVal !== undefined && yVal !== undefined) {
-						info.x.push(xVal)
-						info.y.push(yVal)
-					}
+				let points = obtainGroupPoints(groupItems, axes.x, axes.y)
+				points.forEach(([x,y]) => {
+					info.x.push(x)
+					info.y.push(y)
 				})
 
 				data.push(info)
@@ -348,6 +423,10 @@ function createGraphComponent({graphType, axes = {}}) {
 						}
 					}
 
+					let points = obtainGroupPoints(groupItems, axes.x, yProp)
+					if (points.length === 0) {return}
+					let domain = [points[0][0], points[points.length - 1][0]]
+
 					let info = {
 						x: [],
 						y: [],
@@ -357,193 +436,162 @@ function createGraphComponent({graphType, axes = {}}) {
 						marker: { size: 12, color: graphColors.shift() }
 					}
 
-					let domain = [Infinity, -Infinity]
-					let points = []
-
-					groupItems.forEach((item) => {
-						let xVals = item[axes.x]
-						let yVals = item[yProp]
-
-						if (xVals instanceof Array && yVals instanceof Array) {
-							console.warn("Both Arrays") //This could get weird.
-						}
-
-						if (!(xVals instanceof Array)) {
-							xVals = [xVals]
-						}
-						if (!(yVals instanceof Array)) {
-							yVals = [yVals]
-						}
-
-						xVals.forEach((xVal) => {
-							yVals.forEach((yVal) => {
-								if (xVal !== undefined && yVal !== undefined && xVal !== "" && yVal !== "") {
-									xVal = Number(xVal)
-									yVal = Number(yVal)
-
-									points.push([xVal, yVal])
-
-									if (xVal < domain[0]) {domain[0] = xVal}
-									if (xVal > domain[1]) {domain[1] = xVal}
-								}
-							})
-						})
-					})
-
-					//Sort points - not needed for anything besides LOESS regression right now (which doesn't sort for us)
-					points.sort((a, b) => {
-						return a[0] - b[0]
-					})
-
-					points.forEach(([x, y]) => {
+					points.forEach(([x,y]) => {
 						info.x.push(x)
 						info.y.push(y)
 					})
 
 					data.push(info)
 
-					console.log(axes.regression)
-
 					axes.regression.forEach((type) => {
-						//TODO: Zero values break exponential and power law.
+						try {
+							//TODO: Zero values break exponential and power law.
 
-						//We need to set precision extremely high. This library rounds internally during calculation, so rounding errors accumulate.
-						let config = {precision: 10}
-						if (type === "Linear") {config.order = 1}
-						else if (type === "Quadratic") {config.order = 2}
-						else if (type === "Cubic") {config.order = 3}
-						else if (type === "Quartic") {config.order = 4}
+							//We need to set precision extremely high. This library rounds internally during calculation, so rounding errors accumulate.
+							let config = {precision: 10}
+							if (type === "Linear") {config.order = 1}
+							else if (type === "Quadratic") {config.order = 2}
+							else if (type === "Cubic") {config.order = 3}
+							else if (type === "Quartic") {config.order = 4}
 
-						let result;
+							let result;
 
-						if (config.order) {
-							result = regression.polynomial(points, config)
-						}
-						else if (type === "Exponential") {
-							result = regression.exponential(points, config)
-						}
-						else if (type === "Logarithmic") {
-							result = regression.logarithmic(points, config)
-						}
-						else if (type === "Power Law") {
-							result = regression.power(points, config)
-						}
-						else if (type === "LOESS") {
-							//Band uses confidence intervals just like our code (confirmed by reading the LOESS source)
-							let options = {span: 0.3, band: CI, degree: 1} //TODO: Allow customization.
-							let model = new Loess({
-								x: info.x,
-								y: info.y
-							}, options)
-							result = model.predict()
-						}
-						else {
-							console.error("Unknown Type", type)
-							return
-						}
-
-						console.log(points, result)
-
-						let color = graphColors.shift()
-
-						let reginfo = {
-							x: [],
-							y: [],
-							type: 'line',
-							name: `${type} Reg ${name}`,
-							opacity: 0.75,
-							line: { width: 4, color },
-						}
-						data.push(reginfo)
-
-						if (type === "LOESS") {
-							info.x.forEach((x, index) => {
-								let fittedY = result.fitted[index]
-
-								reginfo.x.push(x)
-								reginfo.y.push(fittedY)
-							})
-						}
-						else {
-							reginfo.hovertemplate = `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
-
-							//Calculate and render regression lines.
-							let pointCount = 400 //Number of points that make up regression line.
-							let range = domain[1] - domain[0]
-							let increment = range / pointCount
-
-							//Go a bit beyond the domain.
-							let startPos = domain[0] - range * 0.01
-							let endPos = domain[1] + range * 0.01
-
-							//We'll go an extra increment further.
-							for (let x=startPos;x<=endPos;x+=increment) {
-								reginfo.x.push(x)
-								reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
+							if (config.order) {
+								result = regression.polynomial(points, config)
 							}
-						}
-
-						//TODO: Do LOESS Margin of Error based on halfwidth.
-
-						if (config.order === 1 || type === "LOESS") {
-							let text = []
-							let moeinfo = {
-								x: [],
-								y: [],
-								text,
-								type: 'line',
-								fill: "tozerox",
-								fillcolor: color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
-								line: {
-									color: "transparent"
-								},
-								hovertemplate: `%{text} (CI=${CI * 100}%)<br>(%{x}, %{y})`
+							else if (type === "Exponential") {
+								result = regression.exponential(points, config)
 							}
-
-							let moeGen;
-							if (config.order === 1) {
-								moeinfo.name = `${type} Reg ${name}`
-								moeGen = marginOfError(points, 0, 1) //0 and 1 are properties (0 for x, 1 for y).
+							else if (type === "Logarithmic") {
+								result = regression.logarithmic(points, config)
+							}
+							else if (type === "Power Law") {
+								result = regression.power(points, config)
 							}
 							else if (type === "LOESS") {
-								moeinfo.name = `${type} ${name}`
+								//TODO: Allow customizing span.
+								let options = {
+									span: Math.min(Math.max(3.1 / info.x.length, 0.3), 1), //Between 0.3 and 1 - raise to achieve at least 3 points.
+									band: CI, //Band uses confidence intervals just like our code (confirmed by reading the LOESS source)
+									degree: 1
+								}
+								console.log(options.span, info.x.length)
+								let model = new Loess({
+									x: info.x,
+									y: info.y
+								}, options)
+								result = model.predict()
+							}
+							else {
+								console.error("Unknown Type", type)
+								return
 							}
 
-							//To fill, go all the way around - so x is [1,2,3,3,2,1,1], y is [7,8,9,2,3,4,7]
-							;[-1, 1].forEach((mult) => {
+							console.log(points, result)
 
-								for (let i=0;i<reginfo.x.length;i++) {
-									let indexToUse = i
-									let pointText = "Lower Bound"
-									if (mult === 1) {
-										pointText = "Upper Bound"
-										indexToUse = reginfo.x.length - 1 - i
-									}
-									let x = reginfo.x[indexToUse]
-									let y = reginfo.y[indexToUse]
+							let color = graphColors.shift()
 
-									let moe;
-									if (config.order === 1) {
-										moe = moeGen(x) * Z
-									}
-									else {
-										moe = result.halfwidth[indexToUse] //TODO: How does Z work with this?
-									}
-									pointText += `<br>MOE: ${moe}`
-									text.push(pointText)
+							let reginfo = {
+								x: [],
+								y: [],
+								type: 'line',
+								name: `${type} Reg ${name}`,
+								opacity: 0.75,
+								line: { width: 4, color },
+							}
+							data.push(reginfo)
 
-									moeinfo.x.push(x)
-									moeinfo.y.push(y + moe * mult)
+							if (type === "LOESS") {
+								info.x.forEach((x, index) => {
+									let fittedY = result.fitted[index]
+
+									reginfo.x.push(x)
+									reginfo.y.push(fittedY)
+								})
+							}
+							else {
+								reginfo.hovertemplate = `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
+
+								//Calculate and render regression lines.
+								let pointCount = 400 //Number of points that make up regression line.
+								let range = domain[1] - domain[0]
+								let increment = range / pointCount
+
+								//Go a bit beyond the domain.
+								let startPos = domain[0] - range * 0.01
+								let endPos = domain[1] + range * 0.01
+
+								//We'll go an extra increment further.
+								for (let x=startPos;x<=endPos;x+=increment) {
+									reginfo.x.push(x)
+									reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
 								}
-							})
+							}
 
-							console.log(text)
+							//TODO: Do LOESS Margin of Error based on halfwidth.
 
-							//Duplicate the first value - close the shape.
-							moeinfo.x.push(moeinfo.x[0])
-							moeinfo.y.push(moeinfo.y[0])
+							if (config.order === 1 || type === "LOESS") {
+								let text = []
+								let moeinfo = {
+									x: [],
+									y: [],
+									text,
+									type: 'line',
+									fill: "tozerox",
+									fillcolor: color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
+									line: {
+										color: "transparent"
+									},
+									hovertemplate: `%{text} (CI=${CI * 100}%)<br>(%{x}, %{y})`
+								}
 
-							data.push(moeinfo)
+								let moeGen;
+								if (config.order === 1) {
+									moeinfo.name = `${type} Reg ${name}`
+									moeGen = marginOfError(points, 0, 1) //0 and 1 are properties (0 for x, 1 for y).
+								}
+								else if (type === "LOESS") {
+									moeinfo.name = `${type} ${name}`
+								}
+
+								//To fill, go all the way around - so x is [1,2,3,3,2,1,1], y is [7,8,9,2,3,4,7]
+								;[-1, 1].forEach((mult) => {
+
+									for (let i=0;i<reginfo.x.length;i++) {
+										let indexToUse = i
+										let pointText = "Lower Bound"
+										if (mult === 1) {
+											pointText = "Upper Bound"
+											indexToUse = reginfo.x.length - 1 - i
+										}
+										let x = reginfo.x[indexToUse]
+										let y = reginfo.y[indexToUse]
+
+										let moe;
+										if (config.order === 1) {
+											moe = moeGen(x) * Z
+										}
+										else {
+											moe = result.halfwidth[indexToUse]
+										}
+										pointText += `<br>MOE: ${moe}`
+										text.push(pointText)
+
+										moeinfo.x.push(x)
+										moeinfo.y.push(y + moe * mult)
+									}
+								})
+
+								//Duplicate the first value - close the shape.
+								moeinfo.x.push(moeinfo.x[0])
+								moeinfo.y.push(moeinfo.y[0])
+								moeinfo.text.push(moeinfo.text[0])
+
+								data.push(moeinfo)
+							}
+						}
+						catch (e) {
+							console.error(e)
 						}
 					})
 				})
@@ -576,16 +624,11 @@ function createGraphComponent({graphType, axes = {}}) {
 					type: 'scatter3d'
 				}
 
-				groupItems.forEach((item) => {
-					let xVal = item[axes.x]
-					let yVal = item[axes.y]
-					let zVal = item[axes.z]
-
-					if (xVal !== undefined && yVal !== undefined && zVal !== undefined) {
-						info.x.push(xVal)
-						info.y.push(yVal)
-						info.z.push(zVal)
-					}
+				let points = obtainGroupPoints(groupItems, axes.x, axes.y, axes.z)
+				points.forEach(([x,y,z]) => {
+					info.x.push(x)
+					info.y.push(y)
+					info.z.push(z)
 				})
 
 				data.push(info)
