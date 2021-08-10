@@ -102,8 +102,12 @@ h1, h2 {
 	min-width: 100px;
 }
 
-.searchItemBar label {
-	margin: 3px;
+input[type=checkbox] {
+	margin-right: 0;
+}
+
+label {
+	padding-left: 3px;
 }
 
 #graphsDiv {
