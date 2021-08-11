@@ -353,13 +353,13 @@ function createGraphComponent({graphType, axes = {}}) {
 								x: [],
 								y: [],
 								type: 'line',
-								name: `${type} Reg ${name}`,
 								opacity: 0.75,
 								line: { width: 4, color },
 							}
 							data.push(reginfo)
 
 							if (type === "LOESS") {
+								reginfo.name = `${type} ${name}`,
 								info.x.forEach((x, index) => {
 									let fittedY = result.fitted[index]
 
@@ -368,6 +368,7 @@ function createGraphComponent({graphType, axes = {}}) {
 								})
 							}
 							else {
+								reginfo.name = `${type} Reg ${name}`,
 								reginfo.hovertemplate = `${result.string}<br>r^2 = ${Math.round(result.r2 * 100)/100}<br>(%{x}, %{y})`
 
 								//Calculate and render regression lines.
