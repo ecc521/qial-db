@@ -315,7 +315,7 @@ function setupFromParams() {
 			search.appendChild(searchItemBar(obj))
 		})
 	}
-	catch (e) {console.error(e)}
+	catch (e) {console.warn("Error loading searchlink", e)}
 }
 
 setupFromParams()

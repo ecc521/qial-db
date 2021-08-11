@@ -1,8 +1,10 @@
 const regression = require("regression")
 const Loess = require("loess").default
-const pearsonCorrelation = require("./pearsonCorrelation.js")
+const pearsonCorrelation = require("./graphs/pearsonCorrelation.js")
+const obtainGroupPoints = require("./graphs/obtainGroupPoints.js")
+const axisSelector = require("./graphs/axisSelector.js")
 
-const {marginOfError, percentile_z} = require("./stats.js")
+const {marginOfError, percentile_z} = require("./graphs/stats.js")
 
 let graphsDiv = document.createElement("div")
 graphsDiv.id = "graphsDiv"
@@ -135,81 +137,6 @@ animals.forEach((animal) => {
 console.log(numericAxes, nonNumericAxes)
 
 
-
-//Generates the selector for an axis.
-function axisSelector(props, multiple = false, callback, initialValue) {
-	if (multiple) {
-		//Generate checkbox list.
-		let div = document.createElement("div")
-		let propsObj = {}
-		props.forEach((prop) => {
-			//TODO: createCheckbox and createLabel are copied from search.js
-			function createCheckbox() {
-				let box = document.createElement("input")
-				box.type = "checkbox"
-				return box
-			}
-
-			function createLabel(checkbox) {
-				let label = document.createElement("label")
-				if (checkbox) {
-					label.addEventListener("click", function() {
-						checkbox.click()
-					})
-				}
-				return label
-			}
-
-			let box = createCheckbox()
-			let label = createLabel(box)
-			label.innerHTML = prop
-
-			if (initialValue && initialValue.includes(prop)) {
-				box.checked = true
-			}
-
-			div.appendChild(box)
-			div.appendChild(label)
-
-			propsObj[prop] = box
-			box.addEventListener("change", function() {
-				let selectedProps = []
-				for (let prop in propsObj) {
-					let box = propsObj[prop]
-					if (box.checked) {
-						selectedProps.push(prop)
-					}
-				}
-				callback(selectedProps)
-			})
-		})
-		return div
-	}
-	else {
-		//Generate select element
-		let select = document.createElement("select")
-		let def = document.createElement("option")
-		def.innerHTML = "Select Axis..."
-		def.value = ""
-		def.selected = true
-		select.appendChild(def)
-
-		props.forEach((prop) => {
-			let option = document.createElement("option")
-			option.value = option.innerHTML = prop
-			select.appendChild(option)
-		})
-		select.addEventListener("change", function() {
-			callback(select.value || undefined)
-		})
-		if (initialValue) {
-			select.value = initialValue
-		}
-		return select
-	}
-}
-
-
 let graphSelections = []
 
 function createGraphComponent({graphType, axes = {}}) {
@@ -275,75 +202,6 @@ function createGraphComponent({graphType, axes = {}}) {
 				groups[val].push(item)
 			})
 			return groups
-		}
-
-		function obtainGroupPoints(groupItems, ...props) {
-			let points = []
-
-			for (let i=0;i<groupItems.length;i++) {
-				let item = groupItems[i]
-
-				propVals = props.map((prop) => {
-					let vals = item[prop]
-
-					if (!(vals instanceof Array)) {
-						vals = [vals]
-					}
-
-					vals = vals.filter((val) => {
-						return val !== undefined && val !== ""
-					}).map((val) => {
-						//Convert vals to numbers where possible.
-						if (!isNaN(Number(val))) {
-							return Number(val)
-						}
-						return val
-					})
-
-					return vals
-				})
-
-				if (!propVals.every(vals => vals.length > 0)) {
-					continue
-				}
-
-				//propVals contains an array of arrays. Each subarray is a valid value for that specific prop.
-
-				//TODO:
-				//The axes might be related, whereby they should not be compounded (two arrays of 5 => 25 points)
-				//but rather paired (each index corresponds with the same index in the other axis)
-
-				let itemPoints = propVals[0].map(val => [val])
-
-				propVals.slice(1).forEach((vals) => {
-					if (vals.length === 1) {
-						//Perf improvement by not cloning - the vals.length === 1 check isn't necessary.
-						itemPoints.forEach((itemPoint) => {
-							vals.forEach(val => itemPoint.push(val))
-						})
-					}
-					else {
-						let newPoints = []
-						itemPoints.forEach((itemPoint) => {
-							vals.forEach((val) => {
-								let newPoint = itemPoint.slice(0)
-								newPoint.push(val)
-								newPoints.push(newPoint)
-							})
-						})
-						itemPoints = newPoints
-					}
-				})
-				points.push(...itemPoints)
-			}
-
-			//Sort points based on x axis.
-			//This is used in LOESS regression, and makes it easy for other code to determine domain.
-			points.sort((a, b) => {
-				return a[0] - b[0]
-			})
-
-			return points
 		}
 
 
@@ -676,7 +534,7 @@ function createGraphComponent({graphType, axes = {}}) {
 							obj.x.push(point[0])
 							obj.y.push(point[1])
 						})
-						//TODO: Specify this is Pearson, allow choosing Spearman. 
+						//TODO: Specify this is Pearson, allow choosing Spearman.
 						let corr = pearsonCorrelation(obj, "x", "y")
 
 						arr.push(corr)
@@ -772,7 +630,7 @@ function setupFromParams() {
 			graphsDiv.appendChild(createGraphComponent(obj))
 		})
 	}
-	catch (e) {console.error(e)}
+	catch (e) {console.warn("Error loading graphlink", e)}
 }
 setupFromParams()
 
