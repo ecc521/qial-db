@@ -67,7 +67,7 @@ async function generateJSON() {
 				   let sheet = file.Sheets[sheetName]
 				   //This is a bit ineffecient (double parsing), but it works for now.
 				   let str = xlsx.utils.sheet_to_csv(sheet)
-				   processCSV(str, fileName.slice(0, -5) + sheetName)
+				   processCSV(str, fileName.slice(0, -5) + "/" + sheetName)
 			   }
 		   }
 	   }

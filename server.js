@@ -273,11 +273,8 @@ app.post("/upload", async (req, res) => {
 
 
 app.post("/download", async (req, res) => {
-	let data = await getData(req)
-
-	//We use the URL object to get search params, so the domain/host can be anything.
-	let urlObj = new URL("localhost:/?" + data.toString())
-	let names = urlObj.searchParams.get("names").split(",")
+	let data = req.body
+    let names = data.names.split(",")
 
 	for (let i=0;i<names.length;i++) {
 		if (path.resolve(global.dataDir, names[i]).indexOf(global.dataDir) !== 0) {
