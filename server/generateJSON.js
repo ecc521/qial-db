@@ -7,6 +7,9 @@ const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputed = require("./createPrecomputed.js")
 const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
+const csvParse = require('csv-parse/lib/sync')
+const xlsx = require("xlsx")
+
 async function generateJSON() {
 	console.time("Gen")
    let files = await fs.promises.readdir(global.dataDir)
@@ -28,6 +31,53 @@ async function generateJSON() {
 	   return reclaimedFiles
    }
 
+   let namespacedCSVs = {}
+   files.forEach((fileName) => {
+	   //TODO: Right now, we only match animal codes and horizontal layouts.
+	   //We'll need to support other matching systems, like DWI, as well as vertical layouts.
+
+	   function processCSV(str, namespace) {
+		   if (namespacedCSVs[namespace]) {
+			   console.warn("Duplicate namespaces - overwriting ", namespace)
+		   }
+
+		   namespacedCSVs[namespace] = csvParse(str, {
+				columns: function(header) {
+					if (header[0].toLowerCase() === "animal") {
+						header[0] = "Animal"
+					}
+					return header
+				},
+				columns_duplicates_to_array: true
+			})
+	   }
+
+	   try {
+		   let filePath = path.join(global.dataDir, fileName)
+		   if (fileName.endsWith(".csv")) {
+			   console.warn(fileName)
+			   let str = fs.readFileSync(filePath)
+			   processCSV(str, fileName.slice(0, -4))
+		   }
+		   else if (fileName.endsWith(".xlsx")) {
+			   console.warn(fileName)
+			   let file = xlsx.readFileSync(filePath)
+			   console.log(file)
+			   for (let sheetName in file.Sheets) {
+				   let sheet = file.Sheets[sheetName]
+				   //This is a bit ineffecient (double parsing), but it works for now.
+				   let str = xlsx.utils.sheet_to_csv(sheet)
+				   processCSV(str, fileName.slice(0, -5) + sheetName)
+			   }
+		   }
+	   }
+	   catch (e) {
+		   console.error("Error processing namespace", fileName, e)
+	   }
+   })
+	global.namespacedCSVs = namespacedCSVs
+	//console.log(namespacedCSVs)
+
 
    for (let i=0;i<csvJSON.length;i++) {
 	   let item = csvJSON[i]
@@ -37,14 +87,58 @@ async function generateJSON() {
 
 	   //These will be used for identification.
 	   let animalCode = item.Animal, normalizedAnimalCode;
-	   if (animalCode.indexOf(":") !== -1) {
-		   animalCode = animalCode.slice(0, animalCode.indexOf(":"))
+
+	   function normalizeCode(codeToNormalize = "") {
+		   codeToNormalize = codeToNormalize.trim()
+		   if (codeToNormalize.indexOf(":") !== -1) {
+			   codeToNormalize = codeToNormalize.slice(0, codeToNormalize.indexOf(":"))
+		   }
+		   let fullyNormalized = codeToNormalize.split("-").join("_") //Some files have this normalized.
+
+		   return {partiallyNormalized: codeToNormalize, fullyNormalized}
 	   }
-	   normalizedAnimalCode = animalCode.split("-").join("_") //Some files have this normalized.
+
+	   let tempVar = normalizeCode(animalCode)
+	   animalCode = tempVar.partiallyNormalized
+	   normalizedAnimalCode = tempVar.fullyNormalized
+
+
+	   //Merge the namespacedCSVs into this animal.
+	   //TODO: Support non-Animal property matching.
+	   //TODO: What to do with DWI, GRE, and other properties? I assume we should merge those.
+	   for (namespace in namespacedCSVs) {
+		   let data = namespacedCSVs[namespace]
+
+		   let matched = []
+		   data.forEach((dataLine) => {
+			   if (normalizeCode(dataLine.Animal).fullyNormalized === normalizedAnimalCode) {
+				   matched.push(dataLine.Animal, normalizedAnimalCode)
+				   for (let prop in dataLine) {
+					   if (dataLine[prop] !== "" && prop !== "Animal") {
+						   let nsProp = `${namespace}/${prop}`
+						   if (item[nsProp]) {
+							   //If this specific namespace has multiple entries for the same Animal, join them in an array.
+							   //This is applicable for things like trials, where one animal is trialed multiple times.
+							   if (!(item[nsProp] instanceof Array)) {
+								   item[nsProp] = [item[nsProp]]
+							   }
+							   item[nsProp].push(dataLine[prop])
+						   }
+						   else {
+							   item[nsProp] = dataLine[prop]
+						   }
+					   }
+				   }
+			   }
+		   })
+		   //console.warn(matched)
+	   }
+
+
 
 	   //These are all the different ways that files can be identified along with an animal.
 	   //We keep them seperate so we can pair with labels better.
-	   let provisionalItems = [animalCode, normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI]
+	   let provisionalItems = [animalCode, normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI].flat()
 
 	   let relatedFiles = provisionalItems.map((itemsToCheck) => {
 		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
@@ -64,7 +158,7 @@ async function generateJSON() {
 	   })
 
 
-	   let processedFiles = [] //To avoid processing the same file twice with different identifiers. 
+	   let processedFiles = [] //To avoid processing the same file twice with different identifiers.
 
 	   //Each batch is all the files that matched with a specific identifier.
 	   for (let i=0;i<relatedFiles.length;i++) {
@@ -118,6 +212,7 @@ async function generateJSON() {
 			  }
 			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {
 				  console.warn("Potential Matching Issues")
+				  console.log(matchingRAS, labelFiles)
 			  }
 
 			  view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
