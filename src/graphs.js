@@ -290,13 +290,20 @@ function createGraphComponent({graphType, axes = {}}) {
 					if (points.length === 0) {return}
 					let domain = [points[0][0], points[points.length - 1][0]]
 
+					function round(num, places = 3) {
+						let mult = 10 ** places
+						return Math.round(num * mult) / mult
+					}
+
 					let info = {
 						x: [],
 						y: [],
 						mode: 'markers',
 						type: 'scatter',
 						name,
-						marker: { size: 12, color: graphColors.shift() }
+						marker: { size: 12, color: graphColors.shift() },
+						//TODO: Consider moving Pearson and Spearman to linear regression line.
+						hovertemplate: `(%{x}, %{y})<br>Pearson: ${round(pearsonCorrelation(points))}<br>Spearman: ${round(spearmanCorrelation(points))}`
 					}
 
 					points.forEach(([x,y]) => {
@@ -538,7 +545,6 @@ function createGraphComponent({graphType, axes = {}}) {
 					else {
 						let points = obtainGroupPoints(items, x1, x2)
 
-						//TODO: Specify this is Pearson, allow choosing Spearman.
 						let corr;
 						if (type === "Pearson") {
 							corr = pearsonCorrelation(points)
