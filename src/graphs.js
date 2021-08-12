@@ -1,6 +1,7 @@
 const regression = require("regression")
 const Loess = require("loess").default
 const pearsonCorrelation = require("./graphs/pearsonCorrelation.js")
+const spearmanCorrelation = require("./graphs/spearmanCorrelation.js")
 const obtainGroupPoints = require("./graphs/obtainGroupPoints.js")
 const axisSelector = require("./graphs/axisSelector.js")
 
@@ -54,6 +55,10 @@ let graphOptions = {
 		x: {
 			allow: "numeric",
 			multiple: true
+		},
+		y: {
+			allow: ["Pearson", "Spearman"],
+			preset: "Pearson"
 		}
 	}
 }
@@ -495,12 +500,15 @@ function createGraphComponent({graphType, axes = {}}) {
 			}
 		}
 		else if (graphType === "Correlation Table") {
+			console.log(type)
+			let type = axes.y
+
 			//Default plotly RdBu colorscale
 			var colorscaleValue = [
-		        [0, 'rgb(5,10,172)'], [0.35, 'rgb(106,137,247)'],
-		        [0.5, 'rgb(190,190,190)'], [0.6, 'rgb(220,170,132)'],
-		        [0.7, 'rgb(230,145,90)'], [1, 'rgb(178,10,28)']
-		    ]
+				[0, 'rgb(5,10,172)'], [0.35, 'rgb(106,137,247)'],
+				[0.5, 'rgb(190,190,190)'], [0.6, 'rgb(220,170,132)'],
+				[0.7, 'rgb(230,145,90)'], [1, 'rgb(178,10,28)']
+			]
 
 			let topDivisor = 0.01 //The very top of the colorscale will be used for the center line.
 			colorscaleValue.forEach((item) => {
@@ -530,21 +538,21 @@ function createGraphComponent({graphType, axes = {}}) {
 					else {
 						let points = obtainGroupPoints(items, x1, x2)
 
-						let obj = {x: [], y: []}
-						points.forEach((point) => {
-							obj.x.push(point[0])
-							obj.y.push(point[1])
-						})
 						//TODO: Specify this is Pearson, allow choosing Spearman.
-						let corr = pearsonCorrelation(obj, "x", "y")
+						let corr;
+						if (type === "Pearson") {
+							corr = pearsonCorrelation(points)
+						}
+						else if (type === "Spearman") {
+							corr = spearmanCorrelation(points)
+						}
 
 						arr.push(corr)
 					}
 				})
-			})
 
-			//TODO: Generate correlation table.
-			data.push(info)
+				data.push(info)
+			})
 		}
 		else {throw "Unsupported graphType " + graphType}
 
@@ -574,6 +582,9 @@ function createGraphComponent({graphType, axes = {}}) {
 			else if (info.allow === "numeric") {
 				params.push(numericAxes)
 			}
+			else if (info.allow instanceof Array) {
+				params.push(info.allow)
+			}
 			else {
 				throw "Unknown Allow " + info.allow
 			}
@@ -584,7 +595,7 @@ function createGraphComponent({graphType, axes = {}}) {
 				genGraph()
 			})
 
-			let elem = axisSelector(...params, axes[axis])
+			let elem = axisSelector(...params, axes[axis] = axes[axis] || info.preset)
 			axisSelectorDiv.appendChild(elem)
 		})
 

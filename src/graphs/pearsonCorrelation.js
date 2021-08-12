@@ -57,4 +57,14 @@ function pearsonCorrelation(prefs, p1, p2) {
   return num / den;
 }
 
-module.exports = pearsonCorrelation
+
+
+module.exports = function pearsonWrapper(points) {
+	//Points is an array of [x, y]
+	let obj = {x: [], y: []}
+	points.forEach((point) => {
+		obj.x.push(point[0])
+		obj.y.push(point[1])
+	})
+	return pearsonCorrelation(obj, "x", "y")
+}

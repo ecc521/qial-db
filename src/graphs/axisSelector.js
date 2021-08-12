@@ -2,53 +2,9 @@
 function axisSelector(props, multiple = false, callback, initialValue) {
 	let div = document.createElement("div")
 
-	if (multiple && props.length < 20) {
-		//Show a list of checkboxes (used for selecting regression types right now).
-		let propsObj = {}
-		props.forEach((prop) => {
-			//TODO: createCheckbox and createLabel are copied from search.js
-			function createCheckbox() {
-				let box = document.createElement("input")
-				box.type = "checkbox"
-				return box
-			}
-
-			function createLabel(checkbox) {
-				let label = document.createElement("label")
-				if (checkbox) {
-					label.addEventListener("click", function() {
-						checkbox.click()
-					})
-				}
-				return label
-			}
-
-			let box = createCheckbox()
-			let label = createLabel(box)
-			label.innerHTML = prop
-
-			if (initialValue && initialValue.includes(prop)) {
-				box.checked = true
-			}
-
-			div.appendChild(box)
-			div.appendChild(label)
-
-			propsObj[prop] = box
-			box.addEventListener("change", function() {
-				let selectedProps = []
-				for (let prop in propsObj) {
-					let box = propsObj[prop]
-					if (box.checked) {
-						selectedProps.push(prop)
-					}
-				}
-				callback(selectedProps)
-			})
-		})
-	}
-	else {
-		//Use datalists for search autocomplete.
+	if (props.length > 10) {
+		//If there are a lot of properties, we need to use datalists.
+		//This gets us search autocomplete, and makes it easy to find properties.
 		let datalist = document.createElement("datalist")
 		props.forEach((prop) => {
 			let option = document.createElement("option")
@@ -118,6 +74,74 @@ function axisSelector(props, multiple = false, callback, initialValue) {
 
 		if (multiple || selectors.length === 0) {
 			createSelector()
+		}
+	}
+	else if (multiple) {
+		//Show a list of checkboxes (used for selecting regression types right now).
+		let propsObj = {}
+		props.forEach((prop) => {
+			//TODO: createCheckbox and createLabel are copied from search.js
+			function createCheckbox() {
+				let box = document.createElement("input")
+				box.type = "checkbox"
+				return box
+			}
+
+			function createLabel(checkbox) {
+				let label = document.createElement("label")
+				if (checkbox) {
+					label.addEventListener("click", function() {
+						checkbox.click()
+					})
+				}
+				return label
+			}
+
+			let box = createCheckbox()
+			let label = createLabel(box)
+			label.innerHTML = prop
+
+			if (initialValue && initialValue.includes(prop)) {
+				box.checked = true
+			}
+
+			div.appendChild(box)
+			div.appendChild(label)
+
+			propsObj[prop] = box
+			box.addEventListener("change", function() {
+				let selectedProps = []
+				for (let prop in propsObj) {
+					let box = propsObj[prop]
+					if (box.checked) {
+						selectedProps.push(prop)
+					}
+				}
+				callback(selectedProps)
+			})
+		})
+	}
+	else {
+		//Show an options dropdown.
+		let select = document.createElement("select")
+		div.appendChild(select)
+
+		let def = document.createElement("option")
+		def.innerHTML = "Select Axis..."
+		def.value = ""
+		def.selected = true
+		select.appendChild(def)
+
+		props.forEach((prop) => {
+			let option = document.createElement("option")
+			option.value = option.innerHTML = prop
+			select.appendChild(option)
+		})
+		select.addEventListener("change", function() {
+			callback(select.value || undefined)
+		})
+		if (initialValue) {
+			select.value = initialValue
 		}
 	}
 
