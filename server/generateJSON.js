@@ -57,15 +57,14 @@ async function generateJSON() {
 
 
 	//Used to normalize Animal IDs.
-	//normalized is used internally and externally. partiallyNormalized is used externally, as some files match it, not normalized.
+	 //TODO: We need to figure out what the stuff after the colon means.
+	 //We currently assume it is irrelevant.
    function normalizeCode(codeToNormalize = "") {
 	   codeToNormalize = codeToNormalize.trim()
 	   if (codeToNormalize.indexOf(":") !== -1) {
 		   codeToNormalize = codeToNormalize.slice(0, codeToNormalize.indexOf(":"))
 	   }
-	   let normalized = codeToNormalize.split("-").join("_") //Some files have this normalized.
-
-	   return {partiallyNormalized: codeToNormalize, normalized}
+	   return codeToNormalize.split("-").join("_")
    }
 
 
@@ -122,8 +121,7 @@ async function generateJSON() {
 				 let id = row.Animal
 				 if (!id) {return}
 
-				//It is currently assumed that the value after the colon is irrelevant.
-				 let normed = normalizeCode(id).normalized
+				 let normed = normalizeCode(id)
 				 delete row.Animal
 				 let target = obj[normed] = obj[normed] || {Animal: normed}
 
@@ -280,7 +278,7 @@ async function generateJSON() {
 				}
 
 				let id = image.getPatientID()
-				id = normalizeCode(id).normalized //TODO: We need to figure out what the stuff after the colon means.
+				id = normalizeCode(id)
 				let emptyAnimal = createEmptyAnimal(id)
 				let animal = Object.assign(emptyAnimal, {
 					//TODO: Figure out what some of the properties like PatientName correspond to in the CSVs.
@@ -335,11 +333,9 @@ async function generateJSON() {
    for (let i=0;i<csvJSON.length;i++) {
 	   let item = csvJSON[i]
 
-	   //TODO: Some files contain non-normalized versions of the animal ID. We don't currently detect those.
-
 	   //These are all the different ways that files can be identified along with an animal.
 	   //We keep them seperate so we can pair with labels better.
-	   let provisionalItems = [item.Animal, item["SAMBA Brunno"], item.GRE, item.DWI].flat()
+	   let provisionalItems = [item.Animal, item.Animal.split("_").join("-"), item["SAMBA Brunno"], item.GRE, item.DWI].flat()
 
 	   let relatedFiles = provisionalItems.map((itemsToCheck) => {
 		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
