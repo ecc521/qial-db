@@ -1,6 +1,12 @@
 const fs = require("fs")
 const path = require("path")
 
+const getFilesInDirectory = require("./getFilesInDirectory.js")
+
+const daikon = require("daikon")
+
+
+
 const loadDataCSV = require("./loadDataCSV.js")
 
 const generateThumbnails = require("./generateThumbnails.js")
@@ -10,15 +16,32 @@ const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 const csvParse = require('csv-parse/lib/sync')
 const xlsx = require("xlsx")
 
+//Architecture:
+// 1. Receive Request
+// 2. Obtain list of all files
+// 3. Iterate through CSV files (Excel file sheets count as a CSV)
+// 3a. Merge animals within file
+// 3b. Merge list of aminals with animals in file
+// -  Add animal if needed
+// -  Determine namespace
+// -  Merge into namespace
+// 4. Process DICOM files. Create new animals as necessary.
+// 5. Assign image files where possible.
+// 6. Final processing & send response
+
 async function generateJSON() {
 	console.time("Gen")
-   let files = await fs.promises.readdir(global.dataDir)
 
-   let parsedCSV = await loadDataCSV()
-   let csvJSON = parsedCSV.json
+   let files = await getFilesInDirectory(global.dataDir)
+   files = files.map((filePath) => {return path.relative(global.dataDir, filePath)})
+   //TODO: Lock down tmp directory. Hide all files here, prevent uploads to it (not here), and prevent deletions and renames within it.
+   console.log(files)
 
    function reclaimFiles(reclaimedFiles, ...fileNames) {
-	   //Remove a file from files - it is associated with something.
+	   //Reclaimed files is an array of files that have already been reclaimed, to make concationation easy.
+	   //Passing an empty array works.
+
+	   //Remove a file from files - it is associated with an animal.
 	   fileNames.forEach((fileName) => {
 		   if (fileName instanceof Array) {reclaimFiles(reclaimedFiles, ...fileName)}
 		   else {
@@ -31,114 +54,292 @@ async function generateJSON() {
 	   return reclaimedFiles
    }
 
-   let namespacedCSVs = {}
-   files.forEach((fileName) => {
-	   //TODO: Right now, we only match animal codes and horizontal layouts.
-	   //We'll need to support other matching systems, like DWI, as well as vertical layouts.
 
-	   function processCSV(str, namespace) {
-		   if (namespacedCSVs[namespace]) {
-			   console.warn("Duplicate namespaces - overwriting ", namespace)
-		   }
 
-		   namespacedCSVs[namespace] = csvParse(str, {
-				columns: function(header) {
-					if (header[0].toLowerCase() === "animal") {
-						header[0] = "Animal"
-					}
-					return header
-				},
-				columns_duplicates_to_array: true
-			})
+	//Used to normalize Animal IDs.
+	//normalized is used internally and externally. partiallyNormalized is used externally, as some files match it, not normalized.
+   function normalizeCode(codeToNormalize = "") {
+	   codeToNormalize = codeToNormalize.trim()
+	   if (codeToNormalize.indexOf(":") !== -1) {
+		   codeToNormalize = codeToNormalize.slice(0, codeToNormalize.indexOf(":"))
 	   }
+	   let normalized = codeToNormalize.split("-").join("_") //Some files have this normalized.
 
-	   try {
-		   let filePath = path.join(global.dataDir, fileName)
-		   if (fileName.endsWith(".csv")) {
-			   console.warn(fileName)
-			   let str = fs.readFileSync(filePath)
-			   processCSV(str, fileName.slice(0, -4))
-		   }
-		   else if (fileName.endsWith(".xlsx")) {
-			   console.warn(fileName)
-			   let file = xlsx.readFileSync(filePath)
-			   console.log(file)
-			   for (let sheetName in file.Sheets) {
-				   let sheet = file.Sheets[sheetName]
-				   //This is a bit ineffecient (double parsing), but it works for now.
-				   let str = xlsx.utils.sheet_to_csv(sheet)
-				   processCSV(str, fileName.slice(0, -5) + "/" + sheetName)
-			   }
-		   }
-	   }
-	   catch (e) {
-		   console.error("Error processing namespace", fileName, e)
-	   }
-   })
-	global.namespacedCSVs = namespacedCSVs
-	//console.log(namespacedCSVs)
+	   return {partiallyNormalized: codeToNormalize, normalized}
+   }
 
+
+	//Animals will be linked together via the normalized Animal ID.
+	let animals = Object.create(null)
+
+	function computeNamespace(name) {
+		name = name.toLowerCase()
+		//TODO: These namespaces might be contained as part of a word (ex, fa being part of body_fats.csv)
+		let namespaces = ["nor", "mwm", "fa", "volume"]
+		for (let i=0;i<namespaces.length;i++) {
+			let namespace = namespaces[i]
+			if (name.includes(namespace)) {
+				return namespace
+			}
+		}
+		return
+	}
+
+	function createEmptyAnimal(id) {
+		return {
+			Animal: id,
+			type: "animal",
+			views: [],
+			componentFiles: []
+		}
+	}
+
+	//TODO: Consider adding another function to normalize other animal properties.
+	//Ex, M => male, F => female
+	//Might also want to convert Strings to Numbers
+
+	function processCSV(str, name) {
+		let namespace = computeNamespace(name)
+		console.log(namespace, name)
+		let parsedCSV = csvParse(str, {
+			 columns: function(header) {
+				 return header.map((str) => {
+					 str = str.trim()
+					 if (str.toLowerCase() === "animal") {
+						 str = "Animal"
+					 }
+					 return str
+				 })
+			 },
+			 columns_duplicates_to_array: true
+		 })
+
+		 //Merge all rows corresponding to a single animal within this sheet.
+		 //This ensures that no relevant duplicates are removed - if a property is a duplicate outside the sheet, it is a duplicate.
+		 function mergeSelf(rows) {
+			 let obj = {}
+			 rows.forEach((row) => {
+				 let id = row.Animal
+				 if (!id) {return}
+
+				//It is currently assumed that the value after the colon is irrelevant.
+				 let normed = normalizeCode(id).normalized
+				 delete row.Animal
+				 let target = obj[normed] = obj[normed] || {Animal: normed}
+
+				 //Copy all properties, merging into arrays.
+				 for (let prop in row) {
+					 if (prop === "Animal") {continue}
+					 if (prop === "") {continue} //Don't allow empty properties, as they cause lots of glitches in search code.
+
+					 //Even if the target it an empty string, we must still merge. We can't have different length arrays.
+					 if (target[prop] !== undefined) {
+						 if (!(target[prop] instanceof Array)) {
+							 target[prop] = [target[prop]]
+						 }
+
+						 if (row[prop] instanceof Array) {
+							 target[prop].push(...row[prop])
+						 }
+						 else {
+							 target[prop].push(row[prop])
+						 }
+					 }
+					 else {
+						 target[prop] = row[prop]
+					 }
+				 }
+			 })
+
+			 for (let id in obj) {
+				 let animal = obj[id]
+				 for (let prop in animal) {
+					 //If all the values in an array are identical, reduce to a single value.
+					 if (animal[prop] instanceof Array) {
+						 if (animal[prop].every(item => item === animal[prop][0])) {
+							 animal[prop] = animal[prop][0]
+						 }
+					 }
+
+					 //Delete empty properties.
+					 if (animal[prop] === "") {
+						 delete animal[prop]
+					 }
+				 }
+			 }
+
+			 return obj
+		 }
+
+		 let animalsToMerge = mergeSelf(parsedCSV)
+
+		 for (let id in animalsToMerge) {
+			 let currentAnimal = animalsToMerge[id]
+			 delete currentAnimal.Animal
+
+			 if (!animals[id]) {
+				 animals[id] = createEmptyAnimal(id)
+			 }
+
+			 let target = animals[id]
+			 let prefix = ""
+			 if (namespace) {prefix = namespace + "/"}
+
+			 let refused = false
+
+			 for (let inputProp in currentAnimal) {
+				 let outputProp = prefix + inputProp
+
+				 if (!target[outputProp]) {
+					 target[outputProp] = currentAnimal[inputProp]
+				 }
+				 else {
+					 //If the output property does not exist, do not copy.
+					 //TODO: We will probably need to add merge - however keep in mind:
+
+					 //TODO: If there are exactly identical results for a single property across trials, and those trials are across multiple sheets,
+					 //uneven length arrays may result.
+
+					 //The trials may be one per sheet, or multiple per sheet, or mixed, so we can't rely on only merging non-arrays,
+					 //unless we waited until the end to compact arrays with all identical properties into a non-array
+
+					 //Doing that, though, would still result in duplicate sheet with 5 trials having an output of 10 trials ([1,2,3,4,5,1,2,3,4,5])
+
+					 if (!refused) {
+						 refused = true
+						 console.warn("Refused to copy at least one property")
+					 }
+				 }
+			 }
+		 }
+	}
+
+	let mainCSV = await loadDataCSV()
+	processCSV(mainCSV, "Mice")
+
+	files.forEach((fileName) => {
+		try {
+			let filePath = path.join(global.dataDir, fileName)
+			if (fileName.endsWith(".csv")) {
+				console.warn(fileName)
+				let str = fs.readFileSync(filePath)
+				processCSV(str, fileName.slice(0, -4))
+			}
+			else if (fileName.endsWith(".xlsx")) {
+				console.warn(fileName)
+				let file = xlsx.readFileSync(filePath)
+				for (let sheetName in file.Sheets) {
+					let sheet = file.Sheets[sheetName]
+					//This is a bit ineffecient (double parsing), but it works for now.
+					let str = xlsx.utils.sheet_to_csv(sheet)
+					//Note: We do NOT include the xlsx filename, only the sheet names!
+					processCSV(str, sheetName)
+				}
+			}
+		}
+		catch (e) {
+			console.error("Error processing file", fileName, e)
+		}
+	})
+
+	console.log(animals)
+
+
+
+	//Now add DICOMs - merge into animals where possible, else create new ones.
+	//We don't want to read every image in an entire series when the headers we care about are the same.
+
+	//FOR PERFORMANCE:
+	//We assume that ALL dicom files within the same directory are for THE SAME animal and have the same animal properties!
+	//If the DICOM is in the datadir, that is ignored.
+
+	let dicomDirs = {}
+
+	for (let i=0;i<files.length;i++) {
+		let fileName = files[i]
+		if (fileName.endsWith(".dcm")) {
+			let filePath = path.join(global.dataDir, fileName)
+			let dir = path.dirname(filePath)
+
+			async function addAnimalFromDICOM(filePath) {
+				let buf = await fs.promises.readFile(filePath)
+				let data = new DataView(daikon.Utils.toArrayBuffer(buf))
+
+				let image = daikon.Series.parseImage(data)
+
+				global.image = image
+
+				//To dump all image metadata to console:
+				Object.keys(image.tagsFlat).forEach((id) => {
+					let tag = image.tagsFlat[id]
+					console.log(daikon.Dictionary.getDescription(tag.group,tag.element), tag.value, tag.group, tag.element)
+				})
+
+				function formatDate(dateObj) {
+					return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
+				}
+
+				let id = image.getPatientID()
+				id = normalizeCode(id).normalized //TODO: We need to figure out what the stuff after the colon means.
+				let emptyAnimal = createEmptyAnimal(id)
+				let animal = Object.assign(emptyAnimal, {
+					//TODO: Figure out what some of the properties like PatientName correspond to in the CSVs.
+
+					//TODO: How to use the StudyDate / time scan was taken? Maybe for date of death if we know this was exVivo?
+					//TODO: How to use bodyPartExamined? (probably can't, as it's part of the scan, not the animal)
+					Sex: image.getTag(16, 64).value[0],
+					Modality: image.getTag(8, 96).value[0],
+					DOB: formatDate(image.getTag(16, 48).value[0]),
+					weight: image.getTag(16, 4144).value[0], //weight or weight_at_sacrifice?
+				})
+
+
+				let matchingAnimal = animals[animal.Animal]
+				if (matchingAnimal) {
+					//Are any animals going to have two different Modality values, due to use in two different studies?
+					console.warn("Existing animal matches DICOM. We should merge properties, and figure out what to do if they don't match")
+					return matchingAnimal
+				}
+
+				return animals[animal.Animal] = animal
+			}
+
+			let animal = dicomDirs[dir]
+			if (!animal) {
+				console.log(filePath)
+				animal = await addAnimalFromDICOM(filePath)
+				if (dir !== global.dataDir) {
+					dicomDirs[dir] = animal
+				}
+			}
+
+			//Add the DICOM to component files.
+			//TODO: componentFiles will contain an entire series of DICOMs, but we don't have any thumbnails.
+			//We should generate thumbnails. This would require processing the entire series at some point, and caching.
+			animal.componentFiles.push(fileName)
+ 		}
+	}
+
+	//Reclaim all DICOMs much more effeciently than with reclaimFiles
+	files = files.filter(fileName => !fileName.endsWith(".dcm"))
+
+	console.log(dicomDirs)
+	console.log(animals)
+
+	//TODO: Rename some variables. csvJSON is old. It's now an array of animals.
+	let csvJSON = []
+	for (let id in animals) {
+		csvJSON.push(animals[id])
+	}
 
    for (let i=0;i<csvJSON.length;i++) {
 	   let item = csvJSON[i]
-	   item.type = "animal"
-	   item.views = []
-	   item.componentFiles = []
 
-	   //These will be used for identification.
-	   let animalCode = item.Animal, normalizedAnimalCode;
-
-	   function normalizeCode(codeToNormalize = "") {
-		   codeToNormalize = codeToNormalize.trim()
-		   if (codeToNormalize.indexOf(":") !== -1) {
-			   codeToNormalize = codeToNormalize.slice(0, codeToNormalize.indexOf(":"))
-		   }
-		   let fullyNormalized = codeToNormalize.split("-").join("_") //Some files have this normalized.
-
-		   return {partiallyNormalized: codeToNormalize, fullyNormalized}
-	   }
-
-	   let tempVar = normalizeCode(animalCode)
-	   animalCode = tempVar.partiallyNormalized
-	   normalizedAnimalCode = tempVar.fullyNormalized
-
-
-	   //Merge the namespacedCSVs into this animal.
-	   //TODO: Support non-Animal property matching.
-	   //TODO: What to do with DWI, GRE, and other properties? I assume we should merge those.
-	   for (namespace in namespacedCSVs) {
-		   let data = namespacedCSVs[namespace]
-
-		   let matched = []
-		   data.forEach((dataLine) => {
-			   if (normalizeCode(dataLine.Animal).fullyNormalized === normalizedAnimalCode) {
-				   matched.push(dataLine.Animal, normalizedAnimalCode)
-				   for (let prop in dataLine) {
-					   if (dataLine[prop] !== "" && prop !== "Animal") {
-						   let nsProp = `${namespace}/${prop}`
-						   if (item[nsProp]) {
-							   //If this specific namespace has multiple entries for the same Animal, join them in an array.
-							   //This is applicable for things like trials, where one animal is trialed multiple times.
-							   if (!(item[nsProp] instanceof Array)) {
-								   item[nsProp] = [item[nsProp]]
-							   }
-							   item[nsProp].push(dataLine[prop])
-						   }
-						   else {
-							   item[nsProp] = dataLine[prop]
-						   }
-					   }
-				   }
-			   }
-		   })
-		   //console.warn(matched)
-	   }
-
-
+	   //TODO: Some files contain non-normalized versions of the animal ID. We don't currently detect those.
 
 	   //These are all the different ways that files can be identified along with an animal.
 	   //We keep them seperate so we can pair with labels better.
-	   let provisionalItems = [animalCode, normalizedAnimalCode, item["SAMBA Brunno"], item.GRE, item.DWI].flat()
+	   let provisionalItems = [item.Animal, item["SAMBA Brunno"], item.GRE, item.DWI].flat()
 
 	   let relatedFiles = provisionalItems.map((itemsToCheck) => {
 		   //Some animals, like with Animal 190610-1:1, can have multiple GRE and DWI identifiers - we need to allow for arrays or single values.
@@ -272,9 +473,6 @@ async function generateJSON() {
    console.timeEnd("Gen")
 
    return {
-	   csvSources: {
-		   "Mice": parsedCSV.csvText
-	   },
 	   data: allData
    }
 }
