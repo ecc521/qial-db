@@ -195,24 +195,31 @@ function createGraphComponent({graphType, axes = {}}) {
 		//There can be multiple y axes - If there's only one item selected though, label it.
 		if (layout.yaxis?.title?.length === 1) {layout.yaxis.title = layout.yaxis.title[0]}
 
-		function splitWAxis(items) {
-			//Splits into groups based on w axis.
-			console.log(axes.w)
+		function obtainGroupSplitPoints(items, wAxis, ...axes) {
 			let groups = {}
-			items.forEach((item) => {
-				let val = item[axes.w]
-				//If there isn't a w axis, this still works - the only w is "undefined" (and with only one w, labels aren't displayed)
-				if (axes.w !== undefined && val === undefined) {return}
-				if (!groups[val]) {groups[val] = []}
-				groups[val].push(item)
-			})
+
+			if (!wAxis) {
+				groups["Group 1"] = obtainGroupPoints(items, ...axes)
+			}
+			else {
+				let points = obtainGroupPoints(items, ...axes, wAxis)
+
+				points.forEach((point) => {
+					let wAxis = point.pop()
+					if (!groups[wAxis]) {
+						groups[wAxis] = []
+					}
+					else {
+						groups[wAxis].push(point)
+					}
+				})
+			}
+
 			return groups
 		}
 
-
-
 		if (graphType === "Violin Plot") {
-			let groups = splitWAxis(items)
+			let groups = obtainGroupSplitPoints(items, axes.w, axes.x, axes.y)
 
 			let props = Object.keys(groups)
 			let useSplitViolin = (props.length === 2)
@@ -223,14 +230,14 @@ function createGraphComponent({graphType, axes = {}}) {
 				violingroupgap: 0
 			})
 
-			props.forEach((prop, index) => {
-				let groupItems = groups[prop]
+			for (let groupName in groups) {
+				let points = groups[groupName]
 
 				let info = {
 					type: 'violin',
 					x: [],
 					y: [],
-					name: prop,
+					name: groupName,
 					jitter: 0.05,
 					box: {
 						visible: true
@@ -256,38 +263,32 @@ function createGraphComponent({graphType, axes = {}}) {
 					info.pointpos = -info.pointpos
 				}
 
-				let points = obtainGroupPoints(groupItems, axes.x, axes.y)
 				points.forEach(([x,y]) => {
 					info.x.push(x)
 					info.y.push(y)
 				})
 
 				data.push(info)
-			})
+			}
 		}
 		else if (graphType === "Scatter Plot") {
-			let groups = splitWAxis(items)
 			let CI = 0.95
 			let Z = percentile_z(1 - ((1 - CI) / 2))
 
 			let yCount = axes.y.length
-			let groupCount = Object.keys(groups).length
 
-			for (let groupName in groups) {
-				let groupItems = groups[groupName]
+			axes.y.forEach((yProp) => {
+				let groups = obtainGroupSplitPoints(items, axes.w, axes.x, yProp)
+				let groupCount = Object.keys(groups).length
 
-				axes.y.forEach((yProp) => {
+				for (let groupName in groups) {
+					let points = groups[groupName]
+
 					let name = yProp
 					if (groupCount > 1) {
-						name = groupName
-
-						if (yCount > 1) {
-							name += "/" + yProp //Multiple y axes per group - they need group and yProp in name.
-						}
+						name = groupName + "/" + name
 					}
 
-					let points = obtainGroupPoints(groupItems, axes.x, yProp)
-					if (points.length === 0) {return}
 					let domain = [points[0][0], points[points.length - 1][0]]
 
 					function round(num, places = 3) {
@@ -466,11 +467,11 @@ function createGraphComponent({graphType, axes = {}}) {
 							console.error(e)
 						}
 					})
-				})
-			}
+				}
+			})
 		}
 		else if (graphType === "3D Scatter Plot") {
-			let groups = splitWAxis(items)
+			let groups = obtainGroupSplitPoints(items, axes.w, axes.x, axes.y, axes.z)
 
 			Object.assign(layout, {
 				margin: {
@@ -482,7 +483,7 @@ function createGraphComponent({graphType, axes = {}}) {
 			})
 
 			for (let groupName in groups) {
-				let groupItems = groups[groupName]
+				let points = groups[groupName]
 
 				let info = {
 					x: [],
@@ -496,7 +497,6 @@ function createGraphComponent({graphType, axes = {}}) {
 					type: 'scatter3d'
 				}
 
-				let points = obtainGroupPoints(groupItems, axes.x, axes.y, axes.z)
 				points.forEach(([x,y,z]) => {
 					info.x.push(x)
 					info.y.push(y)
