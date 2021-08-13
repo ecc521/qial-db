@@ -27,10 +27,18 @@ function createPrecomputed(pathToNIFTI) {
 	let args;
 	if (pathToNIFTI.includes("label")) {
 		//TODO: Try to rewrite the precomputedLabels code.
+		//TODO: We need a better way to handle the spreadsheet files.
+		let labelsFileName = "CHASSSYMM3_to_ABA.xlsx"
+		let labelsFile = path.join(global.dataDir, labelsFileName)
+		if (!fs.existsSync(labelsFile)) {
+			console.warn("Unable to compute labels. Missing ", labelsFileName)
+			return
+		}
+		
 		args = [
 			path.join(__dirname, "python", "createPrecomputedLabels.py"),
 			pathToNIFTI,
-			path.join(global.dataDir, "CHASSSYMM3_to_ABA.xlsx"), //TODO: We need a better way to handle the spreadsheet files.
+			labelsFile,
 			outputName //dirName - taken relative to the cwd.
 		]
 	}
