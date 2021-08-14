@@ -29,6 +29,11 @@ h1, h2 {
 	font-size: 2em;
 }
 
+#topBar #acronym a {
+	color: inherit;
+	text-decoration: none;
+}
+
 #topBar #title {
 	font-size: 1em;
 }
