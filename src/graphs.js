@@ -92,11 +92,10 @@ graphCreationTools.appendChild(addGraphButton)
 addGraphButton.addEventListener("click", function() {
 	//Insert as the first graph.
 	let beforeNode = document.querySelector(".graphContainerDiv")
-	//TODO: This ordering CHANGES when the search link is followed.
-	//We should probably insert below and scroll to it, or insert above in BOTH places.
-	graphsDiv.insertBefore(createGraphComponent({
+	let newGraph = createGraphComponent({
 		graphType: graphTypeSelector.value
-	}), beforeNode)
+	})
+	graphsDiv.insertBefore(newGraph, beforeNode)
 	updateSearchLink()
 })
 
@@ -146,7 +145,7 @@ let graphSelections = []
 
 function createGraphComponent({graphType, axes = {}}) {
 	let componentObj = {graphType, axes}
-	graphSelections.push(componentObj)
+	graphSelections.unshift(componentObj) //New graphs are added to the beginning, not end,
 
 	let graphDiv = document.createElement("div")
 	graphDiv.className = "graphContainerDiv"
@@ -400,8 +399,6 @@ function createGraphComponent({graphType, axes = {}}) {
 									reginfo.y.push(result.predict(x)[1]) //Predict returns an [x,y] array.
 								}
 							}
-
-							//TODO: Do LOESS Margin of Error based on halfwidth.
 
 							if (config.order === 1 || type === "LOESS") {
 								let text = []
