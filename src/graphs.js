@@ -256,7 +256,7 @@ function createGraphComponent({graphType, axes = {}}) {
 					}
 				}
 
-				if (useSplitViolin && index === 1) {
+				if (useSplitViolin && groupName === props[1]) {
 					if (info.side === "positive") {info.side = "negative"}
 					else if (info.side === "negative") {info.side = "positive"}
 					info.pointpos = -info.pointpos
