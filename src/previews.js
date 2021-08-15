@@ -31,11 +31,17 @@ function Item(item) {
 		return p
 	}).bind(this)
 
+	function addProp(name, val) {
+		if (val !== undefined) {
+			addText(`${name}: ${val}`)
+		}
+	}
+
 	this.componentRows = []
 
 	item["Image Count"] = String(item?.views?.length ?? "")
 
-	if (item.type === "file") {
+	if (item.type === "file" || item.type === "datafile") {
 		itemHolder.push(this)
 		if (!this.parent) {
 			parentHolder.push(this)
@@ -43,6 +49,8 @@ function Item(item) {
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
+		addProp("Warnings", item.warnings)
+		addProp("Errors", item.errors)
 
 		let renameButton = document.createElement("button")
 		renameButton.classList.add("renameButton")
@@ -101,11 +109,11 @@ function Item(item) {
 		animalName.replaceWith(editLink)
 		editLink.appendChild(animalName)
 
-		addText(`Sex: ${item.Sex}`)
-		addText(`Genotype: ${item.Genotype}`)
-		addText(`Weight: ${item.weight}`)
-		addText(`DOB: ${item.DOB}`)
-		addText(`File Count: ${item.componentFiles.length}`)
+		addProp("Sex", item.Sex)
+		addProp("Genotype", item.Genotype)
+		addProp("Weight", item.weight)
+		addProp("DOB", item.DOB)
+		addProp("File Count", item.componentFiles.length)
 
 		if (item.Sex === "male") {this.row.style.backgroundColor = "#eeeeff"}
 		else if (item.Sex === "female") {this.row.style.backgroundColor = "#ffeeee"}
@@ -233,5 +241,5 @@ window.drawCards = function drawCards(items) {
 	search.runSearch() //Run again to display details on percentage drawn and stuff.
 
 	const graphs = require("./graphs.js")
-	
+
 }())
