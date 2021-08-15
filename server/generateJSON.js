@@ -114,6 +114,9 @@ async function generateJSON() {
 	function processCSV(str, name) {
 		let namespace = computeNamespace(name)
 		console.log(namespace, name)
+
+		let errors, warnings;
+
 		let parsedCSV = csvParse(str, {
 			 columns: function(header) {
 				 return header.map((str) => {
@@ -197,8 +200,6 @@ async function generateJSON() {
 			 let prefix = ""
 			 if (namespace) {prefix = namespace + "/"}
 
-			 let refused = false
-
 			 for (let inputProp in currentAnimal) {
 				 let outputProp = prefix + inputProp
 
@@ -207,23 +208,22 @@ async function generateJSON() {
 				 }
 				 else {
 					 //If the output property does not exist, do not copy.
+					 warnings = "Conflicts within namespace"
+
 					 //TODO: We will probably need to add merge - however keep in mind:
 
-					 //TODO: If there are exactly identical results for a single property across trials, and those trials are across multiple sheets,
+					 //If there are exactly identical results for a single property across trials, and those trials are across multiple sheets,
 					 //uneven length arrays may result.
 
 					 //The trials may be one per sheet, or multiple per sheet, or mixed, so we can't rely on only merging non-arrays,
 					 //unless we waited until the end to compact arrays with all identical properties into a non-array
 
 					 //Doing that, though, would still result in duplicate sheet with 5 trials having an output of 10 trials ([1,2,3,4,5,1,2,3,4,5])
-
-					 if (!refused) {
-						 refused = true
-						 console.warn("Refused to copy at least one property")
-					 }
 				 }
 			 }
 		 }
+
+		 return {errors, warnings}
 	}
 
 	let mainCSV = await loadDataCSV()
@@ -231,11 +231,14 @@ async function generateJSON() {
 
 	files = files.filter((fileName) => {
 		let isDataFile = false
+		let res = {};
 		try {
+			//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
+			//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
 			let filePath = path.join(global.dataDir, fileName)
 			if (isDataFile = fileName.endsWith(".csv")) {
 				let str = fs.readFileSync(filePath)
-				processCSV(str, fileName.slice(0, -4))
+				res = processCSV(str, fileName.slice(0, -4))
 			}
 			else if (isDataFile = fileName.endsWith(".xlsx")) {
 				let file = xlsx.readFileSync(filePath)
@@ -244,19 +247,24 @@ async function generateJSON() {
 					//This is a bit ineffecient (double parsing), but it works for now.
 					let str = xlsx.utils.sheet_to_csv(sheet)
 					//Note: We do NOT include the xlsx filename, only the sheet names!
-					processCSV(str, sheetName)
+					let sheetRes = processCSV(str, sheetName)
+					//Give a warning for the specific sheet. If a sheet has multiple errors/warnings, we'll only show one.
+					//TODO: Show errors for multiple sheets.
+					if (sheetRes.errors) {res.errors = `Sheet ${sheetName} ${sheetRes.errors}`}
+					if (sheetRes.warnings) {res.warnings = `Sheet ${sheetName} ${sheetRes.warnings}`}
 				}
 			}
 		}
 		catch (e) {
+			res.errors = "Not Merged: " + e
 			console.error("Error processing file", fileName, e)
 		}
 
 		if (isDataFile) {
-			console.warn("Processed", fileName)
-			//TODO: We can add a warning field or something now to display any errors or warnings incurred with this file.
-			//Set newFile.warnings and newFile.errors if applicible.
+			//Show warnings and errors for this file.
 			let newFile = createFile(fileName, "datafile")
+			if (res.errors) {newFile.errors = res.errors}
+			if (res.warnings) {newFile.warnings = res.warnings}
 			allData.push(newFile)
 		}
 		return !isDataFile

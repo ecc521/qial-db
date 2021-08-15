@@ -637,6 +637,7 @@ function createGraphComponent({graphType, axes = {}}) {
 function setupFromParams() {
 	let params = window.currentParams
 	let arr = params.get("graphs")
+	if (!arr) {return}
 
 	try {
 		arr = JSON.parse(arr)
@@ -645,7 +646,7 @@ function setupFromParams() {
 			graphsDiv.appendChild(createGraphComponent(obj))
 		})
 	}
-	catch (e) {console.warn("Error loading graphlink", e)}
+	catch (e) {console.error("Error loading graphlink", e)}
 }
 setupFromParams()
 

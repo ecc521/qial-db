@@ -307,6 +307,7 @@ function searchFilter({prop, values}, elemToAppend) {
 function setupFromParams() {
 	let params = window.currentParams
 	let arr = params.get("search")
+	if (!arr) {return}
 
 	try {
 		arr = JSON.parse(arr)
@@ -315,7 +316,7 @@ function setupFromParams() {
 			search.appendChild(searchItemBar(obj))
 		})
 	}
-	catch (e) {console.warn("Error loading searchlink", e)}
+	catch (e) {console.error("Error loading searchlink", e)}
 }
 
 setupFromParams()
