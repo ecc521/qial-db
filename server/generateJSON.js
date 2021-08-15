@@ -56,6 +56,29 @@ async function generateJSON() {
 
 
 
+	let allData = []
+
+   function createEmptyAnimal(id) {
+	   return {
+		   Animal: id,
+		   type: "animal",
+		   views: [],
+		   componentFiles: []
+	   }
+   }
+
+   function createFile(fileName, type = "file") {
+	   let stats = fs.statSync(path.join(global.dataDir, fileName))
+	   return {
+			  name: fileName,
+			  size: stats.size,
+			  lastModified: new Date(stats.mtime).getTime(),
+			  type
+		  }
+   }
+
+
+
 	//Used to normalize Animal IDs.
 	 //TODO: We need to figure out what the stuff after the colon means.
 	 //We currently assume it is irrelevant.
@@ -82,15 +105,6 @@ async function generateJSON() {
 			}
 		}
 		return
-	}
-
-	function createEmptyAnimal(id) {
-		return {
-			Animal: id,
-			type: "animal",
-			views: [],
-			componentFiles: []
-		}
 	}
 
 	//TODO: Consider adding another function to normalize other animal properties.
@@ -215,16 +229,15 @@ async function generateJSON() {
 	let mainCSV = await loadDataCSV()
 	processCSV(mainCSV, "Mice")
 
-	files.forEach((fileName) => {
+	files = files.filter((fileName) => {
+		let isDataFile = false
 		try {
 			let filePath = path.join(global.dataDir, fileName)
-			if (fileName.endsWith(".csv")) {
-				console.warn(fileName)
+			if (isDataFile = fileName.endsWith(".csv")) {
 				let str = fs.readFileSync(filePath)
 				processCSV(str, fileName.slice(0, -4))
 			}
-			else if (fileName.endsWith(".xlsx")) {
-				console.warn(fileName)
+			else if (isDataFile = fileName.endsWith(".xlsx")) {
 				let file = xlsx.readFileSync(filePath)
 				for (let sheetName in file.Sheets) {
 					let sheet = file.Sheets[sheetName]
@@ -238,10 +251,18 @@ async function generateJSON() {
 		catch (e) {
 			console.error("Error processing file", fileName, e)
 		}
+
+		if (isDataFile) {
+			console.warn("Processed", fileName)
+			//TODO: We can add a warning field or something now to display any errors or warnings incurred with this file.
+			//Set newFile.warnings and newFile.errors if applicible.
+			let newFile = createFile(fileName, "datafile")
+			allData.push(newFile)
+		}
+		return !isDataFile
 	})
 
-	console.log(animals)
-
+	console.log(files)
 
 
 	//Now add DICOMs - merge into animals where possible, else create new ones.
@@ -318,20 +339,19 @@ async function generateJSON() {
  		}
 	}
 
-	//Reclaim all DICOMs much more effeciently than with reclaimFiles
+	//Remove DICOMs from files array - they are now all associated with Animals.
 	files = files.filter(fileName => !fileName.endsWith(".dcm"))
 
 	console.log(dicomDirs)
 	console.log(animals)
 
-	//TODO: Rename some variables. csvJSON is old. It's now an array of animals.
-	let csvJSON = []
 	for (let id in animals) {
-		csvJSON.push(animals[id])
+		allData.push(animals[id])
 	}
 
-   for (let i=0;i<csvJSON.length;i++) {
-	   let item = csvJSON[i]
+   for (let i=0;i<allData.length;i++) {
+	   let item = allData[i]
+	   if (item.type !== "animal") {continue} //Only process animals, no files.
 
 	   //These are all the different ways that files can be identified along with an animal.
 	   //We keep them seperate so we can pair with labels better.
@@ -431,29 +451,14 @@ async function generateJSON() {
 	   }
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {
-		   let stats = fs.statSync(path.join(global.dataDir, fileName))
-		   return {
-			   name: fileName,
-			   size: stats.size,
-			   lastModified: new Date(stats.mtime).getTime(),
-			   type: "file"
-		   }
+		   return createFile(fileName)
 	   })
    }
 
 
-   let fileData = []
    files.forEach((fileName) => {
-	   let stats = fs.statSync(path.join(global.dataDir, fileName))
-	   fileData.push({
-		   name: fileName,
-		   size: stats.size,
-		   lastModified: new Date(stats.mtime).getTime(),
-		   type: "file"
-	   })
+	   allData.push(createFile(fileName))
    })
-
-   let allData = csvJSON.concat(fileData)
 
    function calc(item) {
 	   let val = 0;
