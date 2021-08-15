@@ -187,6 +187,9 @@ async function generateJSON() {
 		 }
 
 		 let animalsToMerge = mergeSelf(parsedCSV)
+		 if (Object.keys(animalsToMerge).length === 0) {
+			 errors = "No Animals Found/Check Format"
+		 }
 
 		 for (let id in animalsToMerge) {
 			 let currentAnimal = animalsToMerge[id]
@@ -235,6 +238,11 @@ async function generateJSON() {
 		try {
 			//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
 			//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
+
+			//TODO: It might make sense to put all errors and warnigns into a unified panel on the site - that gives more space, and lets us
+			//inform about other issues.
+
+			//Maybe just put some issues there. 
 			let filePath = path.join(global.dataDir, fileName)
 			if (isDataFile = fileName.endsWith(".csv")) {
 				let str = fs.readFileSync(filePath)
@@ -250,8 +258,8 @@ async function generateJSON() {
 					let sheetRes = processCSV(str, sheetName)
 					//Give a warning for the specific sheet. If a sheet has multiple errors/warnings, we'll only show one.
 					//TODO: Show errors for multiple sheets.
-					if (sheetRes.errors) {res.errors = `Sheet ${sheetName} ${sheetRes.errors}`}
-					if (sheetRes.warnings) {res.warnings = `Sheet ${sheetName} ${sheetRes.warnings}`}
+					if (sheetRes.errors) {res.errors = `Sheet ${sheetName} - ${sheetRes.errors}`}
+					if (sheetRes.warnings) {res.warnings = `Sheet ${sheetName} - ${sheetRes.warnings}`}
 				}
 			}
 		}
