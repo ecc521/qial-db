@@ -49,8 +49,6 @@ function Item(item) {
 		addText(`File Name: ${item.name}`)
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
-		addProp("Warnings", item.warnings)
-		addProp("Errors", item.errors)
 
 		let renameButton = document.createElement("button")
 		renameButton.classList.add("renameButton")
@@ -212,6 +210,9 @@ function Item(item) {
 	else {
 		console.warn("Unknown Type: " + item.type)
 	}
+
+	addProp("Warnings", item.warnings)
+	addProp("Errors", item.errors)
 }
 
 
