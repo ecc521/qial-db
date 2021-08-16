@@ -80,6 +80,9 @@ async function generateJSON() {
 	//Might also want to convert Strings to Numbers
 
 	function mergeAnimals(animalsToMerge, name) {
+		//Note: animalsToMerge might be a reference that we can't modify.
+		//Deleting the Animal property is fine (doesn't matter), but we can't destroy it.
+		//This code must be able to run multiple times using the same animalsToMerge
 		let namespace = computeNamespace(name)
 		console.log(namespace, name)
 
@@ -128,8 +131,10 @@ async function generateJSON() {
 	}
 
 
-	//TODO: The Google Sheets causes some slowdowns - switch it over locally. 
+	//TODO: The Google Sheets causes some slowdowns - switch it over locally.
+	console.time("Google")
 	let mainCSV = await loadDataCSV()
+	console.timeEnd("Google")
 	mainCSV = parseAnimalCSV(mainCSV)
 	mainCSV = mergeRowsWithinSheet(mainCSV)
 	mergeAnimals(mainCSV, "Mice")
@@ -183,10 +188,10 @@ async function generateJSON() {
 				global.image = image
 
 				//To dump all image metadata to console:
-				Object.keys(image.tagsFlat).forEach((id) => {
-					let tag = image.tagsFlat[id]
-					console.log(daikon.Dictionary.getDescription(tag.group,tag.element), tag.value, tag.group, tag.element)
-				})
+				// Object.keys(image.tagsFlat).forEach((id) => {
+				// 	let tag = image.tagsFlat[id]
+				// 	console.log(daikon.Dictionary.getDescription(tag.group,tag.element), tag.value, tag.group, tag.element)
+				// })
 
 				function formatDate(dateObj) {
 					return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`

@@ -8,13 +8,19 @@ const {createEmptyAnimal, createFile, normalizeCode} = require("./formats.js")
 
 let memCache = {}
 
-//Process file does as much file processing as can be cached.
+//processFile loads the files, and parses them. It caches the results, and returns them until the source changes. 
 function processFile(fileName) {
 	if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {return false}
 
 	let fileObj = createFile(fileName, "datafile")
-	let sheets = {};
+	let cached = memCache[fileName]
 
+	//Check lastModified and size, the two properties createFile generates for us.
+	if (cached && cached.fileObj.lastModified === fileObj.lastModified && cached.fileObj.size === fileObj.size) {
+		return cached
+	}
+
+	let sheets = {};
 	try {
 		let filePath = path.join(global.dataDir, fileName)
 		if (fileName.endsWith(".csv")) {
@@ -40,7 +46,7 @@ function processFile(fileName) {
 		fileObj.errors = "Not Merged: " + e
 	}
 
-	return {fileObj, sheets}
+	return memCache[fileName] = {fileObj, sheets}
 }
 
 function parseAnimalCSV(str) {
