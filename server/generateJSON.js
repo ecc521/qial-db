@@ -1,20 +1,19 @@
 const fs = require("fs")
 const path = require("path")
 
-const getFilesInDirectory = require("./getFilesInDirectory.js")
-
 const daikon = require("daikon")
 
-
-
+const getFilesInDirectory = require("./getFilesInDirectory.js")
 const loadDataCSV = require("./loadDataCSV.js")
 
 const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputed = require("./createPrecomputed.js")
 const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
-const csvParse = require('csv-parse/lib/sync')
-const xlsx = require("xlsx")
+const {createEmptyAnimal, createFile, normalizeCodex} = require("./generateJSON/formats.js")
+const {parseAnimalCSV, mergeRows} = require("./generateJSON/dataParser.js")
+
+const xlsx = require("xlsx") //TODO: This will go next, along with more logic to dataParser. 
 
 //Architecture:
 // 1. Receive Request
@@ -58,38 +57,6 @@ async function generateJSON() {
 
 	let allData = []
 
-   function createEmptyAnimal(id) {
-	   return {
-		   Animal: id,
-		   type: "animal",
-		   views: [],
-		   componentFiles: []
-	   }
-   }
-
-   function createFile(fileName, type = "file") {
-	   let stats = fs.statSync(path.join(global.dataDir, fileName))
-	   return {
-			  name: fileName,
-			  size: stats.size,
-			  lastModified: new Date(stats.mtime).getTime(),
-			  type
-		  }
-   }
-
-
-
-	//Used to normalize Animal IDs.
-	 //TODO: We need to figure out what the stuff after the colon means.
-	 //We currently assume it is irrelevant.
-   function normalizeCode(codeToNormalize = "") {
-	   codeToNormalize = codeToNormalize.trim()
-	   if (codeToNormalize.indexOf(":") !== -1) {
-		   codeToNormalize = codeToNormalize.slice(0, codeToNormalize.indexOf(":"))
-	   }
-	   return codeToNormalize.split("-").join("_")
-   }
-
 
 	//Animals will be linked together via the normalized Animal ID.
 	let animals = Object.create(null)
@@ -117,76 +84,10 @@ async function generateJSON() {
 
 		let errors, warnings;
 
-		let parsedCSV = csvParse(str, {
-			 columns: function(header) {
-				 return header.map((str) => {
-					 str = str.trim()
-					 if (str.toLowerCase() === "animal") {
-						 str = "Animal"
-					 }
-					 return str
-				 })
-			 },
-			 columns_duplicates_to_array: true
-		 })
+		let parsedCSV = parseAnimalCSV(str)
+		 let animalsToMerge = mergeRows(parsedCSV)
 
-		 //Merge all rows corresponding to a single animal within this sheet.
-		 //This ensures that no relevant duplicates are removed - if a property is a duplicate outside the sheet, it is a duplicate.
-		 function mergeSelf(rows) {
-			 let obj = {}
-			 rows.forEach((row) => {
-				 let id = row.Animal
-				 if (!id) {return}
 
-				 let normed = normalizeCode(id)
-				 delete row.Animal
-				 let target = obj[normed] = obj[normed] || {Animal: normed}
-
-				 //Copy all properties, merging into arrays.
-				 for (let prop in row) {
-					 if (prop === "Animal") {continue}
-					 if (prop === "") {continue} //Don't allow empty properties, as they cause lots of glitches in search code.
-
-					 //Even if the target it an empty string, we must still merge. We can't have different length arrays.
-					 if (target[prop] !== undefined) {
-						 if (!(target[prop] instanceof Array)) {
-							 target[prop] = [target[prop]]
-						 }
-
-						 if (row[prop] instanceof Array) {
-							 target[prop].push(...row[prop])
-						 }
-						 else {
-							 target[prop].push(row[prop])
-						 }
-					 }
-					 else {
-						 target[prop] = row[prop]
-					 }
-				 }
-			 })
-
-			 for (let id in obj) {
-				 let animal = obj[id]
-				 for (let prop in animal) {
-					 //If all the values in an array are identical, reduce to a single value.
-					 if (animal[prop] instanceof Array) {
-						 if (animal[prop].every(item => item === animal[prop][0])) {
-							 animal[prop] = animal[prop][0]
-						 }
-					 }
-
-					 //Delete empty properties.
-					 if (animal[prop] === "") {
-						 delete animal[prop]
-					 }
-				 }
-			 }
-
-			 return obj
-		 }
-
-		 let animalsToMerge = mergeSelf(parsedCSV)
 		 if (Object.keys(animalsToMerge).length === 0) {
 			 errors = "No Animals Found/Check Format"
 		 }
@@ -242,7 +143,7 @@ async function generateJSON() {
 			//TODO: It might make sense to put all errors and warnigns into a unified panel on the site - that gives more space, and lets us
 			//inform about other issues.
 
-			//Maybe just put some issues there. 
+			//Maybe just put some issues there.
 			let filePath = path.join(global.dataDir, fileName)
 			if (isDataFile = fileName.endsWith(".csv")) {
 				let str = fs.readFileSync(filePath)
