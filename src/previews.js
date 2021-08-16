@@ -96,17 +96,7 @@ function Item(item) {
 		setComponentVisibility()
 		this.checkbox.addEventListener("change", setComponentVisibility)
 
-		//Add link to edit the Animal's information.
-		let animalName = addText(`Animal: ${item.Animal}`)
-		let editLink = document.createElement("a")
-		let editLinkSrc = item.csvSources?.["Mice"]?.editUrl
-		if (editLinkSrc) {
-			editLink.href = editLinkSrc
-			editLink.target = "_blank"
-		}
-		animalName.replaceWith(editLink)
-		editLink.appendChild(animalName)
-
+		addText(`Animal: ${item.Animal}`)
 		addProp("Sex", item.Sex)
 		addProp("Genotype", item.Genotype)
 		addProp("Weight", item.weight)
@@ -234,7 +224,6 @@ window.drawCards = function drawCards(items) {
 	let request = await fetch("data.json")
 	let response = await request.json()
 	window.data = response.data
-	window.csvSources = response.csvSources
 
 	drawCards(window.data) //Need to get Image Count set BEFORE search code runs. TODO: Double drawing is slow. Use convertTo or something, or assign Image Count before drawing?
 
