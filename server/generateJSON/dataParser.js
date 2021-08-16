@@ -6,9 +6,41 @@ const xlsx = require("xlsx")
 
 const {createEmptyAnimal, createFile, normalizeCode} = require("./formats.js")
 
-let memCache = {
-	csv: {},
-	xlsx: {}
+let memCache = {}
+
+//Process file does as much file processing as can be cached.
+function processFile(fileName) {
+	if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {return false}
+
+	let fileObj = createFile(fileName, "datafile")
+	let sheets = {};
+
+	try {
+		let filePath = path.join(global.dataDir, fileName)
+		if (fileName.endsWith(".csv")) {
+			let str = fs.readFileSync(filePath)
+			let csvData = parseAnimalCSV(str)
+			let merged = mergeRowsWithinSheet(csvData)
+			sheets[fileName] = merged //Name for sheet is used determining namespace.
+		}
+		else if (fileName.endsWith(".xlsx")) {
+			let file = xlsx.readFileSync(filePath)
+			for (let sheetName in file.Sheets) {
+				let sheet = file.Sheets[sheetName]
+				//This is a bit ineffecient (double parsing), but it works for now.
+				let str = xlsx.utils.sheet_to_csv(sheet)
+				//Note: We do NOT include the xlsx filename, only the sheet names!
+				let csvData = parseAnimalCSV(str)
+				let merged = mergeRowsWithinSheet(csvData)
+				sheets[sheetName] = merged
+			}
+		}
+	}
+	catch (e) {
+		fileObj.errors = "Not Merged: " + e
+	}
+
+	return {fileObj, sheets}
 }
 
 function parseAnimalCSV(str) {
@@ -29,7 +61,7 @@ function parseAnimalCSV(str) {
 
 //Merge all rows corresponding to a single animal within this sheet.
 //This ensures that no relevant duplicates are removed - if a property is a duplicate outside the sheet, it is a duplicate.
-function mergeRows(rows) {
+function mergeRowsWithinSheet(rows) {
 	let obj = {}
 	rows.forEach((row) => {
 		let id = row.Animal
@@ -83,4 +115,4 @@ function mergeRows(rows) {
 	return obj
 }
 
-module.exports = {parseAnimalCSV, mergeRows}
+module.exports = {parseAnimalCSV, mergeRowsWithinSheet, processFile}

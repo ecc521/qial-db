@@ -10,10 +10,8 @@ const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputed = require("./createPrecomputed.js")
 const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
-const {createEmptyAnimal, createFile, normalizeCodex} = require("./generateJSON/formats.js")
-const {parseAnimalCSV, mergeRows} = require("./generateJSON/dataParser.js")
-
-const xlsx = require("xlsx") //TODO: This will go next, along with more logic to dataParser. 
+const {createEmptyAnimal, createFile, normalizeCode} = require("./generateJSON/formats.js")
+const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
 
 //Architecture:
 // 1. Receive Request
@@ -27,6 +25,9 @@ const xlsx = require("xlsx") //TODO: This will go next, along with more logic to
 // 4. Process DICOM files. Create new animals as necessary.
 // 5. Assign image files where possible.
 // 6. Final processing & send response
+
+
+//TODO: We need a way to inform about generic issues, not related to an individual file.
 
 async function generateJSON() {
 	console.time("Gen")
@@ -78,15 +79,11 @@ async function generateJSON() {
 	//Ex, M => male, F => female
 	//Might also want to convert Strings to Numbers
 
-	function processCSV(str, name) {
+	function mergeAnimals(animalsToMerge, name) {
 		let namespace = computeNamespace(name)
 		console.log(namespace, name)
 
 		let errors, warnings;
-
-		let parsedCSV = parseAnimalCSV(str)
-		 let animalsToMerge = mergeRows(parsedCSV)
-
 
 		 if (Object.keys(animalsToMerge).length === 0) {
 			 errors = "No Animals Found/Check Format"
@@ -130,56 +127,36 @@ async function generateJSON() {
 		 return {errors, warnings}
 	}
 
+
+	//TODO: The Google Sheets causes some slowdowns - switch it over locally. 
 	let mainCSV = await loadDataCSV()
-	processCSV(mainCSV, "Mice")
+	mainCSV = parseAnimalCSV(mainCSV)
+	mainCSV = mergeRowsWithinSheet(mainCSV)
+	mergeAnimals(mainCSV, "Mice")
 
 	files = files.filter((fileName) => {
-		let isDataFile = false
-		let res = {};
-		try {
-			//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
-			//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
+		//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
+		//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
 
-			//TODO: It might make sense to put all errors and warnigns into a unified panel on the site - that gives more space, and lets us
-			//inform about other issues.
+		let res = processFile(fileName)
+		if (!res) {return true} //Not a data file.
 
-			//Maybe just put some issues there.
-			let filePath = path.join(global.dataDir, fileName)
-			if (isDataFile = fileName.endsWith(".csv")) {
-				let str = fs.readFileSync(filePath)
-				res = processCSV(str, fileName.slice(0, -4))
-			}
-			else if (isDataFile = fileName.endsWith(".xlsx")) {
-				let file = xlsx.readFileSync(filePath)
-				for (let sheetName in file.Sheets) {
-					let sheet = file.Sheets[sheetName]
-					//This is a bit ineffecient (double parsing), but it works for now.
-					let str = xlsx.utils.sheet_to_csv(sheet)
-					//Note: We do NOT include the xlsx filename, only the sheet names!
-					let sheetRes = processCSV(str, sheetName)
-					//Give a warning for the specific sheet. If a sheet has multiple errors/warnings, we'll only show one.
-					//TODO: Show errors for multiple sheets.
-					if (sheetRes.errors) {res.errors = `Sheet ${sheetName} - ${sheetRes.errors}`}
-					if (sheetRes.warnings) {res.warnings = `Sheet ${sheetName} - ${sheetRes.warnings}`}
-				}
-			}
-		}
-		catch (e) {
-			res.errors = "Not Merged: " + e
-			console.error("Error processing file", fileName, e)
+		let sheets = res.sheets //If there was an error, res.sheets might not be defined, and there will be an error property on res.fileObj
+
+		for (let sheetName in sheets) {
+			let rows = sheets[sheetName]
+			let sheetRes = mergeAnimals(rows, sheetName)
+
+			//Give a warning for the specific sheet. If a sheet has multiple errors/warnings, we'll only show one.
+			//TODO: Show errors for multiple sheets.
+			if (sheetRes.errors) {res.fileObj.errors = `Sheet ${sheetName} - ${sheetRes.errors}`}
+			if (sheetRes.warnings) {res.fileObj.warnings = `Sheet ${sheetName} - ${sheetRes.warnings}`}
 		}
 
-		if (isDataFile) {
-			//Show warnings and errors for this file.
-			let newFile = createFile(fileName, "datafile")
-			if (res.errors) {newFile.errors = res.errors}
-			if (res.warnings) {newFile.warnings = res.warnings}
-			allData.push(newFile)
-		}
-		return !isDataFile
+		allData.push(res.fileObj)
 	})
 
-	console.log(files)
+
 
 
 	//Now add DICOMs - merge into animals where possible, else create new ones.
