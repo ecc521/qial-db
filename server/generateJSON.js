@@ -131,14 +131,6 @@ async function generateJSON() {
 	}
 
 
-	//TODO: The Google Sheets causes some slowdowns - switch it over locally.
-	console.time("Google")
-	let mainCSV = await loadDataCSV()
-	console.timeEnd("Google")
-	mainCSV = parseAnimalCSV(mainCSV)
-	mainCSV = mergeRowsWithinSheet(mainCSV)
-	mergeAnimals(mainCSV, "Mice")
-
 	files = files.filter((fileName) => {
 		//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
 		//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
