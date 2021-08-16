@@ -154,13 +154,15 @@ async function generateJSON() {
 
 			//Give a warning for the specific sheet. If a sheet has multiple errors/warnings, we'll only show one.
 			//TODO: Show errors for multiple sheets.
-			if (sheetRes.errors) {res.fileObj.errors = `Sheet ${sheetName} - ${sheetRes.errors}`}
-			if (sheetRes.warnings) {res.fileObj.warnings = `Sheet ${sheetName} - ${sheetRes.warnings}`}
+
+			let prefix = Object.keys(sheets).length === 1 ? "" : `Sheet ${sheetName} - `
+
+			if (sheetRes.errors) {res.fileObj.errors = prefix + sheetRes.errors}
+			if (sheetRes.warnings) {res.fileObj.warnings = prefix + sheetRes.warnings}
 		}
 
 		allData.push(res.fileObj)
 	})
-
 
 
 
