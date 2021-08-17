@@ -116,10 +116,10 @@ async function generateJSON() {
 	}
 
 
+	//Process CSV and XLSX sheets.
+	//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
+	//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
 	files = files.filter((fileName) => {
-		//TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
-		//XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
-
 		let res = processFile(fileName)
 		if (!res) {return true} //Not a data file.
 
@@ -143,6 +143,15 @@ async function generateJSON() {
 
 
 
+
+
+
+
+
+
+
+
+
 	//Now add DICOMs - merge into animals where possible, else create new ones.
 	//We don't want to read every image in an entire series when the headers we care about are the same.
 
@@ -150,8 +159,76 @@ async function generateJSON() {
 	//We assume that ALL dicom files within the same directory are for THE SAME animal and have the same animal properties!
 	//If the DICOM is in the datadir, that is ignored.
 
+	function formatDate(dateObj) {
+		return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
+	}
+
+	async function parseDICOM(filePath) {
+		let buf = await fs.promises.readFile(filePath)
+		let data = new DataView(daikon.Utils.toArrayBuffer(buf))
+
+		let image = daikon.Series.parseImage(data)
+		return image
+	}
+
+	function createAnimalFromDICOM(image) {
+		let id = image.getPatientID()
+		id = normalizeCode(id)
+		let emptyAnimal = createEmptyAnimal(id)
+		let animal = Object.assign(emptyAnimal, {
+			//TODO: Figure out what some of the properties like PatientName correspond to in the CSVs.
+
+			//TODO: How to use the StudyDate / time scan was taken? Maybe for date of death if we know this was exVivo?
+			//TODO: How to use bodyPartExamined? (probably can't, as it's part of the scan, not the animal)
+			Sex: image.getTag(16, 64).value[0],
+			Modality: image.getTag(8, 96).value[0],
+			DOB: formatDate(image.getTag(16, 48).value[0]),
+			weight: image.getTag(16, 4144).value[0], //weight or weight_at_sacrifice?
+		})
+		return animal
+	}
+
+	function addAnimalFromDICOM(image) {
+		//To dump all image metadata to console:
+		// Object.keys(image.tagsFlat).forEach((id) => {
+		// 	let tag = image.tagsFlat[id]
+		// 	console.log(daikon.Dictionary.getDescription(tag.group,tag.element), tag.value, tag.group, tag.element)
+		// })
+
+		let animal = createAnimalFromDICOM(image)
+
+		let matchingAnimal = animals[animal.Animal]
+		if (matchingAnimal) {
+			//We might have multiple DICOMs for the same animal.
+			//Are any animals going to have two different Modality values, due to use in two different studies?
+			console.warn("Existing animal matches DICOM. We should merge properties, and figure out what to do if they don't match")
+			return matchingAnimal
+		}
+
+		return animals[animal.Animal] = animal
+	}
+
+	//DICOM difficulties:
+	// - We don't want to modify the data structure.
+	// - We need to keep the files linked together.
+	// - We can't re-parse every time.
+
+	//We could avoid modifying the data structure by keeping information in cache, but putting DICOMs in directories probably makes the most sense.
+	//Picking the names could be tough. They must be unique but also short.
+
+
+	//If the DICOM is in a directory, it is assumed that the directory is part of the same series
+	//If not, we will assign the DICOM to it's correct directory.
+
+
+	//dicomDirs - correlates directory to Animal
 	let dicomDirs = {}
-	console.log(files)
+	//series - correlates seriesId to dicomDir.
+	let series = {}
+
+	//directoryDicoms is dicoms already in a directory. rootDicoms need to be assigned one, and go after.
+	let directoryDicoms = []
+	let rootDicoms = []
 
 	for (let i=0;i<files.length;i++) {
 		let fileName = files[i]
@@ -159,68 +236,66 @@ async function generateJSON() {
 			let filePath = path.join(global.dataDir, fileName)
 			let dir = path.dirname(filePath)
 
-			async function addAnimalFromDICOM(filePath) {
-				let buf = await fs.promises.readFile(filePath)
-				let data = new DataView(daikon.Utils.toArrayBuffer(buf))
-
-				let image = daikon.Series.parseImage(data)
-
-				global.image = image
-
-				//To dump all image metadata to console:
-				// Object.keys(image.tagsFlat).forEach((id) => {
-				// 	let tag = image.tagsFlat[id]
-				// 	console.log(daikon.Dictionary.getDescription(tag.group,tag.element), tag.value, tag.group, tag.element)
-				// })
-
-				function formatDate(dateObj) {
-					return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
-				}
-
-				let id = image.getPatientID()
-				id = normalizeCode(id)
-				let emptyAnimal = createEmptyAnimal(id)
-				let animal = Object.assign(emptyAnimal, {
-					//TODO: Figure out what some of the properties like PatientName correspond to in the CSVs.
-
-					//TODO: How to use the StudyDate / time scan was taken? Maybe for date of death if we know this was exVivo?
-					//TODO: How to use bodyPartExamined? (probably can't, as it's part of the scan, not the animal)
-					Sex: image.getTag(16, 64).value[0],
-					Modality: image.getTag(8, 96).value[0],
-					DOB: formatDate(image.getTag(16, 48).value[0]),
-					weight: image.getTag(16, 4144).value[0], //weight or weight_at_sacrifice?
-				})
-
-
-				let matchingAnimal = animals[animal.Animal]
-				if (matchingAnimal) {
-					//Are any animals going to have two different Modality values, due to use in two different studies?
-					console.warn("Existing animal matches DICOM. We should merge properties, and figure out what to do if they don't match")
-					return matchingAnimal
-				}
-
-				return animals[animal.Animal] = animal
+			if (dir === global.dataDir) {
+				rootDicoms.push(fileName)
 			}
-
-			let animal = dicomDirs[dir]
-			if (!animal) {
-				console.log(filePath)
-				animal = await addAnimalFromDICOM(filePath)
-				if (dir !== global.dataDir) {
-					dicomDirs[dir] = animal
-				}
+			else if (!dicomDirs[dir]) {
+				directoryDicoms.push(fileName)
 			}
-
-			//Add the DICOM to component files.
-			//TODO: componentFiles will contain an entire series of DICOMs, but we don't have any thumbnails.
-			//We should generate thumbnails. This would require processing the entire series at some point, and caching.
-			animal.componentFiles.push(fileName)
- 		}
+		}
 	}
-
 	//Remove DICOMs from files array - they are now all associated with Animals.
 	files = files.filter(fileName => !fileName.endsWith(".dcm"))
-	console.log(dicomDirs)
+
+
+
+	for (let i=0;i<directoryDicoms.length;i++) {
+		let fileName = directoryDicoms[i]
+		let filePath = path.join(global.dataDir, fileName)
+		let dir = path.dirname(filePath)
+
+		let animal = dicomDirs[dir]
+		if (!animal) {
+			let image = await parseDICOM(filePath)
+			animal = dicomDirs[dir] = addAnimalFromDICOM(image)
+			series[image.getSeriesId()] = dir
+		}
+
+		animal.componentFiles.push(fileName)
+	}
+
+
+	for (let i=0;i<rootDicoms.length;i++) {
+		let fileName = rootDicoms[i]
+		let filePath = path.join(global.dataDir, fileName)
+
+		let image = await parseDICOM(filePath)
+		let seriesId = image.getSeriesId()
+
+		let dir = series[seriesId]
+
+		if (!dir) {
+			//Create a directory for this DICOM, and move it.
+
+			//TODO: How do we want to name this?
+			let dirname = "dcm" + seriesId.trim().slice(0, 15)
+			dir = path.join(global.dataDir, dirname)
+			await fs.promises.mkdir(dir)
+
+			series[seriesId] = dir
+			dicomDirs[dir] = addAnimalFromDICOM(image)
+		}
+
+		let newFilePath = path.join(dir, fileName)
+		let newFileName = path.relative(global.dataDir, newFilePath)
+
+		await fs.promises.rename(filePath, newFilePath)
+
+		let animal = dicomDirs[dir]
+		animal.componentFiles.push(newFileName)
+	}
+
+
 
 	for (let id in animals) {
 		allData.push(animals[id])
