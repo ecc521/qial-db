@@ -12,6 +12,19 @@ function normalizeCode(codeToNormalize = "") {
 	return codeToNormalize.split("-").join("_")
 }
 
+//Return the namespace for a XLSX/CSV given it's sheet/file name. 
+function computeNamespace(name) {
+	name = name.toLowerCase()
+	//TODO: These namespaces might be contained as part of a word (ex, fa being part of body_fats.csv)
+	let namespaces = ["nor", "mwm", "fa", "volume"]
+	for (let i=0;i<namespaces.length;i++) {
+		let namespace = namespaces[i]
+		if (name.includes(namespace)) {
+			return namespace
+		}
+	}
+	return
+}
 
 function createEmptyAnimal(id) {
 	return {
@@ -32,4 +45,4 @@ function createFile(fileName, type = "file") {
 	}
 }
 
-module.exports = {createEmptyAnimal, createFile, normalizeCode}
+module.exports = {createEmptyAnimal, createFile, normalizeCode, computeNamespace}

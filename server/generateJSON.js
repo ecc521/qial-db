@@ -10,7 +10,7 @@ const generateThumbnails = require("./generateThumbnails.js")
 const createPrecomputed = require("./createPrecomputed.js")
 const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
-const {createEmptyAnimal, createFile, normalizeCode} = require("./generateJSON/formats.js")
+const {createEmptyAnimal, createFile, normalizeCode, computeNamespace} = require("./generateJSON/formats.js")
 const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
 
 //Architecture:
@@ -35,7 +35,6 @@ async function generateJSON() {
    let files = await getFilesInDirectory(global.dataDir)
    files = files.map((filePath) => {return path.relative(global.dataDir, filePath)})
    //TODO: Lock down tmp directory. Hide all files here, prevent uploads to it (not here), and prevent deletions and renames within it.
-   console.log(files)
 
    function reclaimFiles(reclaimedFiles, ...fileNames) {
 	   //Reclaimed files is an array of files that have already been reclaimed, to make concationation easy.
@@ -62,19 +61,6 @@ async function generateJSON() {
 	//Animals will be linked together via the normalized Animal ID.
 	let animals = Object.create(null)
 
-	function computeNamespace(name) {
-		name = name.toLowerCase()
-		//TODO: These namespaces might be contained as part of a word (ex, fa being part of body_fats.csv)
-		let namespaces = ["nor", "mwm", "fa", "volume"]
-		for (let i=0;i<namespaces.length;i++) {
-			let namespace = namespaces[i]
-			if (name.includes(namespace)) {
-				return namespace
-			}
-		}
-		return
-	}
-
 	//TODO: Consider adding another function to normalize other animal properties.
 	//Ex, M => male, F => female
 	//Might also want to convert Strings to Numbers
@@ -84,7 +70,6 @@ async function generateJSON() {
 		//Deleting the Animal property is fine (doesn't matter), but we can't destroy it.
 		//This code must be able to run multiple times using the same animalsToMerge
 		let namespace = computeNamespace(name)
-		console.log(namespace, name)
 
 		let errors, warnings;
 
@@ -166,6 +151,7 @@ async function generateJSON() {
 	//If the DICOM is in the datadir, that is ignored.
 
 	let dicomDirs = {}
+	console.log(files)
 
 	for (let i=0;i<files.length;i++) {
 		let fileName = files[i]
@@ -234,9 +220,7 @@ async function generateJSON() {
 
 	//Remove DICOMs from files array - they are now all associated with Animals.
 	files = files.filter(fileName => !fileName.endsWith(".dcm"))
-
 	console.log(dicomDirs)
-	console.log(animals)
 
 	for (let id in animals) {
 		allData.push(animals[id])
