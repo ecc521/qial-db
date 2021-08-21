@@ -46,7 +46,15 @@ function Item(item) {
 		if (!this.parent) {
 			parentHolder.push(this)
 		}
-		addText(`File Name: ${item.name}`)
+
+		let itemName = addText(`File Name: ${item.name}`)
+		//Add a link to download directly. 
+		let downloadLink = document.createElement("a")
+		downloadLink.href = `${window.location.origin}/data/${item.name}`
+		downloadLink.target = "_blank"
+		itemName.replaceWith(downloadLink)
+		downloadLink.appendChild(itemName)
+
 		addText(`Size: ${window.numberPrettyBytesSI(item.size, 2)}`)
 		addText(`Last Modified: ${new Date(item.lastModified).toDateString()}`)
 
@@ -70,6 +78,8 @@ function Item(item) {
 	}
 	else if (item.type === "animal") {
 		parentHolder.push(this)
+		//TODO: We should probably nest directories IF there are files not in the directory and the directory has more than some number of files.
+		//Maybe nest always, just autoexpand.
 		this.componentFiles = item.componentFiles
 		this.componentFiles = this.componentFiles.map((component) => {
 			component.parent = this

@@ -254,7 +254,7 @@ downloadNodejsScript.addEventListener("click", function() {
 	if (items.length === 0) {return alert("Please exit the download menu and select some items to download. ")}
 
 	let urls = items.map((item) => {
-		return window.location.href + "data/" + item.name
+		return `${window.location.origin}/data/${item.name}`
 	})
 	let str = getDownloadTemplate(urls)
 
