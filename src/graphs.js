@@ -1,5 +1,5 @@
 const regression = require("regression")
-const Loess = require("loess").default
+//const Loess = require("loess").default
 const pearsonCorrelation = require("./graphs/pearsonCorrelation.js")
 const spearmanCorrelation = require("./graphs/spearmanCorrelation.js")
 const obtainGroupPoints = require("./graphs/obtainGroupPoints.js")
@@ -607,7 +607,8 @@ function createGraphComponent({graphType, axes = {}}) {
 
 			//TODO: Replace Cubic and Quartic with Polynomial (arbitrary base) - maybe replace quadratic and linear as well.
 			//TODO: Allow base selection for Logarithmic (even though it doesn't really matter)
-			let currentOptions = ["LOESS", "Linear", "Quadratic", "Cubic", "Quartic", "Exponential", "Logarithmic", "Power Law"]
+			//TODO: Re-add "LOESS"
+			let currentOptions = ["Linear", "Quadratic", "Cubic", "Quartic", "Exponential", "Logarithmic", "Power Law"]
 
 			axes.regression = axes.regression || ["Linear"]
 			let regressionOptions = axisSelector(currentOptions, true, function(selected) {
