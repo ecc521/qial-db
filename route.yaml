@@ -1,0 +1,46 @@
+# CLUSTER URL
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: edge-route
+  labels:
+    app: {{ .Chart.Name }}
+    release: {{ .Release.Name }}
+spec:
+  host: alzweb.ocp.dhe.duke.edu
+  port:
+    targetPort: service-port
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: api-service
+    weight: 100
+  wildcardPolicy: None
+
+
+# route for vanity using edge
+# Using value passed from CI
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: cert-edge-route
+  labels:
+    app: {{ .Chart.Name }}
+    release: {{ .Release.Name }}
+spec:
+  host: qial.dhe.duke.edu
+  port:
+    targetPort: service-port
+  tls:
+    certificate: |-
+      {{ .Values.ssl.cert | indent 6 | trim }}
+    key: |-
+      {{ .Values.ssl.key | indent 6 | trim }}
+    termination: edge
+  to:
+    kind: Service
+    name: api-service
+    weight: 100
+  wildcardPolicy: None

@@ -17,7 +17,7 @@ include:
   - project: 'utility/project-templates/ci-templates'
     file: '/docker2.yml'
   - project: 'utility/project-templates/ci-templates'
-    file: '/helm.yml'
+    file: '/helm3.5.yml'
 
 build:
   extends: .kaniko_build
@@ -34,6 +34,9 @@ tag:
     - echo $CI_REGISTRY_IMAGE:$IMGTAG
     - echo "release_name " $RELEASE_NAME "BASE_URL" $BASE_URL "CHART_URL" $CHART_URL
     - helm repo add chartmuseum ${CHART_URL}
+    - helm fetch chartmuseum/nginx --untar
+    - rm nginx/templates/route.yaml
+    - cp route.yaml nginx/templates/route.yaml
     - helm upgrade
       --set registry.secret.username=$CI_DEPLOY_USER
       --set registry.secret.password="$CI_DEPLOY_PASSWORD"
@@ -43,7 +46,7 @@ tag:
       --set nameOverride=$APPLICATION_NAME
       --set url=$URL
       --set apiHost=$CI_ENVIRONMENT_NAME-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE
-      --install $RELEASE_NAME chartmuseum/nginx
+      --install $RELEASE_NAME ./nginx
 
 deploy-test:
   extends: .deploy
