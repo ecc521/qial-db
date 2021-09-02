@@ -45,6 +45,8 @@ tag:
       --set registry.root=$CI_REGISTRY
       --set nameOverride=$APPLICATION_NAME
       --set url=$URL
+      --set ssl.cert="$CERTIFICATE"
+      --set ssl.key="$PRIVATE_KEY"
       --set apiHost=$CI_ENVIRONMENT_NAME-$APPLICATION_NAME.$CLUSTER_BASE_ROUTE
       --install $RELEASE_NAME ./nginx
 

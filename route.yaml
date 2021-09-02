@@ -9,12 +9,12 @@ metadata:
 spec:
   host: alzweb.ocp.dhe.duke.edu
   port:
-    targetPort: service-port
+    targetPort: app-port
   tls:
     termination: edge
   to:
     kind: Service
-    name: api-service
+    name: prod-alzweb-svc
     weight: 100
   wildcardPolicy: None
 
@@ -32,7 +32,7 @@ metadata:
 spec:
   host: qial.dhe.duke.edu
   port:
-    targetPort: service-port
+    targetPort: app-port
   tls:
     certificate: |-
       {{ .Values.ssl.cert | indent 6 | trim }}
