@@ -359,14 +359,15 @@ function createGraphComponent({graphType, axes = {}}) {
 
 							console.log(points, result)
 
-							let color = graphColors.shift()
-
 							let reginfo = {
 								x: [],
 								y: [],
 								type: 'line',
 								opacity: 0.75,
-								line: { width: 4, color },
+								line: {
+									width: 4,
+									color: info.marker.color
+								},
 							}
 							data.push(reginfo)
 
@@ -408,7 +409,7 @@ function createGraphComponent({graphType, axes = {}}) {
 									text,
 									type: 'line',
 									fill: "tozerox",
-									fillcolor: color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
+									fillcolor: info.marker.color + (64).toString(16).padStart(2, "0"), //Add opacity to the color (0 - 255).
 									line: {
 										color: "transparent"
 									},
