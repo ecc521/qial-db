@@ -162,9 +162,11 @@ function createGraphComponent({graphType, axes = {}}) {
 
 		//https://stackoverflow.com/questions/40673490/how-to-get-plotly-js-default-colors-list
 		//We need the list of CSS colors so that we can do fills as the same color.
+
+		//The first two colors are flipped so that M/F violin plots work properly. 
 		let graphColors = [
-		  '#1f77b4',
 		  '#ff7f0e',
+		  '#1f77b4',
 		  '#2ca02c',
 		  '#d62728',
 		  '#9467bd',
