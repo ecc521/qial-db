@@ -189,6 +189,7 @@ function searchFilter({prop, values}, elemToAppend) {
 	let elems = []
 
 	if (type === "of") {
+		propVals.sort() //Sort alphabetically. 
 		propVals.forEach((value) => {
 			let box = createCheckbox()
 			//Default to existing values
