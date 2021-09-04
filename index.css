@@ -116,23 +116,6 @@ h1, h2 {
 	padding-left: 3px;
 }
 
-#graphsDiv {
-	margin-top: 10px;
-	padding: 8px;
-	background: #f8f8c7;
-}
-
-.graphContainerDiv {
-	margin-top: 8px;
-	padding: 8px;
-	background: #f8d3c7;
-}
-
-.plotlyContainer {
-	margin-top: 8px;
-}
-
-
 #filedrop {
   border: 2px dashed #ccc;
   border-radius: 5px;
@@ -252,4 +235,66 @@ h1, h2 {
 	display: block;
 	margin-left: auto;
 	margin-right: 30px;
+}
+
+.plotlyContainer {
+	margin-top: 8px;
+}
+
+.graphingContainerDiv {
+	margin-top: 10px;
+	padding: 10px 15px;
+	background-color: #2e0096;
+	color: white;
+}
+
+.graphTab, .newGraphTabButton {
+	padding: 10px;
+	background-color: #7063ff;
+	display: inline-block;
+	cursor: pointer;
+}
+
+/*TODO: Make newGraphTabButton dimmed if the different tabOptions are being hovered through as well*/
+.graphTab:hover, .newGraphTabButton:hover {
+	filter: brightness(0.8);
+}
+
+.graphTab.selected {
+	filter: brightness(1.2);
+}
+
+.graphTabDeleteButton {
+	margin-left: 5px;
+	padding: 5px;
+	display: inline-block;
+	line-height: 0.5em;
+	width: 0.5em;
+}
+
+.graphTabDeleteButton:hover {
+	background: #ffffff88;
+}
+
+.tabOptionsDropdown {
+	display: none;
+	position: absolute;
+	z-index: 1;
+}
+
+.tabOptionsDropdown div {
+	cursor: pointer;
+	background: #ebe6ff;
+	color: black;
+	padding: 5px 10px;
+}
+
+.tabOptionsDropdown div:hover {
+	filter: brightness(0.8);
+}
+.addNewTabContainer {
+	display: inline-block;
+}
+.addNewTabContainer:hover .tabOptionsDropdown {
+	display: block;
 }

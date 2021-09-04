@@ -7,10 +7,6 @@ const axisSelector = require("./graphs/axisSelector.js")
 
 const {marginOfError, percentile_z} = require("./graphs/stats.js")
 
-let graphsDiv = document.createElement("div")
-graphsDiv.id = "graphsDiv"
-document.body.insertBefore(graphsDiv, document.getElementById("search").nextElementSibling)
-
 let graphOptions = {
 	"Violin Plot": {
 		//We'll probably want to use split violin if z is binary (only two options, like M/F).
@@ -63,41 +59,111 @@ let graphOptions = {
 	}
 }
 
-let graphCreationTools = document.createElement("div")
-graphsDiv.appendChild(graphCreationTools)
 
-let graphCreationInfo = document.createElement("label")
-graphCreationInfo.innerHTML = "Generate: "
-graphCreationTools.appendChild(graphCreationInfo)
+let graphingContainerDiv = document.createElement("div")
+graphingContainerDiv.classList.add("graphingContainerDiv")
 
-let graphTypeSelector = document.createElement("select")
-for (let prop in graphOptions) {
-	let option = document.createElement("option")
-	option.value = prop
-	option.innerHTML = prop
-	graphTypeSelector.appendChild(option)
-}
+document.body.insertBefore(graphingContainerDiv, document.getElementById("search").nextElementSibling)
 
-graphCreationTools.appendChild(graphTypeSelector)
+//Container for tabs
+let tabManager = document.createElement("div")
+graphingContainerDiv.appendChild(tabManager)
 
-let addGraphButton = document.createElement("button")
-function setButtonText() {
-	//addGraphButton.innerHTML = "Create " + graphTypeSelector.value
-	addGraphButton.innerHTML = "Create Plot"
-}
-setButtonText()
-graphTypeSelector.addEventListener("change", setButtonText)
-graphCreationTools.appendChild(addGraphButton)
 
-addGraphButton.addEventListener("click", function() {
-	//Insert as the first graph.
-	let beforeNode = document.querySelector(".graphContainerDiv")
-	let newGraph = createGraphComponent({
-		graphType: graphTypeSelector.value
+//New graph button.
+let addNewTabContainer = document.createElement("div")
+addNewTabContainer.classList.add("addNewTabContainer")
+tabManager.appendChild(addNewTabContainer)
+
+let addNewTab = document.createElement("span")
+addNewTab.classList.add("newGraphTabButton")
+addNewTab.innerHTML = "New Graph"
+addNewTabContainer.appendChild(addNewTab)
+
+//Options for new graph types
+let types = Object.keys(graphOptions)
+let tabOptionsDropdown = document.createElement("div")
+
+let optionsDiv = document.createElement("div")
+
+types.forEach((graphType) => {
+	let option = document.createElement("div")
+	option.innerHTML = graphType
+	optionsDiv.appendChild(option)
+	option.addEventListener("click", function() {
+		createTab({graphType})
 	})
-	graphsDiv.insertBefore(newGraph, beforeNode)
-	updateSearchLink()
 })
+
+optionsDiv.classList.add("tabOptionsDropdown")
+addNewTabContainer.appendChild(optionsDiv)
+
+//currentTabContainer holds the content for the current tab.
+let currentTabContainer = document.createElement("div")
+graphingContainerDiv.appendChild(currentTabContainer)
+
+let initialContent = "<p>You can create graphs by clicking the New Graphs button above and selecting a graph type. </p>"
+currentTabContainer.innerHTML = initialContent
+
+function clearCurrentTabContainer() {
+	while (currentTabContainer.firstChild) {currentTabContainer.firstChild.remove()}
+}
+
+let tabs = []
+let tabIndexSelected = 0; //Stores selected tab index for searchlinks. Not used for anything else.
+
+function createTab({graphType, axes = {}}) {
+	let tabElem = document.createElement("span")
+	tabElem.innerHTML = graphType
+	tabElem.classList.add("graphTab")
+	tabManager.insertBefore(tabElem, addNewTabContainer) //Add as the very last graph, before new graph button.
+
+	let componentObj = {graphType, axes}
+	tabs.push(componentObj)
+
+	let newGraph = createGraphComponent(componentObj)
+
+	componentObj.unselect = function() {
+		tabElem.classList.remove("selected")
+	}
+
+	componentObj.switchToTab = function() {
+		tabIndexSelected = tabs.indexOf(componentObj)
+		tabs.forEach((tab) => {
+			tab.unselect()
+		})
+		tabElem.classList.add("selected")
+		clearCurrentTabContainer()
+		currentTabContainer.appendChild(newGraph)
+		window.dispatchEvent(new Event("resize")) //Force the plotly graph to recalculate now that it is appended.
+		updateSearchLink()
+	}
+
+	tabElem.addEventListener("click", componentObj.switchToTab)
+	componentObj.switchToTab()
+
+	let deleteButton = document.createElement("span")
+	deleteButton.classList.add("graphTabDeleteButton")
+	deleteButton.innerHTML = "×"
+	tabElem.appendChild(deleteButton)
+
+	deleteButton.addEventListener("click", function(e) {
+		tabs.splice(tabs.indexOf(componentObj), 1)
+		tabElem.remove()
+		updateSearchLink()
+
+		if (tabs.length > 0) {
+			tabs[tabs.length - 1].switchToTab()
+		}
+		else {
+			currentTabContainer.innerHTML = initialContent
+		}
+		e.stopPropagation() //Stop event from switching to the graph.
+	})
+
+	updateSearchLink()
+}
+
 
 
 //Sorts axes as numeric or non-numeric.
@@ -140,15 +206,8 @@ animals.forEach((animal) => {
 
 console.log(numericAxes, nonNumericAxes)
 
-
-let graphSelections = []
-
-function createGraphComponent({graphType, axes = {}}) {
-	let componentObj = {graphType, axes}
-	graphSelections.unshift(componentObj) //New graphs are added to the beginning, not end,
-
+function createGraphComponent({graphType, axes}) {
 	let graphDiv = document.createElement("div")
-	graphDiv.className = "graphContainerDiv"
 
 	let axisSelectorDiv = document.createElement("div")
 	graphDiv.appendChild(axisSelectorDiv)
@@ -163,7 +222,7 @@ function createGraphComponent({graphType, axes = {}}) {
 		//https://stackoverflow.com/questions/40673490/how-to-get-plotly-js-default-colors-list
 		//We need the list of CSS colors so that we can do fills as the same color.
 
-		//The first two colors are flipped so that M/F violin plots work properly. 
+		//The first two colors are flipped so that M/F violin plots work properly.
 		let graphColors = [
 		  '#ff7f0e',
 		  '#1f77b4',
@@ -624,31 +683,23 @@ function createGraphComponent({graphType, axes = {}}) {
 	}
 	setGraphOptions()
 
-	let removeButton = document.createElement("button")
-	removeButton.innerHTML = "Delete Plot"
-	axisSelectorDiv.appendChild(removeButton)
-	removeButton.addEventListener("click", function() {
-		if (confirm("Are you sure you want to delete this plot?")) {
-			graphDiv.remove()
-			graphSelections.splice(graphSelections.indexOf(componentObj), 1)
-			updateSearchLink()
-		}
-	})
-
 	return graphDiv
 }
 
 function setupFromParams() {
 	let params = window.currentParams
-	let arr = params.get("graphs")
-	if (!arr) {return}
+	let obj = params.get("graphs")
+	if (!obj) {return}
 
 	try {
-		arr = JSON.parse(arr)
+
+		obj = JSON.parse(obj)
+		let arr = obj.tabs
 		console.log(arr)
 		arr.forEach((obj) => {
-			graphsDiv.appendChild(createGraphComponent(obj))
+			createTab(obj)
 		})
+		tabs[obj.index].switchToTab()
 	}
 	catch (e) {console.error("Error loading graphlink", e)}
 }
@@ -658,7 +709,12 @@ function updateSearchLink() {
 	let params = window.currentParams
 	let url = new URL(window.location.href)
 
-	params.set("graphs", JSON.stringify(graphSelections))
+	let obj = {
+		index: tabIndexSelected,
+		tabs
+	}
+
+	params.set("graphs", JSON.stringify(obj))
 
 	url.hash = params
 	currentViewLink.href = url.href
