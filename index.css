@@ -244,24 +244,24 @@ h1, h2 {
 .graphingContainerDiv {
 	margin-top: 10px;
 	padding: 10px 15px;
-	background-color: #2e0096;
-	color: white;
+	background-color: #eff2f5;
 }
 
 .graphTab, .newGraphTabButton {
 	padding: 10px;
-	background-color: #7063ff;
+	background-color: #03518c;
+	color: white;
 	display: inline-block;
 	cursor: pointer;
 }
 
 /*TODO: Make newGraphTabButton dimmed if the different tabOptions are being hovered through as well*/
 .graphTab:hover, .newGraphTabButton:hover {
-	filter: brightness(0.8);
+	filter: brightness(0.85);
 }
 
 .graphTab.selected {
-	filter: brightness(1.2);
+	filter: brightness(1.25);
 }
 
 .graphTabDeleteButton {
