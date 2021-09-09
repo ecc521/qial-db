@@ -1,65 +1,10 @@
 function generateNeuroglancerLink({fileName, labelName}) {
 	let obj = {
-		"dimensions": {
-			"x": [
-				0.0001,
-				"m"
-			],
-			"y": [
-				0.0001,
-				"m"
-			],
-			"z": [
-				0.001,
-				"m"
-			]
-		},
-		"position": [
-			100.5,
-			100.5,
-			5.5
-		],
 		"layers": [
 			{
 				"type": "image",
 				"source": {
-					"url": `precomputed://${window.location.origin}/cache/precomputed/${fileName}`,
-					"transform": {
-						"matrix": [
-							[
-								1,
-								0,
-								0,
-								0
-							],
-							[
-								0,
-								1,
-								0,
-								0
-							],
-							[
-								0,
-								0,
-								1,
-								0
-							]
-						],
-						"outputDimensions": {
-							"x": [
-								0.0001,
-								"m"
-							],
-							"y": [
-								0.0001,
-								"m"
-							],
-							"z": [
-								0.001,
-								"m"
-							]
-						}
-					}
+					"url": `precomputed://${window.location.origin}/cache/precomputed/${fileName}`
 				},
 				"tab": "source",
 				"name": fileName
