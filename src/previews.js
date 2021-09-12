@@ -1,4 +1,4 @@
-const generateNeuroglancerLink = require("./generateNeuroglancerLink.js")
+const {openNeuroglancer} = require("./neuroglancer.js")
 
 let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
@@ -48,7 +48,7 @@ function Item(item) {
 		}
 
 		let itemName = addText(`File Name: ${item.name}`)
-		//Add a link to download directly. 
+		//Add a link to download directly.
 		let downloadLink = document.createElement("a")
 		downloadLink.href = `${window.location.origin}/data/${item.name}`
 		downloadLink.target = "_blank"
@@ -149,10 +149,10 @@ function Item(item) {
 				}
 				else {
 					img.addEventListener("click", function() {
-						window.open(generateNeuroglancerLink({
+						openNeuroglancer({
 							fileName: view.neuroglancer.source,
 							labelName: view.neuroglancer.labels
-						}))
+						})
 					})
 				}
 			})
@@ -180,7 +180,10 @@ function Item(item) {
 			else {
 				preview.innerHTML = `View ${view.name} in Neuroglancer`
 				preview.addEventListener("click", function() {
-					window.open(generateNeuroglancerLink({fileName: view.filePath, labelName: view.labelPath}))
+					openNeuroglancer({
+						fileName: view.filePath,
+						labelName: view.labelPath
+					})
 				})
 			}
 

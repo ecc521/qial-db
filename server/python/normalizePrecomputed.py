@@ -6,6 +6,10 @@ import gzip
 import brotli
 import numpy
 
+#TODO: Is there a better way to normalize besides just taking a percentile range?
+#ImageJ seems to do something similar to this (linear with some fully saturated)
+#But whatever their algorithm is for determining the cutoff is MUCH more comprehensive.
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -41,14 +45,20 @@ def normalizeDirectory(dir, divisor):
 
             os.remove(path)
 
+
+
 #Not by any means ideal, but it's decent.
+#TODO: We need to obtain the minimum value too.
 def getNormalizationValue(dir, percentile = 99.99):
     items = os.listdir(dir)
 
     divisor = 1 / (1 - (percentile / 100))
 
-    finalArr = numpy.frombuffer(bytearray(), dtype="float32")
-    #The array will be clamped to the max of its current size and that of the block.
+    type = "float32"
+
+    #Init empty arrays.
+    topArr = numpy.frombuffer(bytearray(), dtype=type)
+    bottomArr = numpy.frombuffer(bytearray(), dtype=type)
 
     for name in items:
         if (name.endswith(".gz")):
@@ -59,19 +69,32 @@ def getNormalizationValue(dir, percentile = 99.99):
             f.close()
 
             #Create view over data.
-            arr = numpy.frombuffer(data, dtype="float32")
+            arr = numpy.frombuffer(data, dtype=type)
 
-            clampTo = max(len(finalArr), len(arr)) #TODO: Clamp much better.
+            #TODO: Clamp much better. We want to clamp to exactly the percentage of the voxels that fit in the percentile
+            #Right now, we merely clamp to an entire cube at the current resolution. We should calculate the total number of voxels instead.
+            #As is, we sort more than needed, and with enough cubes, the percentile could be wrong (if the percentile didn't fit inside the arrays -
+            #for example, 50th percentile of 10000 different cubes of 64 voxels - we respond with the 64th highest voxel)
+            clampTo = max(len(topArr), len(arr))
 
-            finalArr = numpy.concatenate([finalArr,arr])
+            #We're merging already sorted lists here - there's probably a faster sort algorithm if needed.
+            arr.sort() #Sorts ascending.
 
-            finalArr.sort()
+            topArr = numpy.concatenate([topArr, arr])
+            bottomArr = numpy.concatenate([bottomArr, arr])
 
-            finalArr = finalArr[-clampTo:]
-            eprint(finalArr)
+            topArr.sort()
+            bottomArr.sort()
 
-    index = -round(len(finalArr) / (divisor / len(items)))
-    return finalArr[index]
+            topArr = topArr[-clampTo:]
+            bottomArr = bottomArr[:clampTo]
+
+
+    #Find the number of items per cube, multiply by cubes, and divide by divisor to find the voxel index.
+    index = round(len(topArr) * len(items) / divisor)
+
+    return {"min": bottomArr[0], "lower": bottomArr[index], "upper": topArr[-index], "max": topArr[-1]}
+
 
 
 def normalizeDir(dir):
@@ -82,6 +105,9 @@ def normalizeDir(dir):
 
     for dirname in items:
         #Use the lowest resoltuion to calculate normalization value - it's much faster.
+        #TODO: We're using the lowest resolution, which means min and max are going to be off.
+        #Acceptable for normalization values, but really shouldn't be the case with min and max.
+        #Maybe we could use the min and max from the original NIFTI file if specified, but not all files specify it.
         if (dirname.endswith("um")):
             dirPath = os.path.join(dir, dirname)
             itemAmount = len(os.listdir(dirPath))
@@ -90,14 +116,13 @@ def normalizeDir(dir):
                 name = dirPath
 
     eprint(name, leastItems)
+    normVals = getNormalizationValue(name)
 
-    normVal = getNormalizationValue(name)
-    eprint(normVal)
+    #Write the results to a file.
+    res = open(os.path.join(dir, "norm.json"), "w")
+    res.write(str(normVals)) #TODO: We need to export actual JSON. This uses single quotes, rather than double quotes. 
+    res.close()
 
-    if (normVal < 0.5):
-        #Only normalize if it's way low.
-        for dirname in items:
-            if (dirname.endswith("um")):
-                dirPath = os.path.join(dir, dirname)
-                eprint("Norming ", dirPath)
-                normalizeDirectory(dirPath, normVal)
+
+if (__name__ == "__main__"):
+    normalizeDir(sys.argv[1])

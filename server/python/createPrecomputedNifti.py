@@ -23,4 +23,4 @@ volume_to_precomputed(argv=["Placeholder", niftiPath, outputDir])
 compute_scales(argv=["Placeholder", outputDir])
 
 restructurePrecomputedDirectory(outputDir)
-normalizeDir(outputDir) #Currently float32 only, however that isn't checked, so may cause problems on other files. 
+normalizeDir(outputDir) #Only works with float32. Not currently a problem. 

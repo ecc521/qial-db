@@ -13,7 +13,7 @@ function createPrecomputed(pathToNIFTI) {
 	let outputDir = path.join(global.precomputedDir, outputName)
 
 	if (fs.existsSync(outputDir)) {
-		let infoFilePath = path.join(outputDir, "info")
+		let infoFilePath = path.join(outputDir, "norm.json")
 		if (fs.existsSync(infoFilePath)) {
 			let modified = fs.statSync(infoFilePath).mtime
 
@@ -34,7 +34,7 @@ function createPrecomputed(pathToNIFTI) {
 			console.warn("Unable to compute labels. Missing ", labelsFileName)
 			return
 		}
-		
+
 		args = [
 			path.join(__dirname, "python", "createPrecomputedLabels.py"),
 			pathToNIFTI,
