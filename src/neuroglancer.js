@@ -31,9 +31,7 @@ async function openNeuroglancer({fileName, labelName}) {
 		let promise = new Promise((resolve, reject) => {
 			fetch(getPrecomputedURL(fileName, true) + "/norm.json").then((resp) => {
 				console.log(resp)
-				resp.text().then((text) => {
-					let normData = JSON.parse(text.replaceAll(`'`, `"`)) //Python output isn't quite valid JSON. TODO: Fix this.
-
+				resp.json().then((normData) => {
 					obj.layers[0].shaderControls = {
 						normalized: {
 							range: [normData.lower, normData.upper], //Default range.

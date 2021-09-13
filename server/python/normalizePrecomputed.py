@@ -6,6 +6,8 @@ import gzip
 import brotli
 import numpy
 
+import json #For exporting norm.json
+
 #TODO: Is there a better way to normalize besides just taking a percentile range?
 #ImageJ seems to do something similar to this (linear with some fully saturated)
 #But whatever their algorithm is for determining the cutoff is MUCH more comprehensive.
@@ -120,7 +122,7 @@ def normalizeDir(dir):
 
     #Write the results to a file.
     res = open(os.path.join(dir, "norm.json"), "w")
-    res.write(str(normVals)) #TODO: We need to export actual JSON. This uses single quotes, rather than double quotes. 
+    res.write(json.dumps(normVals))
     res.close()
 
 
