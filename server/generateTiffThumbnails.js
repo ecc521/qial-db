@@ -50,7 +50,7 @@ async function generateTiffThumbnails(pathToFile) {
 
 	for (let i=0;i<metadata.pages;i++) {
 		//Take the center slice out of this. We'll do it vertically this time.
-		let buff = await sharp("data/210301-5_Material_Decomposition.tif", {page: i}).raw().toBuffer()
+		let buff = await sharp(pathToFile, {page: i}).raw().toBuffer()
 
 		let x = Math.round(xViewConfig.height/2) - 1
 		for (let y=0;y<xViewConfig.height;y++) {
