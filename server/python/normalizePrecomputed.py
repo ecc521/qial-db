@@ -95,7 +95,7 @@ def getNormalizationValue(dir, percentile = 99.99):
     #Find the number of items per cube, multiply by cubes, and divide by divisor to find the voxel index.
     index = round(len(topArr) * len(items) / divisor)
 
-    return {"min": bottomArr[0], "lower": bottomArr[index], "upper": topArr[-index], "max": topArr[-1]}
+    return {"min": float(bottomArr[0]), "lower": float(bottomArr[index]), "upper": float(topArr[-index]), "max": float(topArr[-1])}
 
 
 
