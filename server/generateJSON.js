@@ -508,27 +508,4 @@ async function generateJSON() {
 }
 
 
-
-let lastGenerated; //This can take a bit of time - return the last request generated.
-
-//Don't run this multiple times at once. If an outstanding request is open, return it for any new requests as well.
-//generateJSON may crash if it is run multiple times at once, or generate invalid thumbnails, etc.
-let currentGeneration;
-
-module.exports = async function() {
-	if (!currentGeneration) {
-		currentGeneration = generateJSON().then((res) => {
-			lastGenerated = res
-			currentGeneration = undefined
-		}, (err) => {
-			console.error(err)
-			currentGeneration = undefined
-		})
-	}
-
-	if (!lastGenerated) {
-		await currentGeneration
-	}
-
-	return lastGenerated
-}
+module.exports = generateJSON
