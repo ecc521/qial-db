@@ -31,7 +31,7 @@ function addToQueue(callback, ...args) {
 		//Done waiting.
 		console.log(`There are ${queue.length} items in queue. `)
 		return new Promise((resolve, reject) => {
-			callback(...args)
+			callback(...args).then(resolve, reject)
 		})
 	}).finally(() => {
 		queue.shift()
