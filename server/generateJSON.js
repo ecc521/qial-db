@@ -6,9 +6,6 @@ const daikon = require("daikon")
 const getFilesInDirectory = require("./getFilesInDirectory.js")
 const loadDataCSV = require("./loadDataCSV.js")
 
-// const generateThumbnails = require("./generateThumbnails.js")
-// const generateTiffThumbnails = require("./generateTiffThumbnails.js")
-
 const {createEmptyAnimal, createFile, normalizeCode, computeNamespace} = require("./generateJSON/formats.js")
 const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
 
@@ -17,10 +14,45 @@ const {accessThumbnails, createThumbnails} = require("./thumbnails.js")
 
 
 
-//TODO: We should queue operations. We want a way to check if results exist, else queue the creation.
+let queue = []
 
+//FIFO. Note that we might need to optimize so not O^2 and potential memory "leak" (more like buildup)
+function addToQueue(callback, ...args) {
+	let waitPromise = new Promise((resolve, reject) => {
+		queue.push(resolve)
+	})
 
+	if (queue.length === 1) {
+		//If we are the only item queued, proceed.
+		queue[0]()
+	}
 
+	waitPromise.then(() => {
+		//Done waiting.
+		console.log(`There are ${queue.length} items in queue. `)
+		return new Promise((resolve, reject) => {
+			callback(...args)
+		})
+	}).finally(() => {
+		queue.shift()
+		queue?.[0]?.() //Call
+	})
+}
+
+//Return if cached, else add to queue.
+async function obtainThumbnails(filePath) {
+	let thumbnails = await accessThumbnails(filePath)
+	if (thumbnails) {return thumbnails}
+
+	addToQueue(createThumbnails, filePath)
+}
+
+async function obtainPrecomputed(filePath) {
+	let precomputed = await accessPrecomputed(filePath)
+	if (precomputed) {return precomputed}
+
+	addToQueue(createPrecomputed, filePath)
+}
 
 
 
@@ -329,7 +361,7 @@ async function generateJSON() {
 	}
 
 
-
+	//All animals are prepared. Now generate the JSON file.
 	for (let id in animals) {
 		allData.push(animals[id])
 	}
@@ -393,14 +425,18 @@ async function generateJSON() {
 		   //TODO: Handle labels. Probably search filename for word label.
 		   for (let i=0;i<imageFiles.length;i++) {
 			  let fileName = imageFiles[i]
+
 			  let view = {
 				   name: fileName,
 				   filePath: fileName,
-				   neuroglancer: {
-					   source: fileName
-				   }
 			   }
-			  await createPrecomputed(path.join(global.dataDir, fileName))
+
+			  let precomputedImage = await obtainPrecomputed(path.join(global.dataDir, fileName))
+			  if (precomputedImage) {
+				  view.neuroglancer = {
+					  source: fileName
+				  }
+			  }
 
 			  let matchingRAS = labelFiles.filter((labelName) => {
 				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
@@ -409,15 +445,20 @@ async function generateJSON() {
 			  if (matchingRAS.length === 1) {
 				  let labelPath = matchingRAS[0]
 				  //Generate and Cache the precomputed labels.
-				  await createPrecomputed(path.join(global.dataDir, labelPath))
-				  view.neuroglancer.labels = labelPath
+				  let precomputedLabels = await obtainPrecomputed(path.join(global.dataDir, labelPath))
+				  if (precomputedLabels) {
+					  view.neuroglancer.labels = labelPath
+				  }
 			  }
 			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {
 				  console.warn("Potential Matching Issues")
 				  console.log(matchingRAS, labelFiles)
 			  }
 
-			  view.thumbnails = await createThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			  let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
+			  if (thumbnails) {
+				  view.thumbnails = thumbnails
+			  }
 			  item.views.push(view)
 		   }
 
@@ -430,7 +471,10 @@ async function generateJSON() {
 				   filePath: fileName
 			   }
 
-			  view.thumbnails = await createThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			   let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
+			   if (thumbnails) {
+				   view.thumbnails = thumbnails
+ 			   }
 			  item.views.push(view)
 		   }
 	   }
