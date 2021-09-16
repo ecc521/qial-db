@@ -7,6 +7,37 @@ const zlib = require("zlib")
 
 const sharp = require("sharp")
 
+const generateTiffThumbnails = require("./generateTiffThumbnails.js")
+
+const viewNames = ["x","y","z"]
+const finalType = "webp"
+
+
+//Return generated thumbnails if available.
+function accessThumbnails(pathToFile) {
+	let outputName = path.basename(pathToFile)
+
+	let outputNames = viewNames.map((view) => {
+		return outputName + `.${view}.${finalType}`
+	})
+
+	let modifiedFile = fs.statSync(pathToFile).mtime
+	if (
+		outputNames.every((fileName) => {
+			let filePath = path.join(global.thumbnailsDir, fileName)
+			if (!fs.existsSync(filePath)) {return false} //Need to regenerate. Doesn't exist.
+			let modified = fs.statSync(filePath).mtime
+			if (modified < modifiedFile) {return false} //File modified more recently than thumbnail. Thumbnail old.
+			return true
+		})
+	) {
+		return outputNames //Cache exists and is new.
+	}
+	else {
+		return false //Need to regenerate.
+	}
+}
+
 
 //Calls python code to generate thumbnails.
 //We do this with PNGs, as they are lossless - images are renamed, etc, later.
@@ -45,44 +76,30 @@ async function processThumbnails(inputNames, outputNames) {
 }
 
 
-async function generateThumbnails(pathToNIFTI) {
-	//Generate thumbnails.
-	let outputName = path.basename(pathToNIFTI)
+//Return generated thumbnails, or create if they don't exist.
+async function createThumbnails(pathToFile) {
+	let cache = accessThumbnails(pathToFile)
+	if (cache) {return cache}
 
-	let finalType = "webp"
-	let outputNames = ["x","y","z"].map((view) => {
-		return outputName + `.${view}.${finalType}`
-	})
-
-	//If we don't need to generate any images (already cached), then don't generate any.
-	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
-	if (
-		outputNames.every((fileName) => {
-			let filePath = path.join(global.thumbnailsDir, fileName)
-			if (!fs.existsSync(filePath)) {return false} //Need to regenerate. Doesn't exist.
-			let modified = fs.statSync(filePath).mtime
-			if (modified < modifiedNifti) {return false} //Nifti modified more recently than thumbnail. Thumbnail old.
-			return true
-		})
-	) {
-		return outputNames
+	if (pathToFile.endsWith(".tif") || pathToFile.endsWith(".tiff")) {
+		return await generateTiffThumbnails(pathToFile)
 	}
 
 	//Temporary names used for not-yet-processed python generated thumbnails.
-	const tempNames = outputNames.map((name) => {return name + ".png"})
+	const tempNames = viewNames.map((name) => {return name + ".png"})
 	let tempPath;
 	try {
 		//Currently, generateThumbnails.py requires the entire decompressed file to generate thumbnails.
 		//Therefore, on systems with little memory, decompress to disk first.
 
 		//This should clean up stuff the next run even if broken GZIP files are left around once. May have one load with extra files.
-		if (pathToNIFTI.endsWith(".nii.gz")) {
-			if (fs.statSync(pathToNIFTI).size > os.freemem() / 4) {
-				console.warn("WRITING TO DISK!!!", pathToNIFTI)
+		if (pathToFile.endsWith(".nii.gz")) {
+			if (fs.statSync(pathToFile).size > os.freemem() / 2) {
+				console.warn("WRITING TO DISK!!!", pathToFile)
 				tempPath = path.join(global.cacheDir, outputName.slice(0, -3))
 				let unzipper = zlib.createGunzip()
 				await new Promise((resolve, reject) => {
-					let stream = fs.createReadStream(pathToNIFTI)
+					let stream = fs.createReadStream(pathToFile)
 					let dest = fs.createWriteStream(tempPath)
 					let writeStream = stream.pipe(unzipper).pipe(dest)
 					writeStream.on("finish", resolve)
@@ -90,12 +107,12 @@ async function generateThumbnails(pathToNIFTI) {
 			}
 		}
 
-		await pythonGenerateThumbnails(tempPath || pathToNIFTI, tempNames)
+		await pythonGenerateThumbnails(tempPath || pathToFile, tempNames)
 		await processThumbnails(tempNames, outputNames)
 
 		return outputNames
 	}
-	catch (e) {console.error(pathToNIFTI, e)} //Likely an error in pythonGenerateThumbnails that caused processThumbnails to try to read a nonexistant file (as thumbnails not generated)
+	catch (e) {console.error(pathToFile, e)} //Likely an error in pythonGenerateThumbnails that caused processThumbnails to try to read a nonexistant file (as thumbnails not generated)
 	finally {
 		if (tempPath && fs.existsSync(tempPath)) {
 			fs.unlinkSync(tempPath)
@@ -109,5 +126,4 @@ async function generateThumbnails(pathToNIFTI) {
 	}
 }
 
-
-module.exports = generateThumbnails
+module.exports = {accessThumbnails, createThumbnails}

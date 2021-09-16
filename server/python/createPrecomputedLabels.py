@@ -89,6 +89,12 @@ def main():
 
     os.remove(infoFilePath) #Clean up.
     restructurePrecomputedDirectory(outputDir)
+    #norm.json is used to idenfity when processing is completed, and how normalization should be done.
+    #label files will not be normalized, however we will still create a norm.json (just empty)
+    #This way, norm.json will exist and have a timestamp.
+    res = open(os.path.join(outputDir, "norm.json"), "w")
+    res.write("{}")
+    res.close()
 
 if __name__ == "__main__":
     main()

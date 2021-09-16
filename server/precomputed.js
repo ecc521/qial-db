@@ -4,12 +4,11 @@ const path = require("path")
 const child_process = require("child_process")
 
 
-//Calls python code to generate labels.
-function createPrecomputed(pathToNIFTI) {
-	//TODO: Confirm that we actually need to regenerate outputDir.
-	let modifiedNifti = fs.statSync(pathToNIFTI).mtime
+//Return precomputed directory path if available, else return false.
+function accessPrecomputed(pathToFile) {
+	let modifiedDate = fs.statSync(pathToFile).mtime
 
-	let outputName = path.basename(pathToNIFTI)
+	let outputName = path.basename(pathToFile)
 	let outputDir = path.join(global.precomputedDir, outputName)
 
 	if (fs.existsSync(outputDir)) {
@@ -17,15 +16,30 @@ function createPrecomputed(pathToNIFTI) {
 		if (fs.existsSync(infoFilePath)) {
 			let modified = fs.statSync(infoFilePath).mtime
 
-			//Info modified more recently than NITFI. No need to regenerate.
-			if (modified > modifiedNifti) {
-				return true
+			//Info modified more recently than file. No need to regenerate.
+			if (modified > modifiedDate) {
+				return outputDir
 			}
 		}
 	}
-	console.log("Generating", pathToNIFTI)
+	return false
+}
+
+
+//Return precomputed directory path, generating if necessary.
+//Currently assumes file is a NIFTI.
+function createPrecomputed(pathToFile) {
+	//If results are cached, return them.
+	let cache = accessPrecomputed(pathToFile)
+	if (cache) {return cache}
+
+	let outputName = path.basename(pathToFile)
+	console.log("Generating", pathToFile)
+
 	let args;
-	if (pathToNIFTI.includes("label")) {
+	if (pathToFile.includes("label")) {
+		//Call python code to generate precomputed labels from NIFTI
+
 		//TODO: Try to rewrite the precomputedLabels code.
 		//TODO: We need a better way to handle the spreadsheet files.
 		let labelsFileName = "CHASSSYMM3_to_ABA.xlsx"
@@ -37,15 +51,16 @@ function createPrecomputed(pathToNIFTI) {
 
 		args = [
 			path.join(__dirname, "python", "createPrecomputedLabels.py"),
-			pathToNIFTI,
+			pathToFile,
 			labelsFile,
 			outputName //dirName - taken relative to the cwd.
 		]
 	}
 	else {
+		//Call python code to generate precomputed from NIFTI
 		args = [
 			path.join(__dirname, "python", "createPrecomputedNifti.py"),
-			pathToNIFTI,
+			pathToFile,
 			outputName //dirName - taken relative to the cwd.
 		]
 	}
@@ -61,4 +76,5 @@ function createPrecomputed(pathToNIFTI) {
 	})
 }
 
-module.exports = createPrecomputed
+
+module.exports = {accessPrecomputed, createPrecomputed}

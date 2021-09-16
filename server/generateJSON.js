@@ -6,12 +6,41 @@ const daikon = require("daikon")
 const getFilesInDirectory = require("./getFilesInDirectory.js")
 const loadDataCSV = require("./loadDataCSV.js")
 
-const generateThumbnails = require("./generateThumbnails.js")
-const createPrecomputed = require("./createPrecomputed.js")
-const generateTiffThumbnails = require("./generateTiffThumbnails.js")
+// const generateThumbnails = require("./generateThumbnails.js")
+// const generateTiffThumbnails = require("./generateTiffThumbnails.js")
 
 const {createEmptyAnimal, createFile, normalizeCode, computeNamespace} = require("./generateJSON/formats.js")
 const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
+
+const {accessPrecomputed, createPrecomputed} = require("./precomputed.js")
+const {accessThumbnails, createThumbnails} = require("./thumbnails.js")
+
+
+
+//TODO: We should queue operations. We want a way to check if results exist, else queue the creation.
+
+
+
+
+
+
+
+
+
+//Known Flaws:
+//Compression bomb type attacks should be covered, even though users must be authenticated.
+//We would need to defend against GZIP bombs, possibly other types of compression in the future.
+
+//The Express server is not properly caching things.
+
+//All processing is run before returning a request. Instead, we should return a request with the data we currently have, and keep data up to date other ways.
+
+
+
+
+
+
+
 
 //Architecture:
 // 1. Receive Request
@@ -28,6 +57,10 @@ const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJ
 
 
 //TODO: We need a way to inform about generic issues, not related to an individual file.
+
+
+
+
 
 async function generateJSON() {
 	console.time("Gen")
@@ -346,7 +379,7 @@ async function generateJSON() {
 		   }
 
 		   function isTiff(fileName) {
-			   return fileName.endsWith(".tif")
+			   return fileName.endsWith(".tif") || fileName.endsWith(".tiff")
 		   }
 
 		   let imageFiles = filesInBatch.filter((fileName) => {
@@ -359,15 +392,15 @@ async function generateJSON() {
 
 		   //TODO: Handle labels. Probably search filename for word label.
 		   for (let i=0;i<imageFiles.length;i++) {
-			   let fileName = imageFiles[i]
-			   let view = {
+			  let fileName = imageFiles[i]
+			  let view = {
 				   name: fileName,
 				   filePath: fileName,
 				   neuroglancer: {
 					   source: fileName
 				   }
 			   }
-			   await createPrecomputed(path.join(global.dataDir, fileName))
+			  await createPrecomputed(path.join(global.dataDir, fileName))
 
 			  let matchingRAS = labelFiles.filter((labelName) => {
 				  return fileName.toLowerCase().includes("ras") === labelName.toLowerCase().includes("ras")
@@ -384,7 +417,7 @@ async function generateJSON() {
 				  console.log(matchingRAS, labelFiles)
 			  }
 
-			  view.thumbnails = await generateThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			  view.thumbnails = await createThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 			  item.views.push(view)
 		   }
 
@@ -397,7 +430,7 @@ async function generateJSON() {
 				   filePath: fileName
 			   }
 
-			  view.thumbnails = await generateTiffThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
+			  view.thumbnails = await createThumbnails(path.join(global.dataDir, view.filePath)) //Generate the thumbnails files into cache.
 			  item.views.push(view)
 		   }
 	   }

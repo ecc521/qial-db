@@ -8,15 +8,18 @@ import numpy
 
 import json #For exporting norm.json
 
+#Determine the range of values. Create a range to scale them linearly between.
+#It's OK is some datapoints go over, and also OK if things are darker than they should be because of outliers.
+
 #TODO: Is there a better way to normalize besides just taking a percentile range?
 #ImageJ seems to do something similar to this (linear with some fully saturated)
 #But whatever their algorithm is for determining the cutoff is MUCH more comprehensive.
 
+#TODO: This code assumes the data type is float32, which might not be the case.
+#We should read the data type from the JSON text files - info, or info_fullres.json
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
-#We need to do some processing here, and normalize the range of float32s to [0,1]
-#It's OK is some datapoints go over, and also OK if things are darker than they should be because of outliers.
 
 def normalizeDirectory(dir, divisor):
     #Upscale all values linearly.
