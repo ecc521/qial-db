@@ -23,24 +23,13 @@ def writeImage(outPath, slice):
 def generateThumbnails(input_path, x_out, y_out, z_out):
     volume = CloudVolume(urlPrefix + str(input_path))
 
-    #Find the highest resolution scale.
-    greatestScale = [0, 0, 0]
-    for scale in volume.info["scales"]:
-        size = scale["size"]
-        if (greatestScale[0] < size[0]):
-            greatestScale = size
-
-
-    channelNum = int(volume.info["num_channels"]/2) #Determine the channel to use. TODO: RGB?
-
-    sliceX = volume[int(greatestScale[0] / 2), :, :, channelNum]
-    sliceY = volume[:, int(greatestScale[1] / 2), :, channelNum]
-    sliceZ = volume[:, :, int(greatestScale[2] / 2), channelNum]
-
-    #One of the dimensions is composed of one element arrays (as these are slices on each axis).
-    #Therefore, remove one dimension.
+    sliceX = volume[volume.shape[0]/2]
     writeImage(x_out, sliceX[0])
+
+    sliceY = volume[:, volume.shape[1]/2]
     writeImage(y_out, sliceY[:, 0])
+
+    sliceZ = volume[:, :, volume.shape[2]/2]
     writeImage(z_out, sliceZ[:, :, 0])
 
 
