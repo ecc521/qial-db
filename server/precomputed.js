@@ -3,6 +3,11 @@ const path = require("path")
 
 const child_process = require("child_process")
 
+//TODO: We should probably make thumbnails independent of the actual precomputed generation -
+//Only regenerate thumbnails, instead of the entire precomputed.
+//Since every file for which we can create thumbnails can be turned into a precomputed, we
+//can lump the two together, but we should not require regenerating the precomputeds if we change how
+//thumbnails are done. 
 
 //Return precomputed directory path if available, else return false.
 function accessPrecomputed(pathToFile) {
