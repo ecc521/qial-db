@@ -33,25 +33,15 @@ def generateThumbnails(input_path, x_out, y_out, z_out):
 
     channelNum = int(volume.info["num_channels"]/2) #Determine the channel to use. TODO: RGB?
 
-    sliceX = volume[int(greatestScale[0] / 2), :, :, channelNum].tolist()
-    sliceY = volume[:, int(greatestScale[1] / 2), :, channelNum].tolist()
-    sliceZ = volume[:, :, int(greatestScale[2] / 2), channelNum].tolist()
+    sliceX = volume[int(greatestScale[0] / 2), :, :, channelNum]
+    sliceY = volume[:, int(greatestScale[1] / 2), :, channelNum]
+    sliceZ = volume[:, :, int(greatestScale[2] / 2), channelNum]
 
-
-    #One of the dimensions is composed of one element arrays. We need to extract those as we generate images.
-    sliceX = sliceX[0]
-    writeImage(x_out, sliceX)
-
-    for index in range(len(sliceY)):
-        sliceY[index] = sliceY[index][0]
-
-    writeImage(y_out, sliceY)
-
-    for arr in sliceZ:
-        for index in range(len(arr)):
-            arr[index] = arr[index][0]
-
-    writeImage(z_out, sliceZ)
+    #One of the dimensions is composed of one element arrays (as these are slices on each axis).
+    #Therefore, remove one dimension.
+    writeImage(x_out, sliceX[0])
+    writeImage(y_out, sliceY[:, 0])
+    writeImage(z_out, sliceZ[:, :, 0])
 
 
 if __name__ == "__main__":
