@@ -11,7 +11,7 @@ urlPrefix = "precomputed://file://"
 
 #Takes a volume slice and writes the output file.
 def writeImage(outPath, slice):
-    bytes = imageio.imwrite(imageio.RETURN_BYTES, slice, format="GIF") #Store as a GIF in memory.
+    bytes = imageio.imwrite(imageio.RETURN_BYTES, slice, format="GIF") #Any format works - temporary in memory storage. 
     inputBytes = io.BytesIO(bytes)
 
     image = PIL.Image.open(inputBytes)
