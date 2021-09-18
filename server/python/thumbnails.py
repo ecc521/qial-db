@@ -11,7 +11,7 @@ urlPrefix = "precomputed://file://"
 
 #Takes a volume slice and writes the output file.
 def writeImage(outPath, slice):
-    bytes = imageio.imwrite(imageio.RETURN_BYTES, slice, format="GIF") #Any format works - temporary in memory storage. 
+    bytes = imageio.imwrite(imageio.RETURN_BYTES, slice, format="GIF") #Any format works - temporary in memory storage.
     inputBytes = io.BytesIO(bytes)
 
     image = PIL.Image.open(inputBytes)
@@ -38,18 +38,19 @@ def generateThumbnails(input_path, x_out, y_out, z_out):
     sliceZ = volume[:, :, int(greatestScale[2] / 2), channelNum].tolist()
 
 
-    #One of the dimensions is composed of one element arrays. We need to extract those.
+    #One of the dimensions is composed of one element arrays. We need to extract those as we generate images.
     sliceX = sliceX[0]
+    writeImage(x_out, sliceX)
 
     for index in range(len(sliceY)):
         sliceY[index] = sliceY[index][0]
+
+    writeImage(y_out, sliceY)
 
     for arr in sliceZ:
         for index in range(len(arr)):
             arr[index] = arr[index][0]
 
-    writeImage(x_out, sliceX)
-    writeImage(y_out, sliceY)
     writeImage(z_out, sliceZ)
 
 
