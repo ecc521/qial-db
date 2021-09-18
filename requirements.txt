@@ -3,11 +3,10 @@ numpy
 argparse
 pathlib
 imageio
-
+cloud-volume
+Pillow
 
 #For infoGen.py. Any v1 of xlrd.
 pandas
 neuroglancer-scripts
 xlrd==1.2.0
-
-brotli

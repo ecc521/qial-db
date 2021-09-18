@@ -10,7 +10,6 @@ const {createEmptyAnimal, createFile, normalizeCode, computeNamespace} = require
 const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
 
 const {accessPrecomputed, createPrecomputed} = require("./precomputed.js")
-const {accessThumbnails, createThumbnails} = require("./thumbnails.js")
 
 
 
@@ -31,7 +30,12 @@ function addToQueue(callback, ...args) {
 		//Done waiting.
 		console.log(`There are ${queue.length} items in queue. `)
 		return new Promise((resolve, reject) => {
-			callback(...args).then(resolve, reject)
+			try {
+				let waitFor = callback(...args)
+				if (waitFor?.then) {waitFor.then(resolve, reject)} //Might be a promise, might not.
+				else {resolve()}
+			}
+			catch (e) {reject(e)}
 		})
 	}).finally(() => {
 		queue.shift()
@@ -40,13 +44,6 @@ function addToQueue(callback, ...args) {
 }
 
 //Return if cached, else add to queue.
-async function obtainThumbnails(filePath) {
-	let thumbnails = await accessThumbnails(filePath)
-	if (thumbnails) {return thumbnails}
-
-	addToQueue(createThumbnails, filePath)
-}
-
 async function obtainPrecomputed(filePath) {
 	let precomputed = await accessPrecomputed(filePath)
 	if (precomputed) {return precomputed}
@@ -426,6 +423,8 @@ async function generateJSON() {
 		   for (let i=0;i<imageFiles.length;i++) {
 			  let fileName = imageFiles[i]
 
+			  //TODO: There's an awful lot of properties for the same thing (fileName). We should deduplicate these.
+			  //this includes view.precomputed.source (when it exists), as well as two other view properties
 			  let view = {
 				   name: fileName,
 				   filePath: fileName,
@@ -433,7 +432,8 @@ async function generateJSON() {
 
 			  let precomputedImage = await obtainPrecomputed(path.join(global.dataDir, fileName))
 			  if (precomputedImage) {
-				  view.neuroglancer = {
+				  //TODO: Thumbnails.
+				  view.precomputed = {
 					  source: fileName
 				  }
 			  }
@@ -446,8 +446,9 @@ async function generateJSON() {
 				  let labelPath = matchingRAS[0]
 				  //Generate and Cache the precomputed labels.
 				  let precomputedLabels = await obtainPrecomputed(path.join(global.dataDir, labelPath))
-				  if (precomputedLabels) {
-					  view.neuroglancer.labels = labelPath
+				  //Don't add the labels if the image doesn't exist (cache removed for it, but not for labels)
+				  if (precomputedImage && precomputedLabels) {
+					  view.precomputed.labels = labelPath
 				  }
 			  }
 			  else if (matchingRAS.length > 1 || labelFiles.length > 1) {
@@ -455,28 +456,24 @@ async function generateJSON() {
 				  console.log(matchingRAS, labelFiles)
 			  }
 
-			  let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
-			  if (thumbnails) {
-				  view.thumbnails = thumbnails
-			  }
 			  item.views.push(view)
 		   }
 
-		   let tiffImageFiles = filesInBatch.filter((fileName) => {return isTiff(fileName)})
-
-		   for (let i=0;i<tiffImageFiles.length;i++) {
-			   let fileName = tiffImageFiles[i]
-			   let view = {
-				   name: fileName,
-				   filePath: fileName
-			   }
-
-			   let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
-			   if (thumbnails) {
-				   view.thumbnails = thumbnails
- 			   }
-			  item.views.push(view)
-		   }
+		   // let tiffImageFiles = filesInBatch.filter((fileName) => {return isTiff(fileName)})
+		   //
+		   // for (let i=0;i<tiffImageFiles.length;i++) {
+			//    let fileName = tiffImageFiles[i]
+			//    let view = {
+			// 	   name: fileName,
+			// 	   filePath: fileName
+			//    }
+		   //
+			//    let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
+			//    if (thumbnails) {
+			// 	   view.thumbnails = thumbnails
+ 			//    }
+			//   item.views.push(view)
+		   // }
 	   }
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {

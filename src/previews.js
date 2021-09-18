@@ -1,4 +1,4 @@
-const {openNeuroglancer} = require("./neuroglancer.js")
+const {openNeuroglancer, getPrecomputedURL} = require("./neuroglancer.js")
 
 let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
@@ -137,24 +137,17 @@ function Item(item) {
 		}
 
 		function addThumbnails(view, container, fileSize) {
-			if (!view.thumbnails) {console.warn("No Thumbnails");return;}
-			view.thumbnails.forEach((fileName) => {
+			if (!view.precomputed) {console.warn("No Thumbnails");return;}
+			;["x", "y", "z"].map(name => name + ".webp").forEach((fileName) => {
 				let img = document.createElement("img")
-				img.src = `cache/thumbnails/${fileName}`
+				img.src = getPrecomputedURL(`${view.precomputed.source}/${fileName}`, true)
 				container.appendChild(img)
-				if (!view.neuroglancer) {
-					img.addEventListener("click", function() {
-						alert("View in Neuroglancer is not currently available for this file. ")
+				img.addEventListener("click", function() {
+					openNeuroglancer({
+						fileName: view.precomputed.source,
+						labelName: view.precomputed.labels
 					})
-				}
-				else {
-					img.addEventListener("click", function() {
-						openNeuroglancer({
-							fileName: view.neuroglancer.source,
-							labelName: view.neuroglancer.labels
-						})
-					})
-				}
+				})
 			})
 		}
 
@@ -165,7 +158,7 @@ function Item(item) {
 			//Neuroglancer doesn't support 64 bit floats - so we can't always provide a precomputed that is
 			//exactly the same as the input file. We may want to provide a warning on affected files (mostly larger ones),
 			//so that people know they
-			if (!view.neuroglancer) {
+			if (!view.precomputed) {
 				preview.innerHTML = `Download ${view.name}`
 
 				preview.addEventListener("click", function() {

@@ -34,9 +34,6 @@ fs.rmSync(path.join(global.dataDir, "tmp"), {force: true, recursive: true})
 global.cacheDir = path.join(__dirname, "cache")
 fs.mkdirSync(global.cacheDir, {recursive: true})
 
-global.thumbnailsDir = path.join(global.cacheDir, "thumbnails")
-fs.mkdirSync(global.thumbnailsDir, {recursive: true})
-
 global.precomputedDir = path.join(global.cacheDir, "precomputed")
 fs.mkdirSync(global.precomputedDir, {recursive: true})
 

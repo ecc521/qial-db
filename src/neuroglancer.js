@@ -80,4 +80,4 @@ async function openNeuroglancer({fileName, labelName}) {
 	return neuroglancerLink
 }
 
-module.exports = {openNeuroglancer}
+module.exports = {openNeuroglancer, getPrecomputedURL}

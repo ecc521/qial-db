@@ -7,6 +7,8 @@ from neuroglancer_scripts.scripts.generate_scales_info import main as generate_s
 from neuroglancer_scripts.scripts.compute_scales import main as compute_scales
 from restructurePrecomputed import restructurePrecomputedDirectory
 from normalizePrecomputed import normalizeDir
+from thumbnails import generateThumbnails
+
 
 niftiPath = sys.argv[1]
 outputDirName = sys.argv[2]
@@ -23,4 +25,5 @@ volume_to_precomputed(argv=["Placeholder", niftiPath, outputDir])
 compute_scales(argv=["Placeholder", outputDir])
 
 restructurePrecomputedDirectory(outputDir)
-normalizeDir(outputDir) #Only works with float32. Not currently a problem. 
+generateThumbnails(outputDir, os.path.join(outputDir, "x.webp"), os.path.join(outputDir, "y.webp"), os.path.join(outputDir, "z.webp"))
+normalizeDir(outputDir) #Only works with float32. Not currently a problem.

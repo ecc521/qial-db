@@ -3,7 +3,6 @@ import sys
 
 import os
 import gzip
-import brotli
 import numpy
 
 import json #For exporting norm.json
@@ -20,36 +19,6 @@ import json #For exporting norm.json
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
-def normalizeDirectory(dir, divisor):
-    #Upscale all values linearly.
-    items = os.listdir(dir)
-
-    for name in items:
-        if (name.endswith(".gz")):
-            path = os.path.join(dir, name)
-
-            f = gzip.open(path)
-            data = bytearray(f.read()) #It's not writable without sending through bytearray, which might involve an extra copy.
-            f.close()
-
-            #Create view over data.
-            arr = numpy.frombuffer(data, dtype="float32")
-
-            for i in range(len(arr)):
-                arr[i] = arr[i]/divisor
-
-            eprint("Processing", path)
-
-            #We'll output these in brotli - usually the same size, maybe slightly smaller, on level 9. (any higher would be too slow)
-            brotliOutputPath = path[0:-3] + ".br" #Remove the .gz extension
-
-            with open(brotliOutputPath, "wb") as fd:
-                fd.write(brotli.compress(data, quality = 9))
-                fd.close()
-
-            os.remove(path)
-
 
 
 #Not by any means ideal, but it's decent.
