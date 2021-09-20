@@ -9,6 +9,6 @@ Pillow
 #For tiffs
 tifffile
 
-#For infoGen.py. Any v1 of xlrd.
 pandas
-xlrd==1.2.0
+#Pandas requires openpyxl to load xlsx sheets.
+openpyxl

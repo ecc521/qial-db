@@ -158,7 +158,10 @@ elif layerType == "segmentation":
         #https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/segment_properties.md
         segmentationInfo = {"@type": "neuroglancer_segment_properties", "inline": {}}
 
+        #There's some features of excel (calculations with rows, etc) that aren't supported by the reader.
+        #This might result in warnings about unknown extensions. 
         df = pd.read_excel(p.label_xlsx_path)
+
         #Right is the left value plus 1000, IF there are any voxels over 1000 in the image.
         #Otherwise, right is just the actual right value.
         rightOffset = True if (arr.max() > 1000) else False
