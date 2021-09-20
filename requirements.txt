@@ -6,7 +6,9 @@ imageio
 cloud-volume
 Pillow
 
+#For tiffs
+tifffile
+
 #For infoGen.py. Any v1 of xlrd.
 pandas
-neuroglancer-scripts
 xlrd==1.2.0

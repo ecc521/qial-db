@@ -3,11 +3,6 @@ const path = require("path")
 
 const child_process = require("child_process")
 
-//TODO: We should probably make thumbnails independent of the actual precomputed generation -
-//Only regenerate thumbnails, instead of the entire precomputed.
-//Since every file for which we can create thumbnails can be turned into a precomputed, we
-//can lump the two together, but we should not require regenerating the precomputeds if we change how
-//thumbnails are done. 
 
 //Return precomputed directory path if available, else return false.
 function accessPrecomputed(pathToFile) {
@@ -17,7 +12,7 @@ function accessPrecomputed(pathToFile) {
 	let outputDir = path.join(global.precomputedDir, outputName)
 
 	if (fs.existsSync(outputDir)) {
-		let infoFilePath = path.join(outputDir, "norm.json")
+		let infoFilePath = path.join(outputDir, "info") //The info file is the last thing generated.
 		if (fs.existsSync(infoFilePath)) {
 			let modified = fs.statSync(infoFilePath).mtime
 
@@ -32,47 +27,35 @@ function accessPrecomputed(pathToFile) {
 
 
 //Return precomputed directory path, generating if necessary.
-//Currently assumes file is a NIFTI.
 function createPrecomputed(pathToFile) {
 	//If results are cached, return them.
 	let cache = accessPrecomputed(pathToFile)
 	if (cache) {return cache}
 
 	let outputName = path.basename(pathToFile)
+	let outputPath = path.join(global.precomputedDir, outputName)
 	console.log("Generating", pathToFile)
 
-	let args;
-	if (pathToFile.includes("label")) {
-		//Call python code to generate precomputed labels from NIFTI
+	let args = [
+		path.join(__dirname, "python", "createPrecomputed.py"),
+		pathToFile,
+		outputPath
+	]
 
-		//TODO: Try to rewrite the precomputedLabels code.
+	if (pathToFile.includes("label")) {
+		//Add label file path to args.
 		//TODO: We need a better way to handle the spreadsheet files.
 		let labelsFileName = "CHASSSYMM3_to_ABA.xlsx"
-		let labelsFile = path.join(global.dataDir, labelsFileName)
-		if (!fs.existsSync(labelsFile)) {
-			console.warn("Unable to compute labels. Missing ", labelsFileName)
-			return
+		let labelsFilePath = path.join(global.dataDir, labelsFileName)
+		if (fs.existsSync(labelsFilePath)) {
+			args.push(labelsFilePath)
 		}
-
-		args = [
-			path.join(__dirname, "python", "createPrecomputedLabels.py"),
-			pathToFile,
-			labelsFile,
-			outputName //dirName - taken relative to the cwd.
-		]
-	}
-	else {
-		//Call python code to generate precomputed from NIFTI
-		args = [
-			path.join(__dirname, "python", "createPrecomputedNifti.py"),
-			pathToFile,
-			outputName //dirName - taken relative to the cwd.
-		]
+		else {
+			console.warn("Labels will not be fully computed - missing ", labelsFileName)
+		}
 	}
 
-	let process = child_process.spawn("python3", args, {
-		cwd: global.precomputedDir
-	})
+	let process = child_process.spawn("python3", args)
 
 	process.stderr.pipe(require("process").stdout)
 
