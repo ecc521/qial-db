@@ -5,6 +5,7 @@ from cloudvolume import CloudVolume
 from downsampling import downscaleAveraging, majorityAveraging
 from thumbnails import generateThumbnailsArray
 
+import math
 import numpy as np
 import pandas as pd
 import shutil
@@ -70,7 +71,7 @@ if ".nii" in fileName:
         #Meters
         resolutionMultiplier = 1000 * 1000 * 1000
     elif (spaceUnits == 0):
-        #Unknown Resolution. Maintain nanometers.
+        #Unknown Resolution. Assume nanometers (so change nothing).
         pass;
     else:
         raise NotImplementedError
@@ -114,7 +115,13 @@ elif ".tif" in fileName:
         colorSpace = "rgb"
 
 
-resolution = [float(round(x*resolutionMultiplier)) for x in resolution] #We'll round these. Nanometers.
+#Round to avoid excessive digits.
+#These might be REALLY small (lots of leading zeros), so make sure we never round to zero.
+#Use logarithms. Do two digits more than we need.
+def computeResolution(res, multiplier):
+    roundingMultiplier = 10 ** max(0, math.ceil(-(math.log10(res) - 2)))
+    return round(res * multiplier * roundingMultiplier) / roundingMultiplier
+resolution = [computeResolution(res, resolutionMultiplier) for res in resolution] #Values are nanometers.
 
 #TODO: Reorient.
 #Use transpose, rot90, swapaxes, etc.
