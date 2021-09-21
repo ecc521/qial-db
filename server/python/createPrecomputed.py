@@ -4,7 +4,6 @@
 from cloudvolume import CloudVolume
 from downsampling import downscaleAveraging, majorityAveraging
 from thumbnails import generateThumbnailsArray
-from percentiles import getPercentiles
 
 import numpy as np
 import pandas as pd
