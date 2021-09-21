@@ -35,6 +35,7 @@ if not os.path.exists(p.output_path):
 layerType = "image"
 encoding = "raw"
 segmentationSubdirName = "segmentation"
+colorSpace = "bw"
 
 resolutionMultiplier = 1
 resolution = [1, 1, 1]
@@ -108,6 +109,9 @@ if ".nii" in fileName:
 elif ".tif" in fileName:
     arr = tifffile.imread(p.input_path)
     targetType = arr.dtype
+    if ((len(arr.shape) == 4) & (arr.shape[3] == 3)):
+        #TODO: We need a better system for determining what images are color.
+        colorSpace = "rgb"
 
 
 resolution = [float(round(x*resolutionMultiplier)) for x in resolution] #We'll round these. Nanometers.
@@ -252,6 +256,7 @@ if (layerType == "image"):
 
     outputObj["lower"] = float(arr[amountForPercentile])
     outputObj["upper"] = float(arr[-amountForPercentile])
+    outputObj["colorSpace"] = colorSpace
 
     #Write the results to a file.
     res = open(os.path.join(p.output_path, "norm.json"), "w")

@@ -403,20 +403,16 @@ async function generateJSON() {
 		   })
 		   processedFiles.push(...filesInBatch)
 
-		   function isNifti(fileName) {
-			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz")
-		   }
-
-		   function isTiff(fileName) {
-			   return fileName.endsWith(".tif") || fileName.endsWith(".tiff")
+		   function isImage(fileName) {
+			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz") || fileName.endsWith(".tif") || fileName.endsWith(".tiff")
 		   }
 
 		   let imageFiles = filesInBatch.filter((fileName) => {
-			   return isNifti(fileName) && !fileName.includes("label")
+			   return isImage(fileName) && !fileName.includes("label")
 		   })
 
 		   let labelFiles = filesInBatch.filter((fileName) => {
-			   return isNifti(fileName) && fileName.includes("label")
+			   return isImage(fileName) && fileName.includes("label")
 		   })
 
 		   //TODO: Handle labels. Probably search filename for word label.
@@ -458,22 +454,6 @@ async function generateJSON() {
 
 			  item.views.push(view)
 		   }
-
-		   // let tiffImageFiles = filesInBatch.filter((fileName) => {return isTiff(fileName)})
-		   //
-		   // for (let i=0;i<tiffImageFiles.length;i++) {
-			//    let fileName = tiffImageFiles[i]
-			//    let view = {
-			// 	   name: fileName,
-			// 	   filePath: fileName
-			//    }
-		   //
-			//    let thumbnails = await obtainThumbnails(path.join(global.dataDir, view.filePath))
-			//    if (thumbnails) {
-			// 	   view.thumbnails = thumbnails
- 			//    }
-			//   item.views.push(view)
-		   // }
 	   }
 
 	   item.componentFiles = item.componentFiles.map((fileName) => {
