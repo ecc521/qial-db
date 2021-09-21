@@ -4,6 +4,7 @@
 from cloudvolume import CloudVolume
 from downsampling import downscaleAveraging, majorityAveraging
 from thumbnails import generateThumbnailsArray
+from percentiles import getPercentiles
 
 import numpy as np
 import pandas as pd
@@ -129,23 +130,15 @@ info = CloudVolume.create_new_info(
 )
 
 #Setup metadata, thumbnails, and other files before we actually generate the precomputed.
+outputObj = {}
 if layerType == "image":
     generateThumbnailsArray(arr, *[os.path.join(p.output_path, name + ".webp") for name in ["x", "y", "z"]])
 
-    #TODO: Can norm.json be done with some library?
-    #Other option is just to take percentile of smallest scale.
-    #The min and max are correct. The viewing range can be off by a bit.
-    #TODO: The TIFFs will have different shaders. We should set those too (range same for all shaders though)
+    #TODO: The TIFFs will have different channels. We should set the range for those channels too (range same for all shaders though)
     #That way the colors remain even.
-    outputObj = {}
     outputObj["min"] = float(arr.min())
     outputObj["max"] = float(arr.max())
-    #TODO: Compute lower and upper from a distribution or range or something.
 
-    #Write the results to a file.
-    res = open(os.path.join(p.output_path, "norm.json"), "w")
-    res.write(json.dumps(outputObj))
-    res.close()
 
 elif layerType == "segmentation":
     try:
@@ -159,7 +152,7 @@ elif layerType == "segmentation":
         segmentationInfo = {"@type": "neuroglancer_segment_properties", "inline": {}}
 
         #There's some features of excel (calculations with rows, etc) that aren't supported by the reader.
-        #This might result in warnings about unknown extensions. 
+        #This might result in warnings about unknown extensions.
         df = pd.read_excel(p.label_xlsx_path)
 
         #Right is the left value plus 1000, IF there are any voxels over 1000 in the image.
@@ -240,6 +233,31 @@ while all(x%downsampleFactor == 0 for x in vol.shape[0:3]):
 
     else:
         raise NotImplementedError
+
+
+if (layerType == "image"):
+    #Write norm.json
+    #Vol is now as fully downscaled as it's going to get.
+    #Computed lower and upper values for viewing range.
+    #Use a downscaled volume as this is SLOW otherwise.
+    #Accuracy does not matter all that much for the percentiles.
+
+    percentile = 99.99
+    divisor = 1 / (1 - (percentile / 100))
+
+    amountForPercentile = int(arr.size / divisor)
+
+    arr = arr.reshape(arr.size)
+    #Can't get much faster than this with python alone.
+    arr.sort()
+
+    outputObj["lower"] = float(arr[amountForPercentile])
+    outputObj["upper"] = float(arr[-amountForPercentile])
+
+    #Write the results to a file.
+    res = open(os.path.join(p.output_path, "norm.json"), "w")
+    res.write(json.dumps(outputObj))
+    res.close()
 
 
 vol.commit_info() #Save precomputed info file.
