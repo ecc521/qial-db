@@ -158,6 +158,9 @@ h1, h2 {
 	text-align: center;
 }
 
+.scanContainer {
+	cursor: pointer;
+}
 
 .infoCard {
 	display: block;

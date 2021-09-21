@@ -142,7 +142,7 @@ function Item(item) {
 				let img = document.createElement("img")
 				img.src = getPrecomputedURL(`${view.precomputed.source}/${fileName}`, true)
 				container.appendChild(img)
-				img.addEventListener("click", function() {
+				container.addEventListener("click", function() {
 					openNeuroglancer({
 						fileName: view.precomputed.source,
 						labelName: view.precomputed.labels
@@ -191,6 +191,7 @@ function Item(item) {
 		for (let i=0;i<item.views.length;i++) {
 			let view = item.views[i]
 			let scanContainer = document.createElement("div")
+			scanContainer.className = "scanContainer"
 			scanContainer.style.textAlign = "center"
 			this.thumbnailContainer.appendChild(scanContainer)
 
