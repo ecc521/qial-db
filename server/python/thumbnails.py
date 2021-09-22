@@ -1,5 +1,5 @@
 #Creates thumbnails from precomputed volume or numpy array. (Command line is path to precomputed volume)
-
+#TODO: These thumbnails are aligned differently than neuroglancer. 
 from cloudvolume import CloudVolume
 import PIL
 import imageio

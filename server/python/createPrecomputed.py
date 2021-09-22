@@ -4,6 +4,7 @@
 from cloudvolume import CloudVolume
 from downsampling import downscaleAveraging, majorityAveraging
 from thumbnails import generateThumbnailsArray
+from dicomVolume import processDicomZip
 
 import math
 import numpy as np
@@ -114,10 +115,20 @@ elif ".tif" in fileName:
         #TODO: We need a better system for determining what images are color.
         colorSpace = "rgb"
 
-    #tifffile reads with z axis first. Let's reorient the tiffs to match the other files. 
+    #tifffile reads with z axis first. Let's reorient the tiffs to match the other files.
     transposeArgs = [2,1,0]
     if (len(arr.shape) == 4): transposeArgs.append(3)
     arr = arr.transpose(*transposeArgs)
+
+
+elif ".zip" in fileName:
+    #ZIP file filled with DICOM images.
+    #TODO: Colorspace? Dicom header may contain information on that. 
+    arr = processDicomZip(p.input_path)
+
+
+
+
 
 
 #Round to avoid excessive digits.
@@ -128,7 +139,7 @@ def computeResolution(res, multiplier):
     return round(res * multiplier * roundingMultiplier) / roundingMultiplier
 resolution = [computeResolution(res, resolutionMultiplier) for res in resolution] #Values are nanometers.
 
-#TODO: Reorient.
+#TODO: Reorient images.
 #Use transpose, rot90, swapaxes, etc.
 
 #Create the precomputed info file (don't save it yet! That happens at the end)

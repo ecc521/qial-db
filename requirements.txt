@@ -9,6 +9,11 @@ Pillow
 #For tiffs
 tifffile
 
+#DICOM ZIP archives
+pydicom
+zipfile
+
+#XLSX sheets (Spreadsheet for Neuroglancer Segmentation configuration)
 pandas
 #Pandas requires openpyxl to load xlsx sheets.
 openpyxl
