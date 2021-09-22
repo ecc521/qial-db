@@ -114,6 +114,11 @@ elif ".tif" in fileName:
         #TODO: We need a better system for determining what images are color.
         colorSpace = "rgb"
 
+    #tifffile reads with z axis first. Let's reorient the tiffs to match the other files. 
+    transposeArgs = [2,1,0]
+    if (len(arr.shape) == 4): transposeArgs.append(3)
+    arr = arr.transpose(*transposeArgs)
+
 
 #Round to avoid excessive digits.
 #These might be REALLY small (lots of leading zeros), so make sure we never round to zero.
