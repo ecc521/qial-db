@@ -1,7 +1,9 @@
 const fs = require("fs")
 const path = require("path")
+const {Buffer} = require("buffer")
 
-const daikon = require("daikon")
+const yauzl = require("yauzl"); //Zip Library
+const daikon = require("daikon") //DICOM Parser
 
 const getFilesInDirectory = require("./getFilesInDirectory.js")
 const loadDataCSV = require("./loadDataCSV.js")
@@ -206,29 +208,14 @@ async function generateJSON() {
 
 
 
-
-
-
-
-
-
-
-
 	//Now add DICOMs - merge into animals where possible, else create new ones.
-	//We don't want to read every image in an entire series when the headers we care about are the same.
-
-	//FOR PERFORMANCE:
-	//We assume that ALL dicom files within the same directory are for THE SAME animal and have the same animal properties!
-	//If the DICOM is in the datadir, that is ignored.
 
 	function formatDate(dateObj) {
 		return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
 	}
 
-	async function parseDICOM(filePath) {
-		let buf = await fs.promises.readFile(filePath)
+	function parseDICOM(buf) {
 		let data = new DataView(daikon.Utils.toArrayBuffer(buf))
-
 		let image = daikon.Series.parseImage(data)
 		return image
 	}
@@ -270,92 +257,82 @@ async function generateJSON() {
 		return animals[animal.Animal] = animal
 	}
 
-	//DICOM difficulties:
-	// - We don't want to modify the data structure.
-	// - We need to keep the files linked together.
-	// - We can't re-parse every time.
-
-	//We could avoid modifying the data structure by keeping information in cache, but putting DICOMs in directories probably makes the most sense.
-	//Picking the names could be tough. They must be unique but also short.
 
 
-	//If the DICOM is in a directory, it is assumed that the directory is part of the same series
-	//If not, we will assign the DICOM to it's correct directory.
+	let dicomZips = [] //Used to identify which component files are actually DICOM scans. In case non-DICOM zips are associated with animals. 
 
+	//All DICOMs for a specific series must be in a zip file. Said ZIP file should contain DICOMs only for a single series. Non-DICOM files may slow processing.
+	//We will only process the first DICOM file we find in a zip file here.
 
-	//dicomDirs - correlates directory to Animal
-	let dicomDirs = {}
-	//series - correlates seriesId to dicomDir.
-	let series = {}
+	//TODO: Should we require anything in the zip file name (ex, .dcm.zip, xxxxxDICOM.zip, etc?)
+	//If we end up with other types of zip files, we might need something to filter them out without
+	//iterating through the entire ZIP directory.
 
-	//directoryDicoms is dicoms already in a directory. rootDicoms need to be assigned one, and go after.
-	let directoryDicoms = []
-	let rootDicoms = []
+	//TODO: We need to defend against ZIP Bomb attacks.
 
 	for (let i=0;i<files.length;i++) {
 		let fileName = files[i]
-		if (fileName.endsWith(".dcm")) {
-			let filePath = path.join(global.dataDir, fileName)
-			let dir = path.dirname(filePath)
-
-			if (dir === global.dataDir) {
-				rootDicoms.push(fileName)
-			}
-			else if (!dicomDirs[dir]) {
-				directoryDicoms.push(fileName)
-			}
-		}
-	}
-	//Remove DICOMs from files array - they are now all associated with Animals.
-	files = files.filter(fileName => !fileName.endsWith(".dcm"))
-
-
-
-	for (let i=0;i<directoryDicoms.length;i++) {
-		let fileName = directoryDicoms[i]
-		let filePath = path.join(global.dataDir, fileName)
-		let dir = path.dirname(filePath)
-
-		let animal = dicomDirs[dir]
-		if (!animal) {
-			let image = await parseDICOM(filePath)
-			animal = dicomDirs[dir] = addAnimalFromDICOM(image)
-			series[image.getSeriesId()] = dir
-		}
-
-		animal.componentFiles.push(fileName)
-	}
-
-
-	for (let i=0;i<rootDicoms.length;i++) {
-		let fileName = rootDicoms[i]
 		let filePath = path.join(global.dataDir, fileName)
 
-		let image = await parseDICOM(filePath)
-		let seriesId = image.getSeriesId()
+		if (fileName.endsWith(".zip")) {
+			await new Promise((resolve, reject) => {
+				yauzl.open(filePath, {lazyEntries: true}, function(err, zipfile) {
+					if (err) {reject(err)};
 
-		let dir = series[seriesId]
+					zipfile.on("error", reject)
+					zipfile.on("close", resolve)
+					zipfile.on("entry", function(entry) {
+						//Since lazyEntires is true, entries will be buffered until we process the previous entry.
+						//If we reach a single valid DICOM entry, we will add the ZIP and stop processing.
+						if (/\/$/.test(entry.fileName)) {
+							//This is a directory. Skip (directories are implicit if files are within it or subdirectories - and we don't care about empty directories)
+							zipfile.readEntry();
+						}
+						else if (!entry.fileName.includes(".dcm")) {
+							zipfile.readEntry() //Only parse files labeled .dcm - we might need to add more formats later.
+						}
+						else {
+							//Read File.
+							zipfile.openReadStream(entry, function(err, readStream) {
+								//Proceed to next entry if the current one errors.
+								if (err) {zipfile.readEntry(); console.error(err)}
+								readStream.on("error", function(e) {
+									zipfile.readEntry()
+									console.error(e)
+								})
 
-		if (!dir) {
-			//Create a directory for this DICOM, and move it.
+								//Buffer the stream. Yes. Really.
+								let bufs = []
+								readStream.on("data", (data) => {bufs.push(data)})
+								readStream.on("end", function() {
+									//If the DICOM is valid, add it and be done. Otherwise, proceed to next entry.
+									let buf = Buffer.concat(bufs)
 
-			//TODO: How do we want to name this?
-			let dirname = "dcm" + seriesId.trim().slice(0, 15)
-			dir = path.join(global.dataDir, dirname)
-			await fs.promises.mkdir(dir)
+									try {
+										let image = parseDICOM(buf)
+										let animal = addAnimalFromDICOM(image)
+										animal.componentFiles.push(fileName)
+										dicomZips.push(fileName)
+										zipfile.close()
+									}
+									catch (e) {
+										console.error(e)
+										zipfile.readEntry()
+									}
+								});
+							});
+						}
+					});
 
-			series[seriesId] = dir
-			dicomDirs[dir] = addAnimalFromDICOM(image)
+					zipfile.readEntry(); //Read the first entry.
+				});
+			})
+
+			files.splice(i, 1)
+			i--
 		}
-
-		let newFilePath = path.join(dir, fileName)
-		let newFileName = path.relative(global.dataDir, newFilePath)
-
-		await fs.promises.rename(filePath, newFilePath)
-
-		let animal = dicomDirs[dir]
-		animal.componentFiles.push(newFileName)
 	}
+
 
 
 	//All animals are prepared. Now generate the JSON file.
@@ -388,14 +365,10 @@ async function generateJSON() {
 		   })
 	   })
 
-
 	   let processedFiles = [] //To avoid processing the same file twice with different identifiers.
 
 	   //Each batch is all the files that matched with a specific identifier.
-	   for (let i=0;i<relatedFiles.length;i++) {
-		   let filesInBatch = relatedFiles[i]
-		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
-
+	   async function processFileBatch(filesInBatch) {
 		   //Like with Animal: 190909_12:1, multiple identifiers may match the same file.
 		   //We will assume that the label files must have both identifiers as well, and will skip second identifier.
 		   filesInBatch = filesInBatch.filter((item) => {
@@ -404,7 +377,7 @@ async function generateJSON() {
 		   processedFiles.push(...filesInBatch)
 
 		   function isImage(fileName) {
-			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz") || fileName.endsWith(".tif") || fileName.endsWith(".tiff")
+			   return fileName.endsWith(".nii") || fileName.endsWith(".nii.gz") || fileName.endsWith(".tif") || fileName.endsWith(".tiff") || dicomZips.includes(fileName)
 		   }
 
 		   let imageFiles = filesInBatch.filter((fileName) => {
@@ -456,6 +429,15 @@ async function generateJSON() {
 		   }
 	   }
 
+	   await processFileBatch(item.componentFiles) //Most likely nothing in here, except with DICOMs.
+
+	   for (let i=0;i<relatedFiles.length;i++) {
+		   let filesInBatch = relatedFiles[i]
+		   item.componentFiles.push(...reclaimFiles([], ...filesInBatch)) //All related files are components, even if they aren't in a view.
+		   await processFileBatch(filesInBatch)
+	   }
+
+	   //Convert componentFiles into file objects.
 	   item.componentFiles = item.componentFiles.map((fileName) => {
 		   return createFile(fileName)
 	   })

@@ -110,7 +110,6 @@ if ".nii" in fileName:
 
 elif ".tif" in fileName:
     arr = tifffile.imread(p.input_path)
-    targetType = arr.dtype
     if ((len(arr.shape) == 4) & (arr.shape[3] == 3)):
         #TODO: We need a better system for determining what images are color.
         colorSpace = "rgb"
@@ -123,11 +122,11 @@ elif ".tif" in fileName:
 
 elif ".zip" in fileName:
     #ZIP file filled with DICOM images.
-    #TODO: Colorspace? Dicom header may contain information on that. 
-    arr = processDicomZip(p.input_path)
-
-
-
+    #TODO: Colorspace? Dicom header may contain information on that.
+    dicomOutput = processDicomZip(p.input_path)
+    arr = dicomOutput["arr"]
+    resolutionMultiplier = 1000000 #DICOM uses millimeters.
+    resolution = dicomOutput["resolution"]
 
 
 
@@ -240,6 +239,7 @@ vol[:, :, :, :] = arr #Write the image.
 
 #Write downsampled versions of the image.
 downsampleFactor = 2
+targetType = arr.dtype #targetType may already be defined for NIFTI images, but it will currently be equal to arr.dtype.
 while all(x%downsampleFactor == 0 for x in vol.shape[0:3]):
     #TODO: We might not have factors of two available, or might not need to downsample all that much, especially for smaller images.
 
