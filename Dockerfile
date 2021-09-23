@@ -3,6 +3,7 @@ FROM python:slim-buster
 RUN apt-get update
 RUN apt-get upgrade -y
 
+RUN apt-get install -y gcc #GCC used to build posix-ipc, a cloudvolume dependency. 
 RUN apt-get install -y zip
 
 #Install latest NodeJS using n
