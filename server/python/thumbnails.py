@@ -27,23 +27,21 @@ def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
     #Draw slices to disk.
     #Make sure that images don't end up pure black if the highest slice value is something like 5000 and the max value is 65535.
 
+    multiplier = 1.0
+
     #dtype is the same for all slices. Just use sliceX.
     if (np.issubdtype(sliceX.dtype, np.integer)):
-        #TODO: Better normalization. Linear scaling probably isn't ideal. 
+        #TODO: Better normalization. Linear scaling probably isn't ideal.
         #TODO: This code assumes that any integers don't have values more deeply negative than they do positive.
         max_value = np.iinfo(sliceX.dtype).max
         overallMax = max(sliceX.max(), sliceY.max(), sliceZ.max())
 
         multiplier = int(max_value / overallMax) #Keep it simple. If the difference is only 1.9x, it should be visible either way.
 
-        sliceX *= multiplier
-        sliceY *= multiplier
-        sliceZ *= multiplier
-
     #Actually output the slices.
-    writeImage(x_out, sliceX)
-    writeImage(y_out, sliceY)
-    writeImage(z_out, sliceZ)
+    writeImage(x_out, sliceX * multiplier)
+    writeImage(y_out, sliceY * multiplier)
+    writeImage(z_out, sliceZ * multiplier)
 
 def generateThumbnailsArray(arr, *outputs):
     sliceX = arr[int(arr.shape[0]/2)]
