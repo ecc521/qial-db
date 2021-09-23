@@ -1,8 +1,8 @@
 #Takes a ZIP file path, reads all DICOMs in the zip, and assembles them into a 3D array.
 #Returns 3D array and scan resolution.
 
-#TODO: Memory usage could be significantly optimized (halfed), and streaming would be ideal. 
-
+#TODO: Memory usage could be significantly optimized (halfed), and streaming would be ideal.
+#TODO: Handle Image Orientation tag
 from zipfile import ZipFile
 from pydicom import dcmread
 
