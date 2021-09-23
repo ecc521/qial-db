@@ -1,9 +1,12 @@
 #Creates thumbnails from precomputed volume or numpy array. (Command line is path to precomputed volume)
-#TODO: These thumbnails are aligned differently than neuroglancer. 
+#TODO: These thumbnails are aligned differently than neuroglancer.
+
 from cloudvolume import CloudVolume
 import PIL
 import imageio
 import io
+
+import numpy as np
 
 import argparse
 
@@ -20,26 +23,43 @@ def writeImage(outPath, slice):
     image.save(outPath, method=6, quality=60) #Method 6 is webp best compression, quality is 1-100, default 80
 
 
-def generateThumbnailsArray(arr, x_out, y_out, z_out):
-    sliceX = arr[int(arr.shape[0]/2)]
+def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
+    #Make sure that images don't end up pure black if the highest slice value is something like 5000 and the max value is 65535.
+    #TODO: Better normalization.
+    #TODO: This code assumes that any integers don't have values more deeply negative than they do positive.
+    multiplier = 1
+
+    #dtype is the same for all slices. Just use sliceX.
+    if (np.issubdtype(sliceX.dtype, np.integer)):
+        max_value = np.iinfo(sliceX.dtype).max
+        overallMax = max(sliceX.max(), sliceY.max(), sliceZ.max())
+
+        multiplier = int(max_value / overallMax) #Keep it simple. If the difference is only 1.9x, it should be visible either way.
+
+        sliceX *= multiplier
+        sliceY *= multiplier
+        sliceZ *= multiplier
+
+    #Actually output the slices.
     writeImage(x_out, sliceX)
-
-    sliceY = arr[:, int(arr.shape[1]/2)]
     writeImage(y_out, sliceY)
-
-    sliceZ = arr[:, :, int(arr.shape[2]/2)]
     writeImage(z_out, sliceZ)
 
+def generateThumbnailsArray(arr, *outputs):
+    sliceX = arr[int(arr.shape[0]/2)]
+    sliceY = arr[:, int(arr.shape[1]/2)]
+    sliceZ = arr[:, :, int(arr.shape[2]/2)]
 
-def generateThumbnailsVolume(volume, x_out, y_out, z_out):
+    generateThumbnailsSlices(sliceX, sliceY, sliceZ, *outputs)
+
+
+
+def generateThumbnailsVolume(volume, *outputs):
     sliceX = volume[volume.shape[0]/2]
-    writeImage(x_out, sliceX[0])
-
     sliceY = volume[:, volume.shape[1]/2]
-    writeImage(y_out, sliceY[:, 0])
-
     sliceZ = volume[:, :, volume.shape[2]/2]
-    writeImage(z_out, sliceZ[:, :, 0])
+
+    generateThumbnailsSlices(sliceX[0], sliceY[:, 0], sliceZ[:, :, 0], *outputs)
 
 
 if __name__ == "__main__":
