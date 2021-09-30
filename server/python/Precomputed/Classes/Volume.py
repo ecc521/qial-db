@@ -73,7 +73,7 @@ class Volume:
                 targetType = "uint64"
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Layer type not supported: " + layerType)
 
         #Create info file - we won't actually write it to the disk until the image is finished.
         info = CloudVolume.create_new_info(

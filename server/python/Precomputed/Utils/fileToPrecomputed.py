@@ -20,4 +20,4 @@ def fileToPrecomputed(input_path, output_path):
         niftiToPrecomputed(input_path, output_path)
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Could not determine image format from file name: " + fileName)

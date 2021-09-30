@@ -44,7 +44,7 @@ class Layer:
             downsampledChunk = majorityDownsample(chunk, *downsampleRatio)
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Downsampling type not supported: " + self.downsamplingType)
 
         #Convert the chunk into slices.
         sliceCount = downsampledChunk.shape[obtainPosition(self.axis)]

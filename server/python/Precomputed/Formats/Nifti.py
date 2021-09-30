@@ -42,7 +42,7 @@ def niftiToPrecomputed(niftiPath, output_path):
         #Unknown Resolution. Assume nanometers (so change nothing).
         pass;
     else:
-        raise NotImplementedError
+        raise NotImplementedError("Unknown Space Units: " + str(spaceUnits))
 
 
     resolution = [res * resolutionMultiplier for res in resolution] #Values are nanometers.
