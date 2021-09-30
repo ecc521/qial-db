@@ -1,4 +1,6 @@
 nibabel
+indexed-gzip
+
 numpy
 argparse
 pathlib

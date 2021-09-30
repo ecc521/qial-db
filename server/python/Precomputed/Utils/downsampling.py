@@ -1,19 +1,23 @@
 import numpy as np
 
-def downscaleAveraging(arr, factor_x = 2, factor_y = 2, factor_z = 2):
+def averagingDownsample(arr, factor_x = 2, factor_y = 2, factor_z = 2, restoreDtype = True):
     #Average voxels. The factor must evenly divide all components (TODO: Padding?)
 
     #Using methodoloy explained in https://scipython.com/blog/binning-a-2d-array-in-numpy/
     #We'll allow the float64 default intermediates. We can't allow an overflow.
+    initialDtype = arr.dtype
 
     reshapeArgs = [int(arr.shape[0]/factor_x), factor_x, int(arr.shape[1]/factor_y), factor_y, int(arr.shape[2]/factor_z), factor_z]
     if arr.shape[3:]:
         reshapeArgs.append(arr.shape[3])
 
-    return arr.reshape(*reshapeArgs).mean(1).mean(2).mean(3)
+    arr = arr.reshape(*reshapeArgs).mean(1).mean(2).mean(3)
+
+    if (restoreDtype): return arr.astype(initialDtype)
+    else: return arr
 
 
-def majorityAveraging(arr, factor_x = 2, factor_y = 2, factor_z = 2):
+def majorityDownsample(arr, factor_x = 2, factor_y = 2, factor_z = 2):
     #TODO: This is SLOW!!!
 
     #The factor must evenly divide all components as well.
