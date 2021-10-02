@@ -7,6 +7,9 @@ import numpy as np
 from Utils.axes import obtainPosition, obtainSliceArgs, shapeNumAxes
 from Classes.Layer import Layer
 
+import os
+from Utils.thumbnails import generateThumbnailsVolume #TODO: We should generate the thumbnails progressively - as slices are added - rather than at the end.
+
 from Utils.segmentation import segmentVolume
 
 import math
@@ -102,20 +105,20 @@ class Volume:
 
         vol.mip = 0
 
+        vol.commit_info() #TODO: Should we commit at the start, at the end, or when? We don't want to end up looping if this crashes, but also want to regen if interrupted. 
 
         self.layers = layers = []
         for mip in vol.available_mips:
             layer = Layer(vol, mip, axis, downsampling)
             layers.append(layer)
 
-
         def lastSliceCallback():
             firstLayer = layers[0]
+            generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
             if label_path is not None:
                 #I believe this works for segmentation files only, but we don't check that if a label_path is passed.
                 #TODO: Pass maxVoxelValue - calculate based on highest resolution layer.
                 segmentVolume(vol, output_path, label_path, maxVoxelValue = firstLayer.maxVoxelValue)
-
 
         layers[0].lastSliceCallback = lastSliceCallback
 
@@ -141,7 +144,6 @@ class Volume:
         layers = self.layers
 
         firstLayerResult = layers[0].addSlice(slice)
-
 
         #If the first layer wrote from cache, then we have something that will downsample into other layers.
         #Pass the other layers what the first layer wrote.

@@ -29,7 +29,7 @@ class Layer:
 
 
     def addChunk(self, chunk):
-        #TODO: Right now we assume the input chunk is the full volume dimensions.
+        #TODO: Right now we assume the input chunk is the full volume dimensions (except for stacking axis).
 
         #Accepts chunks, downscaling if necessary. Chunks MUST be able to be split into slices.
         #Calls addSlice on the slices.
@@ -105,7 +105,7 @@ class Layer:
         if (vol.mip == 0 and self.currentSlices == lastSlice):
             if (self.lastSliceCallback is not None):
                 self.lastSliceCallback()
-            vol.commit_info()
+            # vol.commit_info()
 
         vol.mip = startMip
 

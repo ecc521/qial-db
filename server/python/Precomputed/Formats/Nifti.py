@@ -28,7 +28,7 @@ def niftiToPrecomputed(input_path, output_path, label_path):
     spaceUnits = units % 8
     timeUnits = units - spaceUnits #Not currently used.
 
-    #Resolutions are in nanometers - therefore, we will scale based on units.
+    resolutionMultiplier = 1 #Nanometers is default resolution. 
     if (spaceUnits == 3):
         #Micrometers
         resolutionMultiplier = 1000

@@ -51,7 +51,6 @@ def generateThumbnailsArray(arr, *outputs):
     generateThumbnailsSlices(sliceX, sliceY, sliceZ, *outputs)
 
 
-
 def generateThumbnailsVolume(volume, *outputs):
     sliceX = volume[volume.shape[0]/2]
     sliceY = volume[:, volume.shape[1]/2]
