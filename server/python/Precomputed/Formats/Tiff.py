@@ -5,7 +5,7 @@ from Utils.axes import obtainPosition, obtainSliceArgs, shapeNumAxes
 import tifffile
 
 #TODO: Slice, instead of buffering all in memory.
-def tiffToPrecomputed(tiffPath, output_path):
+def tiffToPrecomputed(tiffPath, output_path, label_path):
     arr = tifffile.imread(tiffPath)
 
     if ((len(arr.shape) == 4) & (arr.shape[3] == 3)):
@@ -21,5 +21,5 @@ def tiffToPrecomputed(tiffPath, output_path):
     stackAxis = "z" #Stack on z axis.
     axisPos = obtainPosition("z")
 
-    vol = Volume(output_path, nifti.shape, dtype=targetType, axis = stackAxis)
+    vol = Volume(output_path, nifti.shape, dtype=targetType, axis = stackAxis, label_path = label_path)
     vol.addChunk(arr)

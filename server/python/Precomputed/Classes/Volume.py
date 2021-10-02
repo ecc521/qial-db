@@ -92,10 +92,6 @@ class Volume:
         #progress means show progress bars, etc - nice visualizer, though unnecessary.
         self.vol = vol = CloudVolume("precomputed://file://" + output_path, info=info, progress=True)
 
-        if  label_path is not None:
-            #I believe this works for segmentation files only, but we don't check that if a label_path is passed.
-            segmentVolume(vol, label_path)
-
         #Determine downscale resolutions.
         #We'll just half until we can't half anymore.
         #TODO: Need some padding abiltiy. Also don't need to downscale ALL the way to the bottom.
@@ -111,6 +107,18 @@ class Volume:
         for mip in vol.available_mips:
             layer = Layer(vol, mip, axis, downsampling)
             layers.append(layer)
+
+
+        def lastSliceCallback():
+            firstLayer = layers[0]
+            if label_path is not None:
+                #I believe this works for segmentation files only, but we don't check that if a label_path is passed.
+                #TODO: Pass maxVoxelValue - calculate based on highest resolution layer.
+                segmentVolume(vol, output_path, label_path, maxVoxelValue = firstLayer.maxVoxelValue)
+
+
+        layers[0].lastSliceCallback = lastSliceCallback
+
 
 
 
@@ -133,6 +141,7 @@ class Volume:
         layers = self.layers
 
         firstLayerResult = layers[0].addSlice(slice)
+
 
         #If the first layer wrote from cache, then we have something that will downsample into other layers.
         #Pass the other layers what the first layer wrote.

@@ -1,9 +1,13 @@
 import pandas as pd
+import os, json
 
-def segmentVolume(vol, label_path, segmentationSubdirName = "segmentation"):
+def segmentVolume(vol, precomputedDir, label_path, maxVoxelValue, segmentationSubdirName = "segmentation"):
+    #maxVoxelValue should the the greatest value of any voxel in the entire image.
+    #precomputedDir is the directory in which the precomputed is stored. Needed to write segmentation info files into subdir.
+
     #Never throws, though may log errors.
     #Configures volume for segmentation data.
-    #Attempts to add labels and descriptions from label_path. 
+    #Attempts to add labels and descriptions from label_path.
     try:
         info = vol.info
 
@@ -22,7 +26,7 @@ def segmentVolume(vol, label_path, segmentationSubdirName = "segmentation"):
 
         #Right is the left value plus 1000, IF there are any voxels over 1000 in the image.
         #Otherwise, right is just the actual right value.
-        rightOffset = True if (arr.max() > 1000) else False
+        rightOffset = True if (maxVoxelValue > 1000) else False
 
         idArr = []
 
@@ -61,7 +65,7 @@ def segmentVolume(vol, label_path, segmentationSubdirName = "segmentation"):
         segmentationInfo["inline"]["ids"] = idArr
         segmentationInfo["inline"]["properties"] = propertiesArr
 
-        segOutputDir = os.path.join(p.output_path, segmentationSubdirName)
+        segOutputDir = os.path.join(precomputedDir, segmentationSubdirName)
         if not os.path.exists(segOutputDir):
             os.makedirs(segOutputDir)
 

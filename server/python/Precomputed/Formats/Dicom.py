@@ -10,7 +10,7 @@ import io
 from Classes.Volume import Volume
 
 
-def zipToPrecomputed(zipFilePath, output_path):
+def zipToPrecomputed(zipFilePath, output_path, label_path):
     zip = ZipFile(zipFilePath)
 
     dicomsInZip = []
@@ -44,7 +44,7 @@ def zipToPrecomputed(zipFilePath, output_path):
             resolution = [*PixelSpacing, SliceThickness]
             shape = [*pixelArr.shape, len(dicomsInZip)] #Stack on z axis.
 
-            vol = Volume(output_path, shape=shape, resolution=resolution, dtype=pixelArr.dtype, axis = "z")
+            vol = Volume(output_path, shape=shape, resolution=resolution, dtype=pixelArr.dtype, axis = "z", label_path = label_path)
 
         vol.addSlice(pixelArr)
 

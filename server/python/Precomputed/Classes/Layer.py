@@ -8,11 +8,15 @@ from Utils.downsampling import averagingDownsample, majorityDownsample
 #TODO: Whenever the highest resolution layer writes a chunk, it should downsample and provide those slices to the downsampled layers.
 #This works as long as we don't downsample by something not a factor of the chunk size.
 class Layer:
-    def __init__(self, vol, mip, axis, downsamplingType):
+    def __init__(self, vol, mip, axis, downsamplingType, lastSliceCallback = None):
+        self.lastSliceCallback = lastSliceCallback
         self.vol = vol
         self.mip = mip
         self.axis = axis
         self.downsamplingType = downsamplingType
+
+        self.minVoxelValue = float("inf")
+        self.maxVoxelValue = float("-inf")
 
         cacheShapeArgs = [*vol.mip_shape(mip)]
 
@@ -88,8 +92,19 @@ class Layer:
             cacheSlice = obtainSliceArgs(self.axis, (0, cacheOffset + 1), len(self.cacheArr.shape))
             self.vol[volumeSlice] = returnVal = self.cacheArr[cacheSlice]
 
+            #We only need these for the highest res (though probably so low overhead as not to matter much)
+            if (vol.mip == 0):
+                self.maxVoxelValue = max(returnVal.max(), self.maxVoxelValue)
+                self.minVoxelValue = min(returnVal.min(), self.minVoxelValue)
+
+            #TODO: upper and lower bound calculations? (Don't use highest res)
+
+
         #Write info after last chunk completed.
+        #TODO: Run segmentation code with maxVoxelValue.
         if (vol.mip == 0 and self.currentSlices == lastSlice):
+            if (self.lastSliceCallback is not None):
+                self.lastSliceCallback()
             vol.commit_info()
 
         vol.mip = startMip

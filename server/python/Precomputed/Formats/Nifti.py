@@ -18,8 +18,8 @@ import os
 #However indexed-gzip should be faster than all the alternatives, except decompressing the entire file to memory (which isn't always an option).
 
 
-def niftiToPrecomputed(niftiPath, output_path):
-    nifti = nibabel.load(niftiPath)
+def niftiToPrecomputed(input_path, output_path, label_path):
+    nifti = nibabel.load(input_path)
     resolution = nifti.header["pixdim"][1:4] #x, y, and z resolution
 
     #Units for resolution
@@ -49,7 +49,7 @@ def niftiToPrecomputed(niftiPath, output_path):
 
 
     #TODO: Better system for detecting segmentations?
-    fileName = os.path.basename(p.input_path)
+    fileName = os.path.basename(input_path)
 
     layerType = "image"
     if "label" in fileName.lower():
@@ -81,7 +81,8 @@ def niftiToPrecomputed(niftiPath, output_path):
     stackAxis = "z" #Stack on z axis.
     axisPos = obtainPosition("z")
 
-    vol = Volume(output_path, nifti.shape, dtype=targetType, axis = stackAxis, resolution = resolution, layerType = layerType)
+    dtype = nifti.header.get_data_dtype()
+    vol = Volume(output_path, nifti.shape, dtype=dtype, axis = stackAxis, resolution = resolution, layerType = layerType, label_path = label_path)
 
     #nibabel is going quite slow with gzip files when reading in part.
     #It looks like massive overhead - probably reading from the start or something weird.
