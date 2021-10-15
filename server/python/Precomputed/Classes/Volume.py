@@ -44,8 +44,10 @@ class Volume:
 
         resolution = [computeResolution(res) for res in resolution]
 
-        #TODO: We know what the axes should be - write something to norm.json, etc, so that the original layout can be easily recreated.
+        #We know what the axes should be - write something to norm.json, etc, so that the original layout can be easily recreated.
         #Perhaps even set up a shader with sliders to do it in Neuroglancer.
+        originalShape = shape
+
         #Collapse dimensions 4+ into dimension 4.
         shape = shapeNumAxes(shape, 4)
 
@@ -120,11 +122,7 @@ class Volume:
             generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
 
             outputObj = firstLayer.percentile.result
-            # outputObj = {}
-            # outputObj["min"] = float(firstLayer.maxVoxelValue)
-            # outputObj["max"] = float(firstLayer.minVoxelValue)
-            #outputObj["lower"] = float(arr[amountForPercentile])
-            #outputObj["upper"] = float(arr[-amountForPercentile])
+            outputObj["originalShape"] = originalShape
             outputObj["colorSpace"] = colorSpace
 
             if label_path is not None:

@@ -21,5 +21,5 @@ def tiffToPrecomputed(tiffPath, output_path, label_path):
     stackAxis = "z" #Stack on z axis.
     axisPos = obtainPosition("z")
 
-    vol = Volume(output_path, nifti.shape, dtype=targetType, axis = stackAxis, label_path = label_path, colorSpace = colorSpace)
+    vol = Volume(output_path, arr.shape, dtype=arr.dtype, axis = stackAxis, label_path = label_path, colorSpace = colorSpace)
     vol.addChunk(arr)
