@@ -37,7 +37,7 @@ function createPrecomputed(pathToFile) {
 	console.log("Generating", pathToFile)
 
 	let args = [
-		path.join(__dirname, "python", "createPrecomputed.py"),
+		path.join(__dirname, "python", "Precomputed"),
 		pathToFile,
 		outputPath
 	]

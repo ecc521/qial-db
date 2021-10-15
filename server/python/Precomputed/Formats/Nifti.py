@@ -28,7 +28,7 @@ def niftiToPrecomputed(input_path, output_path, label_path):
     spaceUnits = units % 8
     timeUnits = units - spaceUnits #Not currently used.
 
-    resolutionMultiplier = 1 #Nanometers is default resolution. 
+    resolutionMultiplier = 1 #Nanometers is default resolution.
     if (spaceUnits == 3):
         #Micrometers
         resolutionMultiplier = 1000
@@ -55,28 +55,8 @@ def niftiToPrecomputed(input_path, output_path, label_path):
     if "label" in fileName.lower():
         layerType = "segmentation"
 
-
-    # #Segmentations must be converted to unsigned integers.
-    # if layerType == "segmentation":
-    #     #TODO: This is not a comprehensive list.
-    #     if (np.issubdtype(targetType, np.signedinteger)):
-    #         size = targetType.itemsize
-    #         #Compressed segmentations must be uint32 or uint64.
-    #         #Raw segmentations may be uint16.
-    #         if (encoding == "compressed_segmentation"):
-    #             size = max(size, 4)
-    #         targetType = "uint" + str(size * 8)
-    #
-    #     else:
-    #         targetType = "uint64"
-
-
     #Obtain array.
     #arr = nifti.get_fdata(dtype = targetType)
-    #get_fdata does not allow integer outputs to try and stop overflow issues from the use of nifti scaling headers. We need to be careful.
-    #https://nipy.org/nibabel/devel/biaps/biap_0008.html
-
-
 
     stackAxis = "z" #Stack on z axis.
     axisPos = obtainPosition("z")
@@ -91,5 +71,5 @@ def niftiToPrecomputed(input_path, output_path, label_path):
 
     for i in range(sliceCount):
         sliceArgs = obtainSliceArgs(stackAxis, (i, i+1), len(nifti.shape))
-        slice = nifti.slicer[sliceArgs].get_data()
+        slice = np.asanyarray(nifti.slicer[sliceArgs].dataobj) #Obtain in native data type - addSlice will convert as needed. 
         vol.addSlice(slice)

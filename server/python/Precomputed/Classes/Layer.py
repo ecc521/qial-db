@@ -1,8 +1,9 @@
 import numpy as np
+import math
 
 from Utils.axes import obtainPosition, obtainSliceArgs, shapeNumAxes
 from Utils.downsampling import averagingDownsample, majorityDownsample
-
+from Classes.PercentileCalculator import PercentileCalculator
 
 
 #TODO: Whenever the highest resolution layer writes a chunk, it should downsample and provide those slices to the downsampled layers.
@@ -15,8 +16,13 @@ class Layer:
         self.axis = axis
         self.downsamplingType = downsamplingType
 
-        self.minVoxelValue = float("inf")
-        self.maxVoxelValue = float("-inf")
+        #Calculate percentile only for top layer - speed things up slightly.
+        #We might want to do a full percentile only on a lower resolution layer, and just do min/max on the top layer.
+        #That would reduce the impact of percentile calculation on performance.
+        if mip == 0:
+            self.percentile = PercentileCalculator(math.prod(vol.mip_shape(mip)), vol.dtype)
+        else:
+            self.percentile = None
 
         cacheShapeArgs = [*vol.mip_shape(mip)]
 
@@ -67,6 +73,9 @@ class Layer:
         startMip = vol.mip
         vol.mip = self.mip
 
+        if self.percentile is not None:
+            self.percentile.addBlock(slice)
+
         slice.shape = shapeNumAxes(slice.shape, 3)
 
         axisPos = obtainPosition(self.axis)
@@ -91,13 +100,6 @@ class Layer:
             volumeSlice = obtainSliceArgs(self.axis, (currentChunkStart, currentChunkEnd), len(self.cacheArr.shape))
             cacheSlice = obtainSliceArgs(self.axis, (0, cacheOffset + 1), len(self.cacheArr.shape))
             self.vol[volumeSlice] = returnVal = self.cacheArr[cacheSlice]
-
-            #We only need these for the highest res (though probably so low overhead as not to matter much)
-            if (vol.mip == 0):
-                self.maxVoxelValue = max(returnVal.max(), self.maxVoxelValue)
-                self.minVoxelValue = min(returnVal.min(), self.minVoxelValue)
-
-            #TODO: upper and lower bound calculations? (Don't use highest res)
 
 
         #Write info after last chunk completed.

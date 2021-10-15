@@ -1,6 +1,8 @@
 #Assemble precomputed file from a series of slices
 #This allows for stream based processing - keeping a minimum amount of data in memory.
 
+#TODO: Write info on errors or when finished - if we reboot or something midway, we shouldn't write.
+
 from cloudvolume import CloudVolume
 import numpy as np
 
@@ -13,6 +15,7 @@ from Utils.thumbnails import generateThumbnailsVolume #TODO: We should generate 
 from Utils.segmentation import segmentVolume
 
 import math
+import json
 
 
 class Volume:
@@ -23,7 +26,7 @@ class Volume:
 
     #TODO: Color images? We need to detect these somehow.
 
-    def __init__(self, output_path, shape, dtype, axis = "z", layerType = "image", resolution = [1, 1, 1], chunk_size = [64, 64, 64], label_path = None):
+    def __init__(self, output_path, shape, dtype, axis = "z", layerType = "image", resolution = [1, 1, 1], chunk_size = [64, 64, 64], label_path = None, colorSpace = "bw"):
         #output_path - Absolute output path for precomputed (directory name)
         #Shape: Shape of image.
         #dtype - Data type of image.
@@ -105,7 +108,7 @@ class Volume:
 
         vol.mip = 0
 
-        vol.commit_info() #TODO: Should we commit at the start, at the end, or when? We don't want to end up looping if this crashes, but also want to regen if interrupted. 
+        vol.commit_info() #TODO: Should we commit at the start, at the end, or when? We don't want to end up looping if this crashes, but also want to regen if interrupted.
 
         self.layers = layers = []
         for mip in vol.available_mips:
@@ -115,10 +118,23 @@ class Volume:
         def lastSliceCallback():
             firstLayer = layers[0]
             generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
+
+            outputObj = firstLayer.percentile.result
+            # outputObj = {}
+            # outputObj["min"] = float(firstLayer.maxVoxelValue)
+            # outputObj["max"] = float(firstLayer.minVoxelValue)
+            #outputObj["lower"] = float(arr[amountForPercentile])
+            #outputObj["upper"] = float(arr[-amountForPercentile])
+            outputObj["colorSpace"] = colorSpace
+
             if label_path is not None:
                 #I believe this works for segmentation files only, but we don't check that if a label_path is passed.
                 #TODO: Pass maxVoxelValue - calculate based on highest resolution layer.
                 segmentVolume(vol, output_path, label_path, maxVoxelValue = firstLayer.maxVoxelValue)
+
+            f = open(os.path.join(output_path, "norm.json"), "w")
+            f.write(json.dumps(outputObj))
+            f.close()
 
         layers[0].lastSliceCallback = lastSliceCallback
 
