@@ -19,14 +19,7 @@ import json
 
 
 class Volume:
-    #TODO: How to handle 5D+ shapes?
-    #It looks like neuroglancer-scripts simply merges all of them into the channel dimension (so (1,1,1,2,3) becomes (1,1,1,6))
-    #Is there a different way to do this? Do we want to configure the rendering with channel sliders, etc,
-    #To make it obvious to people how dimensions are working?
-
-    #TODO: Color images? We need to detect these somehow.
-
-    def __init__(self, output_path, shape, dtype, axis = "z", layerType = "image", resolution = [1, 1, 1], chunk_size = [64, 64, 64], label_path = None, colorSpace = "bw"):
+    def __init__(self, output_path, shape, dtype, axis = "z", layerType = "image", resolution = [1, 1, 1], chunk_size = None, label_path = None, colorSpace = "bw"):
         #output_path - Absolute output path for precomputed (directory name)
         #Shape: Shape of image.
         #dtype - Data type of image.
@@ -44,8 +37,11 @@ class Volume:
 
         resolution = [computeResolution(res) for res in resolution]
 
-        #We know what the axes should be - write something to norm.json, etc, so that the original layout can be easily recreated.
-        #Perhaps even set up a shader with sliders to do it in Neuroglancer.
+
+        #Handling 5D+ shapes: Merge dimensions 4+ into the channel dimension - (1,1,1,2,3) becomes (1,1,1,6)
+        #We also write the original shape into norm.json.
+        #TODO: We should use channel sliders, etc, to effectively recreate the original image.
+        #TODO: Color images? We need to detect these somehow.
         originalShape = shape
 
         #Collapse dimensions 4+ into dimension 4.
@@ -82,6 +78,29 @@ class Volume:
 
         else:
             raise NotImplementedError("Layer type not supported: " + layerType)
+
+
+        if chunk_size == None:
+            #Neuroglancer recommends 64^3 (262144 voxels) to balance request count against file size.
+            #In images with lots of channels, especially with larger dtypes, these chunks can end up
+            #being 20MB+, which is excessive.
+
+            #Since Neuroglancer currently does not support splitting channels across chunks,
+            #We will reduce the chunk size to reduce bandwidth waste.
+
+            #Number of bytes for each 3D voxel (channels * bytes per channel)
+            multiplier = shape[3] * np.dtype(targetType).itemsize
+
+            chunk_size = [64, 64, 64]
+
+            #Downscale all dimensions by factors of two until each chunk is under 1MB.
+            #This means chunks will be between 1MB and just over 1MB/8 (as we downscale all dimensions at once).
+            maxChunkBytes = 2 ** 20 #1MB
+
+            while (math.prod(chunk_size) * multiplier > maxChunkBytes and chunk_size[0] > 1):
+                for i in range(len(chunk_size)):
+                    chunk_size[i] /= 2
+                    
 
         #Create info file - we won't actually write it to the disk until the image is finished.
         info = CloudVolume.create_new_info(
