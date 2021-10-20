@@ -30,7 +30,7 @@ metadata:
     app: {{ .Chart.Name }}
     release: {{ .Release.Name }}
 spec:
-  host: qial.dhe.duke.edu
+  host: qial.duke.edu
   port:
     targetPort: app-port
   tls:
