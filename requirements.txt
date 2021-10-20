@@ -3,7 +3,6 @@ indexed-gzip
 
 numpy
 argparse
-pathlib
 imageio
 cloud-volume
 Pillow
