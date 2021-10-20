@@ -17,8 +17,8 @@ RUN bash n latest
 WORKDIR /qial-db
 COPY . .
 
-RUN --mount=type=cache,target=/root/.cache/pip pip install numpy setuptools wheel cython #This needs to run first - needed for some other dependencies.
-RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
+RUN pip install numpy setuptools wheel cython #This needs to run first - needed for some other dependencies.
+RUN pip install -r requirements.txt
 RUN npm install --only=prod
 
 CMD node server.js
