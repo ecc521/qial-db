@@ -142,11 +142,11 @@ function Item(item) {
 				let img = document.createElement("img")
 				img.src = getPrecomputedURL(`${view.precomputed.source}/${fileName}`, true)
 				container.appendChild(img)
-				container.addEventListener("click", function() {
-					openNeuroglancer({
-						fileName: view.precomputed.source,
-						labelName: view.precomputed.labels
-					})
+			})
+			container.addEventListener("click", function() {
+				openNeuroglancer({
+					fileName: view.precomputed.source,
+					labelName: view.precomputed.labels
 				})
 			})
 		}
