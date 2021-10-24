@@ -69,7 +69,17 @@ def niftiToPrecomputed(input_path, output_path, label_path):
     #Reduce the damage by loading a stack for one full chunk at once.
     sliceCount = nifti.shape[axisPos]
 
-    for i in range(sliceCount):
-        sliceArgs = obtainSliceArgs(stackAxis, (i, i+1), len(nifti.shape))
-        slice = np.asanyarray(nifti.slicer[sliceArgs].dataobj) #Obtain in native data type - addSlice will convert as needed. 
-        vol.addSlice(slice)
+    try:
+        for i in range(sliceCount):
+            sliceArgs = obtainSliceArgs(stackAxis, (i, i+1), len(nifti.shape))
+            slice = np.asanyarray(nifti.slicer[sliceArgs].dataobj) #Obtain in native data type - addSlice will convert as needed.
+            vol.addSlice(slice)
+
+    except ValueError as e:
+        #If the file is not complete (as of, missing frames), process everything possible with the frames that exist.
+        if str(e) == "Oh dear, n_bytes does not look right":
+            print("Processing stopped: File incomplete. Current data is being written. Error message below: ")
+            print(str(e))
+            vol.finishProcessing()
+        else:
+            raise

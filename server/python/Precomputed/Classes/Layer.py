@@ -102,12 +102,10 @@ class Layer:
             self.vol[volumeSlice] = returnVal = self.cacheArr[cacheSlice]
 
 
-        #Write info after last chunk completed.
-        #TODO: Run segmentation code with maxVoxelValue.
-        if (vol.mip == 0 and self.currentSlices == lastSlice):
+        if (self.currentSlices == lastSlice):
+            #lastSliceCallback should always exist for mip 0 - vol.commit_info() should be called in lastSliceCallback
             if (self.lastSliceCallback is not None):
                 self.lastSliceCallback()
-            # vol.commit_info()
 
         vol.mip = startMip
 

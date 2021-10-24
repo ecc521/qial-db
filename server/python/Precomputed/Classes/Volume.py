@@ -1,8 +1,6 @@
 #Assemble precomputed file from a series of slices
 #This allows for stream based processing - keeping a minimum amount of data in memory.
 
-#TODO: Write info on errors or when finished - if we reboot or something midway, we shouldn't write.
-
 from cloudvolume import CloudVolume
 import numpy as np
 
@@ -100,7 +98,7 @@ class Volume:
             while (math.prod(chunk_size) * multiplier > maxChunkBytes and chunk_size[0] > 1):
                 for i in range(len(chunk_size)):
                     chunk_size[i] /= 2
-                    
+
 
         #Create info file - we won't actually write it to the disk until the image is finished.
         info = CloudVolume.create_new_info(
@@ -129,8 +127,6 @@ class Volume:
 
         vol.mip = 0
 
-        vol.commit_info() #TODO: Should we commit at the start, at the end, or when? We don't want to end up looping if this crashes, but also want to regen if interrupted.
-
         self.layers = layers = []
         for mip in vol.available_mips:
             layer = Layer(vol, mip, axis, downsampling)
@@ -138,23 +134,31 @@ class Volume:
 
         def lastSliceCallback():
             firstLayer = layers[0]
-            generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
 
             outputObj = firstLayer.percentile.result
             outputObj["originalShape"] = originalShape
             outputObj["colorSpace"] = colorSpace
 
             if label_path is not None:
-                #I believe this works for segmentation files only, but we don't check that if a label_path is passed.
-                #TODO: Pass maxVoxelValue - calculate based on highest resolution layer.
-                segmentVolume(vol, output_path, label_path, maxVoxelValue = firstLayer.maxVoxelValue)
+                segmentVolume(vol, output_path, label_path, maxVoxelValue = outputObj["max"])
 
             f = open(os.path.join(output_path, "norm.json"), "w")
             f.write(json.dumps(outputObj))
             f.close()
 
+            vol.commit_info()
+
+            #TODO: This may throw EmptyVolumeException if we never finished processing the entire image,
+            #and lastSliceCallback was called in finishProcessing, rather than after the last slice. 
+            generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
+
+
+
         layers[0].lastSliceCallback = lastSliceCallback
 
+        #self.finishProcessing will write the info file, generate thumbnails, etc.
+        #TODO: self.finishProcessing does NOT flush slices in cache.
+        self.finishProcessing = lastSliceCallback
 
 
 

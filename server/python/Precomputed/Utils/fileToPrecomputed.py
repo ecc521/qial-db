@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from Formats.Nifti import niftiToPrecomputed
 from Formats.Dicom import zipToPrecomputed
@@ -7,6 +8,10 @@ from Formats.Tiff import tiffToPrecomputed
 
 def fileToPrecomputed(input_path, output_path, label_path):
     #Distribute requests between the formats.
+
+    if (os.path.exists(output_path)):
+        print("Deleting existing directory at output location. ")
+        shutil.rmtree(output_path)
 
     fileName = os.path.basename(input_path)
 
