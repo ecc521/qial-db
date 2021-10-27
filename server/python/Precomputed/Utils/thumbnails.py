@@ -43,7 +43,8 @@ def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
     #Rotate slices to match Neuroglancer
     sliceX = np.rot90(sliceX, 1)
 
-    sliceY = np.rot90(sliceY, 1)
+    sliceY = np.rot90(sliceY, 3)
+    sliceY = np.flipud(sliceY)
 
     sliceZ = np.flipud(sliceZ) #Flip vertically
 

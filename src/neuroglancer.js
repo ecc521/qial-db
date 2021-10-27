@@ -4,6 +4,7 @@ function getPrecomputedURL(fileName, isHttp=false) {
 	return url
 }
 
+//TODO: We need shaders for 5D images, etc.
 
 //Neuroglancer Shader when colored
 //Docs at https://github.com/google/neuroglancer/blob/master/src/neuroglancer/sliceview/image_layer_rendering.md
@@ -24,6 +25,17 @@ void main() {
     );
 }`
 
+function getEmptyMatrix(dim) {
+	//Returns matrix, with additional column for translations.
+	let mat = []
+	for (let i=0;i<dim;i++) {
+		mat[i] = []
+		for (let j=0;j<=dim;j++) {
+			mat[i][j] = Number(i == j)
+		}
+	}
+	return mat
+}
 
 async function openNeuroglancer({fileName, labelName}) {
 	//TODO: We should fetch the norm.json from the server when we go to run this.
@@ -45,9 +57,9 @@ async function openNeuroglancer({fileName, labelName}) {
 		},
 		"layout": "4panel",
 		//Rotate the images to Allen Mouse Brain Common Coordinate Framework
-		//TODO: It looks like the bottom quadrant may need some work.
-		"crossSectionOrientation": [0.5, 0.5, -0.5, -0.5],
-		"projectionOrientation": [0, 0, (2 ** 0.5) / 2, (2 ** 0.5) / 2]//Rotate the 3D viewing pane as well.
+		//TODO: Doesn't look quite perfect.
+		"crossSectionOrientation": [0, (2 ** 0.5) / -2, (2 ** 0.5) / 2, 0],
+		"projectionOrientation": [0, 0, (2 ** 0.5) / -2, (2 ** 0.5) / -2], //Rotate the 3D viewing pane as well.
 	}
 
 

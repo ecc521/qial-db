@@ -9,6 +9,7 @@ from Formats.Tiff import tiffToPrecomputed
 def fileToPrecomputed(input_path, output_path, label_path):
     #Distribute requests between the formats.
 
+    #TODO: We need to take a look at the orientation of each incoming image. 
     if (os.path.exists(output_path)):
         print("Deleting existing directory at output location. ")
         shutil.rmtree(output_path)
