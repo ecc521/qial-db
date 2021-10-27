@@ -44,6 +44,10 @@ async function openNeuroglancer({fileName, labelName}) {
 			"layer": fileName
 		},
 		"layout": "4panel",
+		//Rotate the images to Allen Mouse Brain Common Coordinate Framework
+		//TODO: It looks like the bottom quadrant may need some work.
+		"crossSectionOrientation": [0.5, 0.5, -0.5, -0.5],
+		"projectionOrientation": [0, 0, (2 ** 0.5) / 2, (2 ** 0.5) / 2]//Rotate the 3D viewing pane as well.
 	}
 
 
@@ -81,7 +85,7 @@ async function openNeuroglancer({fileName, labelName}) {
 
 	if (labelName) {
 		//May need to turn on "enableDefaultSubsources" or other config if labels stop appearing at some point.
-		//Seems to be default right now (which makes sense given name). 
+		//Seems to be default right now (which makes sense given name).
 		obj.layers.push({
 			"source": {
 				"url": getPrecomputedURL(labelName),

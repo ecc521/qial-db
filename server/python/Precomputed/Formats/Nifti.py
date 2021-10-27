@@ -14,7 +14,7 @@ import os
 #However that doesn't work all that well with channels - the channels are stored at the end,
 #And if we want to stack on the z axis, that's a problem.
 
-#As is, indexed-gzip won't be perfectly effecient - we'll need to read through every channel for every slice -
+#As is, indexed-gzip won't be perfectly effecient when images have more than 3 dimensions - we'll need to read part of every channel with every slice -
 #However indexed-gzip should be faster than all the alternatives, except decompressing the entire file to memory (which isn't always an option).
 
 

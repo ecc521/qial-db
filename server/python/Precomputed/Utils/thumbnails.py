@@ -18,8 +18,10 @@ def writeImage(outPath, slice):
     inputBytes = io.BytesIO(bytes)
 
     image = PIL.Image.open(inputBytes)
-    #Resize - Max width 500, max height 180.
-    image.thumbnail([500, 180])
+    #Resize
+    maxWidth = 250
+    maxHeight = 100
+    image.thumbnail([maxWidth, maxHeight])
     image.save(outPath, method=6, quality=60) #Method 6 is webp best compression, quality is 1-100, default 80
 
 
@@ -37,6 +39,13 @@ def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
         overallMax = max(sliceX.max(), sliceY.max(), sliceZ.max())
 
         multiplier = int(max_value / overallMax) #Keep it simple. If the difference is only 1.9x, it should be visible either way.
+
+    #Rotate slices to match Neuroglancer
+    sliceX = np.rot90(sliceX, 1)
+
+    sliceY = np.rot90(sliceY, 1)
+
+    sliceZ = np.flipud(sliceZ) #Flip vertically
 
     #Actually output the slices.
     writeImage(x_out, sliceX * multiplier)
