@@ -7,7 +7,7 @@ metadata:
     app: {{ .Chart.Name }}
     release: {{ .Release.Name }}
 spec:
-  host: alzweb.ocp.dhe.duke.edu
+  host: qial.ocp.dhe.duke.edu
   port:
     targetPort: app-port
   tls:
@@ -34,10 +34,6 @@ spec:
   port:
     targetPort: app-port
   tls:
-    certificate: |-
-      {{ .Values.ssl.cert | indent 6 | trim }}
-    key: |-
-      {{ .Values.ssl.key | indent 6 | trim }}
     termination: edge
   to:
     kind: Service
