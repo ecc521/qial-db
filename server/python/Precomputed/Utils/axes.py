@@ -15,7 +15,6 @@ def obtainSliceArgs(axis, sliceParams, numberOfAxes):
             arr.append(slice(None))
     return tuple(arr)
 
-
 def shapeNumAxes(shape, axes):
     #Make sure shape has at least 4 dimensions - pad with ones.
     shape = list(shape)

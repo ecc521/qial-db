@@ -2,6 +2,7 @@
 #TODO: These thumbnails are aligned differently than neuroglancer.
 
 from cloudvolume import CloudVolume
+
 import PIL
 import imageio
 import io
@@ -53,7 +54,25 @@ def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
     writeImage(y_out, sliceY * multiplier)
     writeImage(z_out, sliceZ * multiplier)
 
+
+#Obtains the center slice for an n-dimensional array on axis axisPos
+def obtainCenterSlice(arr, axisPos):
+    numberOfAxes = len(arr.shape)
+
+    sliceArgs = []
+    for i in range(numberOfAxes):
+        if i == axisPos or i > 2:
+            startSlice = int(arr.shape[i] / 2)
+            sliceArgs.append(slice(startSlice, startSlice + 1))
+        else:
+            sliceArgs.append(slice(None))
+
+    sliceArgs = tuple(sliceArgs)
+    return arr[sliceArgs]
+
+
 def generateThumbnailsArray(arr, *outputs):
+    #TODO: Switch to obtainCenterSlice. (Might work perfectly - needs testing)
     sliceX = arr[int(arr.shape[0]/2)]
     sliceY = arr[:, int(arr.shape[1]/2)]
     sliceZ = arr[:, :, int(arr.shape[2]/2)]
@@ -62,9 +81,9 @@ def generateThumbnailsArray(arr, *outputs):
 
 
 def generateThumbnailsVolume(volume, *outputs):
-    sliceX = volume[volume.shape[0]/2]
-    sliceY = volume[:, volume.shape[1]/2]
-    sliceZ = volume[:, :, volume.shape[2]/2]
+    sliceX = obtainCenterSlice(volume, 0)
+    sliceY = obtainCenterSlice(volume, 1)
+    sliceZ = obtainCenterSlice(volume, 2)
 
     generateThumbnailsSlices(sliceX[0], sliceY[:, 0], sliceZ[:, :, 0], *outputs)
 
@@ -77,5 +96,5 @@ if __name__ == "__main__":
     parser.add_argument("z_out")
 
     p = parser.parse_args()
-    volume = CloudVolume(urlPrefix + str(p.input_path))
+    volume = CloudVolume(urlPrefix + str(p.input_path), progress=True, fill_missing=True) #TODO: fill_missing = True? Or allow thumbnails to crash?
     generateThumbnailsVolume(volume, p.x_out, p.y_out, p.z_out)
