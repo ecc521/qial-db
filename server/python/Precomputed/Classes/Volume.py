@@ -146,11 +146,12 @@ class Volume:
             f.write(json.dumps(outputObj))
             f.close()
 
-            vol.commit_info()
-
-            #TODO: This may throw EmptyVolumeException if we never finished processing the entire image,
-            #and lastSliceCallback was called in finishProcessing, rather than after the last slice. 
+            #TODO: If we never finished processing the entire image, and lastSliceCallback was called in finishProcessing, rather than after the last slice,
+            #generateThumbnailsVolume currently fills in the missing data with zeros. This should be changed to either crash, or reduce the dimensions
+            #of the output thumbnails. 
             generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
+
+            vol.commit_info()
 
 
 

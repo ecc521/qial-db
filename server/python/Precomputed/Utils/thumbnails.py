@@ -97,4 +97,5 @@ if __name__ == "__main__":
 
     p = parser.parse_args()
     volume = CloudVolume(urlPrefix + str(p.input_path), progress=True, fill_missing=True) #TODO: fill_missing = True? Or allow thumbnails to crash?
+    #We should probably reduce the thumbnail dimensions rather than fill_missing. 
     generateThumbnailsVolume(volume, p.x_out, p.y_out, p.z_out)
