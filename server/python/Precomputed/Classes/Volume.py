@@ -1,6 +1,9 @@
 #Assemble precomputed file from a series of slices
 #This allows for stream based processing - keeping a minimum amount of data in memory.
 
+#TODO: Add some sort of versioning.
+#Also, allow thumbnails to be recomputed seperately of the volumes (probably based on said versioning)
+
 from cloudvolume import CloudVolume
 import numpy as np
 
@@ -148,8 +151,8 @@ class Volume:
 
             #TODO: If we never finished processing the entire image, and lastSliceCallback was called in finishProcessing, rather than after the last slice,
             #generateThumbnailsVolume currently fills in the missing data with zeros. This should be changed to either crash, or reduce the dimensions
-            #of the output thumbnails. 
-            generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"))
+            #of the output thumbnails.
+            generateThumbnailsVolume(vol, os.path.join(output_path, "x.webp"), os.path.join(output_path, "y.webp"), os.path.join(output_path, "z.webp"), (colorSpace == "rgb"))
 
             vol.commit_info()
 

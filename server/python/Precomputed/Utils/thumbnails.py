@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 
 urlPrefix = "precomputed://file://"
+    
 
 #Takes a volume slice and writes the output file.
 def writeImage(outPath, slice):
@@ -56,12 +57,12 @@ def generateThumbnailsSlices(sliceX, sliceY, sliceZ, x_out, y_out, z_out):
 
 
 #Obtains the center slice for an n-dimensional array on axis axisPos
-def obtainCenterSlice(arr, axisPos):
+def obtainCenterSlice(arr, axisPos, isColor):
     numberOfAxes = len(arr.shape)
 
     sliceArgs = []
     for i in range(numberOfAxes):
-        if i == axisPos or i > 2:
+        if not (isColor and i == 3) and (i == axisPos or i > 2):
             startSlice = int(arr.shape[i] / 2)
             sliceArgs.append(slice(startSlice, startSlice + 1))
         else:
@@ -71,21 +72,12 @@ def obtainCenterSlice(arr, axisPos):
     return arr[sliceArgs]
 
 
-def generateThumbnailsArray(arr, *outputs):
-    #TODO: Switch to obtainCenterSlice. (Might work perfectly - needs testing)
-    sliceX = arr[int(arr.shape[0]/2)]
-    sliceY = arr[:, int(arr.shape[1]/2)]
-    sliceZ = arr[:, :, int(arr.shape[2]/2)]
+def generateThumbnailsVolume(volume, x_out, y_out, z_out, isColor = False):
+    sliceX = obtainCenterSlice(volume, 0, isColor)
+    sliceY = obtainCenterSlice(volume, 1, isColor)
+    sliceZ = obtainCenterSlice(volume, 2, isColor)
 
-    generateThumbnailsSlices(sliceX, sliceY, sliceZ, *outputs)
-
-
-def generateThumbnailsVolume(volume, *outputs):
-    sliceX = obtainCenterSlice(volume, 0)
-    sliceY = obtainCenterSlice(volume, 1)
-    sliceZ = obtainCenterSlice(volume, 2)
-
-    generateThumbnailsSlices(sliceX[0], sliceY[:, 0], sliceZ[:, :, 0], *outputs)
+    generateThumbnailsSlices(sliceX[0], sliceY[:, 0], sliceZ[:, :, 0], x_out, y_out, z_out)
 
 
 if __name__ == "__main__":
@@ -97,5 +89,5 @@ if __name__ == "__main__":
 
     p = parser.parse_args()
     volume = CloudVolume(urlPrefix + str(p.input_path), progress=True, fill_missing=True) #TODO: fill_missing = True? Or allow thumbnails to crash?
-    #We should probably reduce the thumbnail dimensions rather than fill_missing. 
+    #We should probably reduce the thumbnail dimensions rather than fill_missing.
     generateThumbnailsVolume(volume, p.x_out, p.y_out, p.z_out)
