@@ -99,6 +99,17 @@ passport.use(new LocalStrategy(
   }
 ));
 
+app.all("*", (req, res, next) => {
+    let resPath = path.join(__dirname, req.path)
+    if (resPath.startsWith(__dirname)) {
+        next()
+    }
+    else {
+        res.status(403)
+        res.end("Path Traversal Not Permitted")
+    }
+})
+
 app.post('/login', passport.authenticate('local', {
 	successRedirect: '/account',
 	failureRedirect: '/login',
