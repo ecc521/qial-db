@@ -39,6 +39,7 @@ fs.mkdirSync(global.precomputedDir, {recursive: true})
 
 
 let app = express()
+app.disable('x-powered-by')
 
 //Compress all responses
 app.use(compression({
@@ -100,6 +101,8 @@ passport.use(new LocalStrategy(
 ));
 
 app.all("*", (req, res, next) => {
+    res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS. 
+
     let resPath = path.join(__dirname, req.path)
     if (resPath.startsWith(__dirname)) {
         next()
