@@ -101,8 +101,9 @@ passport.use(new LocalStrategy(
 ));
 
 app.all("*", (req, res, next) => {
-    res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS. 
+    res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS.
 
+    //Block directory traversal
     let resPath = path.join(__dirname, req.path)
     if (resPath.startsWith(__dirname)) {
         next()
@@ -178,9 +179,8 @@ app.post("/upload", async (req, res) => {
 
     //Security check.
     if (writePath.indexOf(global.dataDir) !== 0) {
-        res.statusCode = 403
-        res.setHeader('Content-Type', 'text/plain');
-        res.end("Writing into parent directories is prohibited. ");
+        res.status(403)
+        res.end("Path Traversal Not Permitted")
         return;
     }
 
@@ -289,9 +289,8 @@ app.post("/download", async (req, res) => {
 
 	for (let i=0;i<names.length;i++) {
 		if (path.resolve(global.dataDir, names[i]).indexOf(global.dataDir) !== 0) {
-			res.statusCode = 403
-			res.setHeader('Content-Type', 'text/plain');
-			res.end("Reading parent directories is prohibited. ");
+            res.status(403)
+            res.end("Path Traversal Not Permitted")
 			return;
 		}
 	}
@@ -320,9 +319,8 @@ app.all("/fileops", async (req, res) => {
 	let filePath = path.join(global.dataDir, filename)
 
 	if (filePath.indexOf(global.dataDir) !== 0) {
-		res.statusCode = 403
-		res.setHeader('Content-Type', 'text/plain');
-		res.end("ERROR: Modifying parent directories is prohibited. ");
+        res.status(403)
+        res.end("Path Traversal Not Permitted")
 		return;
 	}
 
@@ -365,9 +363,8 @@ app.all("/fileops", async (req, res) => {
 		let targetFilePath = path.join(global.dataDir, targetFileName)
 
 		if (targetFilePath.indexOf(global.dataDir) !== 0) {
-			res.statusCode = 403
-			res.setHeader('Content-Type', 'text/plain');
-			res.end("Writing into parent directories is prohibited. ");
+            res.status(403)
+            res.end("Path Traversal Not Permitted")
 			return;
 		}
 
@@ -381,7 +378,7 @@ app.all("/fileops", async (req, res) => {
 
 //Serve remaining files.
 app.use('*', (req, res, next) => {
-	res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Origin", "*");
 
 	let relativeSrc = req.originalUrl
 
@@ -389,10 +386,19 @@ app.use('*', (req, res, next) => {
 	let src;
 	let extension = extensions.find((ext) => {
 		src = path.join(__dirname, relativeSrc + ext)
+
 		if (fs.existsSync(src)) {
 			return !fs.statSync(src).isDirectory()
 		}
 	})
+
+    //Block file traversal.
+    //Some urls can sneak through, like: /search?query=../../../../../../../../../etc/passwd
+    if (!src.startsWith(__dirname)) {
+        res.status(403)
+        res.end("Path Traversal Not Permitted")
+        return
+    }
 
 	if (fs.existsSync(src)) {
 		res.type(path.extname(src))
@@ -419,11 +425,13 @@ app.use('*', (req, res, next) => {
 					readStream.pipe(res)
 				}
 				else {
-					next() //Proceed to the gzip file.
+                    //Proceed to the gzip file. (Already precompressed - GZIP might be supported by client, which would save CPU and bandwidth)
+                    extension = ".gz"
 				}
 			}
 		}
-		else if (extension === ".gz") {
+
+        if (extension === ".gz") {
 			res.type(path.extname(src.slice(0, -3)))
 			let accepted = req.get("Accept-Encoding")
 			if (accepted.includes("gzip")) {
