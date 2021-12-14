@@ -41,6 +41,14 @@ fs.mkdirSync(global.precomputedDir, {recursive: true})
 let app = express()
 app.disable('x-powered-by')
 
+function assureRelativePathSafe(relSrc) {
+    let hypoDir = "/a/b"
+    let absSrc = path.join(hypoDir, relSrc)
+    if (!absSrc.startsWith(hypoDir)) {
+        throw "Path Traversal Forbidden"
+    }
+}
+
 //Compress all responses
 app.use(compression({
 	filter: (req, res) => {
@@ -102,16 +110,8 @@ passport.use(new LocalStrategy(
 
 app.all("*", (req, res, next) => {
     res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS.
-
-    //Block directory traversal
-    let resPath = path.join(__dirname, req.path)
-    if (resPath.startsWith(__dirname)) {
-        next()
-    }
-    else {
-        res.status(403)
-        res.end("Path Traversal Not Permitted")
-    }
+    assureRelativePathSafe(req.path)
+    next()
 })
 
 app.post('/login', passport.authenticate('local', {
@@ -176,13 +176,7 @@ app.post("/upload", async (req, res) => {
 	let action = req.headers["qial-action"]
 
     let writePath = path.join(global.dataDir, filename) //Final destination.
-
-    //Security check.
-    if (writePath.indexOf(global.dataDir) !== 0) {
-        res.status(403)
-        res.end("Path Traversal Not Permitted")
-        return;
-    }
+    assureRelativePathSafe(filename)
 
     //Don't allow overwriting files - error.
     if (fs.existsSync(writePath)) {
@@ -288,11 +282,7 @@ app.post("/download", async (req, res) => {
     let names = data.names.split(",")
 
 	for (let i=0;i<names.length;i++) {
-		if (path.resolve(global.dataDir, names[i]).indexOf(global.dataDir) !== 0) {
-            res.status(403)
-            res.end("Path Traversal Not Permitted")
-			return;
-		}
+        assureRelativePathSafe(names[i])
 	}
 
 	//Send the user a zip file.
@@ -317,12 +307,7 @@ app.all("/fileops", async (req, res) => {
 	let filename = req.headers['qial-filename']
 
 	let filePath = path.join(global.dataDir, filename)
-
-	if (filePath.indexOf(global.dataDir) !== 0) {
-        res.status(403)
-        res.end("Path Traversal Not Permitted")
-		return;
-	}
+    assureRelativePathSafe(filename)
 
     if (!fs.existsSync(filePath)) {
         res.statusCode = 400
@@ -361,12 +346,7 @@ app.all("/fileops", async (req, res) => {
 		}
 		let targetFileName = req.headers['qial-target-filename']
 		let targetFilePath = path.join(global.dataDir, targetFileName)
-
-		if (targetFilePath.indexOf(global.dataDir) !== 0) {
-            res.status(403)
-            res.end("Path Traversal Not Permitted")
-			return;
-		}
+        assureRelativePathSafe(targetFileName)
 
 		//TODO: This can throw if it doesn't exist.
 		await fs.promises.rename(filePath, targetFilePath)
@@ -377,28 +357,24 @@ app.all("/fileops", async (req, res) => {
 
 
 //Serve remaining files.
-app.use('*', (req, res, next) => {
+app.all('*', (req, res, next) => {
     res.set("Access-Control-Allow-Origin", "*");
 
-	let relativeSrc = req.originalUrl
-
+	let relativeSrc = req.path
 	let extensions = ["", ".html", "index.html", ".br", ".gz"]
+    let extRelSrc;
 	let src;
 	let extension = extensions.find((ext) => {
-		src = path.join(__dirname, relativeSrc + ext)
+        extRelSrc = relativeSrc + ext
+        assureRelativePathSafe(extRelSrc)
+
+		src = path.join(__dirname, extRelSrc)
 
 		if (fs.existsSync(src)) {
 			return !fs.statSync(src).isDirectory()
 		}
 	})
 
-    //Block file traversal.
-    //Some urls can sneak through, like: /search?query=../../../../../../../../../etc/passwd
-    if (!src.startsWith(__dirname)) {
-        res.status(403)
-        res.end("Path Traversal Not Permitted")
-        return
-    }
 
 	if (fs.existsSync(src)) {
 		res.type(path.extname(src))
@@ -456,8 +432,8 @@ app.use('*', (req, res, next) => {
 	}
 })
 
-app.use("*", (req, res, next) => {
-	serveIndex(path.join(__dirname, req.originalUrl), {
+app.all("*", (req, res, next) => {
+	serveIndex(path.join(__dirname, req.path), {
 		'icons': true,
 		'view': "details" //Gives more info than tiles.
 	})(req, res, next)
