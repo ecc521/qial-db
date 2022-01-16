@@ -433,7 +433,7 @@ app.all('*', (req, res, next) => {
 })
 
 app.all("*", (req, res, next) => {
-	serveIndex(path.join(__dirname, req.path), {
+    serveIndex(__dirname, {
 		'icons': true,
 		'view': "details" //Gives more info than tiles.
 	})(req, res, next)
