@@ -360,7 +360,7 @@ app.all("/fileops", async (req, res) => {
 app.all('*', (req, res, next) => {
     res.set("Access-Control-Allow-Origin", "*");
 
-	let relativeSrc = req.path
+    let relativeSrc = decodeURIComponent(req.path)
 	let extensions = ["", ".html", "index.html", ".br", ".gz"]
     let extRelSrc;
 	let src;
