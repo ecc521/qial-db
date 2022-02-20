@@ -140,6 +140,7 @@ function Item(item) {
 			if (!view.precomputed) {console.warn("No Thumbnails");return;}
 			;["x", "y", "z"].map(name => name + ".webp").forEach((fileName) => {
 				let img = document.createElement("img")
+				img.loading = "lazy"
 				img.src = getPrecomputedURL(`${view.precomputed.source}/${fileName}`, true)
 				container.appendChild(img)
 			})

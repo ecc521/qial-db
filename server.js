@@ -20,6 +20,9 @@ const serveIndex = require('serve-index')
 const bodyParser = require("body-parser")
 const {getAuthorizedUsers, isPasswordCorrect, generateEntry} = require("./server/auth.js")
 
+const assureRelativePathSafe = require("./assureRelativePathSafe.js")
+const requestHandler = require("./requestHandler.js")
+
 const passport = require('passport')
   , LocalStrategy = require('passport-local').Strategy;
 
@@ -40,14 +43,6 @@ fs.mkdirSync(global.precomputedDir, {recursive: true})
 
 let app = express()
 app.disable('x-powered-by')
-
-function assureRelativePathSafe(relSrc) {
-    let hypoDir = "/a/b"
-    let absSrc = path.join(hypoDir, relSrc)
-    if (!absSrc.startsWith(hypoDir)) {
-        throw "Path Traversal Forbidden"
-    }
-}
 
 //Compress all responses
 app.use(compression({
@@ -357,80 +352,82 @@ app.all("/fileops", async (req, res) => {
 
 
 //Serve remaining files.
-app.all('*', (req, res, next) => {
-    res.set("Access-Control-Allow-Origin", "*");
+app.all('*', requestHandler)
 
-    let relativeSrc = decodeURIComponent(req.path)
-	let extensions = ["", ".html", "index.html", ".br", ".gz"]
-    let extRelSrc;
-	let src;
-	let extension = extensions.find((ext) => {
-        extRelSrc = relativeSrc + ext
-        assureRelativePathSafe(extRelSrc)
-
-		src = path.join(__dirname, extRelSrc)
-
-		if (fs.existsSync(src)) {
-			return !fs.statSync(src).isDirectory()
-		}
-	})
-
-
-	if (fs.existsSync(src)) {
-		res.type(path.extname(src))
-		let readStream = fs.createReadStream(src)
-
-		if (extension === ".br") {
-			res.type(path.extname(src.slice(0, -3)))
-			let accepted = req.get("Accept-Encoding")
-			if (accepted.includes("br")) {
-				res.set("Content-Encoding", "br")
-				readStream.pipe(res)
-			}
-			else {
-				console.warn("Brotli not supported by requester. ")
-				if (!fs.existsSync(
-					src.slice(0, -3) + ".gz"
-				)) {
-					//Stream decompress off of disk.
-					//We check brotli before gzip - if there is a gzip and brotli file, but brotli not supported, we
-					//should use the gzip file to avoid the compression CPU.
-					let decompressor = zlib.createBrotliDecompress()
-					readStream.pipe(decompressor)
-					readStream = decompressor
-					readStream.pipe(res)
-				}
-				else {
-                    //Proceed to the gzip file. (Already precompressed - GZIP might be supported by client, which would save CPU and bandwidth)
-                    extension = ".gz"
-				}
-			}
-		}
-
-        if (extension === ".gz") {
-			res.type(path.extname(src.slice(0, -3)))
-			let accepted = req.get("Accept-Encoding")
-			if (accepted.includes("gzip")) {
-				res.set("Content-Encoding", "gzip")
-				readStream.pipe(res)
-			}
-			else {
-				//Stream decompress off of disk.
-				console.warn("GZIP not supported by requester. ")
-				let decompressor = zlib.createUnzip()
-				readStream.pipe(decompressor)
-				readStream = decompressor
-				readStream.pipe(res)
-			}
-		}
-		else {
-			readStream.pipe(res)
-		}
-	}
-	else {
-		next()
-	}
-})
+// app.all('*', (req, res, next) => {
+//     res.set("Access-Control-Allow-Origin", "*");
+//
+//     let relativeSrc = decodeURIComponent(req.path)
+// 	let extensions = ["", ".html", "index.html", ".br", ".gz"]
+//     let extRelSrc;
+// 	let src;
+// 	let extension = extensions.find((ext) => {
+//         extRelSrc = relativeSrc + ext
+//         assureRelativePathSafe(extRelSrc)
+//
+// 		src = path.join(__dirname, extRelSrc)
+//
+// 		if (fs.existsSync(src)) {
+// 			return !fs.statSync(src).isDirectory()
+// 		}
+// 	})
+//
+//
+// 	if (fs.existsSync(src)) {
+// 		res.type(path.extname(src))
+// 		let readStream = fs.createReadStream(src)
+//
+// 		if (extension === ".br") {
+// 			res.type(path.extname(src.slice(0, -3)))
+// 			let accepted = req.get("Accept-Encoding")
+// 			if (accepted.includes("br")) {
+// 				res.set("Content-Encoding", "br")
+// 				readStream.pipe(res)
+// 			}
+// 			else {
+// 				console.warn("Brotli not supported by requester. ")
+// 				if (!fs.existsSync(
+// 					src.slice(0, -3) + ".gz"
+// 				)) {
+// 					//Stream decompress off of disk.
+// 					//We check brotli before gzip - if there is a gzip and brotli file, but brotli not supported, we
+// 					//should use the gzip file to avoid the compression CPU.
+// 					let decompressor = zlib.createBrotliDecompress()
+// 					readStream.pipe(decompressor)
+// 					readStream = decompressor
+// 					readStream.pipe(res)
+// 				}
+// 				else {
+//                     //Proceed to the gzip file. (Already precompressed - GZIP might be supported by client, which would save CPU and bandwidth)
+//                     extension = ".gz"
+// 				}
+// 			}
+// 		}
+//
+//         if (extension === ".gz") {
+// 			res.type(path.extname(src.slice(0, -3)))
+// 			let accepted = req.get("Accept-Encoding")
+// 			if (accepted.includes("gzip")) {
+// 				res.set("Content-Encoding", "gzip")
+// 				readStream.pipe(res)
+// 			}
+// 			else {
+// 				//Stream decompress off of disk.
+// 				console.warn("GZIP not supported by requester. ")
+// 				let decompressor = zlib.createUnzip()
+// 				readStream.pipe(decompressor)
+// 				readStream = decompressor
+// 				readStream.pipe(res)
+// 			}
+// 		}
+// 		else {
+// 			readStream.pipe(res)
+// 		}
+// 	}
+// 	else {
+// 		next()
+// 	}
+// })
 
 app.all("*", (req, res, next) => {
     serveIndex(__dirname, {
