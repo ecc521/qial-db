@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js",
+    "watch": "node build.js -- watch",
+    "build": "node build.js -- prod",
     "build-neuroglancer": "sh buildNeuroglancer.sh",
     "docker-build": "docker build -t qial-db .",
     "docker-scan": "docker scan qial-db --file Dockerfile --exclude-base",
@@ -36,8 +37,7 @@
     "@babel/runtime": "^7.11.0",
     "@bubblewrap/cli": "^1.5.0",
     "core-js": "^3.6.5",
-    "plotly.js-dist-min": "^2.3.1",
-    "webpack-cli": "^3.3.12"
+    "plotly.js-dist-min": "^2.3.1"
   },
   "dependencies": {
     "babel-loader": "^8.1.0",
