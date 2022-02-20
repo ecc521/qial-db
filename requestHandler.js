@@ -44,7 +44,7 @@ function requestHandler(req, res, next) {
 	//START OF PRECOMPRESSION/CACHE CONTROL/TYPING LOGIC
 
 	if (findResult === ".gz") {
-		res.set("Content-Encoding", "gz")
+		res.set("Content-Encoding", "gzip")
 	}
 
 	//END OF PRECOMPRESSION/CACHE/TYPING CONTROL LOGIC
