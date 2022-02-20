@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "watch": "node build.js -- watch",
     "build": "node build.js -- prod",
+    "postinstall": "node build.js -- prod",
+    "watch": "node build.js -- watch",
     "build-neuroglancer": "sh buildNeuroglancer.sh",
     "docker-build": "docker build -t qial-db .",
     "docker-scan": "docker scan qial-db --file Dockerfile --exclude-base",

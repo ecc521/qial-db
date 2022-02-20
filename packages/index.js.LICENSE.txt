@@ -1,6 +1,0 @@
-/**
- *  @fileoverview Pearson correlation score algorithm.
- *  @author matt.west@kojilabs.com (Matt West)
- *  @license Copyright 2013 Matt West.
- *  Licensed under MIT (http://opensource.org/licenses/MIT).
- */
