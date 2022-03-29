@@ -1,7 +1,7 @@
 const fs = require("fs")
 const path = require("path")
 
-const fetch = require("node-fetch")
+import fetch from 'node-fetch';
 
 let cache;
 let lastCached;
