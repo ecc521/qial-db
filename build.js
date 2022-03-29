@@ -4,7 +4,7 @@ const fs = require("fs") //For plotly copy
 const process = require("process")
 const path = require("path")
 
-const {runDev, runProd, watchDev, watchDevProd} = require("./webpackbuild.js")
+const {runDev, runProd, watchDev} = require("./webpackbuild.js")
 
 
 
