@@ -11,6 +11,11 @@ let config = {
 	optimization: {
 		minimize: false,
 	},
+	plugins: [
+	  new webpack.optimize.LimitChunkCountPlugin({
+		maxChunks: 1 //Prevent chunking.
+	  })
+	],
 	stats: {
 		colors: true
 	},
