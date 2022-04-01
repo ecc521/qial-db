@@ -1,5 +1,5 @@
 //https://stackoverflow.com/a/36303302/10965456
-//spearmanCorrelation is copied verbatim. 
+//spearmanCorrelation is copied verbatim.
 function spearmanCorrelation(multiList, p1, p2){
     N=multiList[p1].length;
     order=[];
@@ -34,7 +34,7 @@ function spearmanCorrelation(multiList, p1, p2){
     return r;
 }
 
-module.exports = function spearmanWrapper(points) {
+export default function spearmanWrapper(points) {
 	//Points is an array of [x, y]
 	let obj = {x: [], y: []}
 	points.forEach((point) => {

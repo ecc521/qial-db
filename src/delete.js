@@ -1,3 +1,5 @@
+import Overlay from "./overlay.js"
+
 let menuDiv = document.getElementById("deleteMenuDiv")
 let info = document.getElementById("deleteInfo")
 let results = document.getElementById("deleteResuts")
@@ -5,7 +7,7 @@ let deleteButton = document.getElementById("deleteButton")
 
 menuDiv.remove()
 
-let menu = new window.Overlay()
+let menu = new Overlay()
 
 let toggleButton = document.getElementById("toggleDelete")
 toggleButton.addEventListener("click", function() {

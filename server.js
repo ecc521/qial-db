@@ -1,40 +1,42 @@
-const process = require("process")
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as http from "http";
+import * as child_process from "child_process";
+import * as zlib from "zlib";
+
 process
   .on('unhandledRejection', (reason, p) => {
     console.error(reason, 'Unhandled Rejection at Promise', p);
   })
 
-const http = require("http")
-const path = require("path")
-const fs = require("fs")
-const os = require("os")
-const child_process = require("child_process")
-const zlib = require("zlib")
+import generateJSON from "./server/generateJSON.js"
 
-const generateJSON = require("./server/generateJSON.js")
+import compression from "compression";
+import express from "express";
+import session from "express-session";
+import serveIndex from "serve-index";
+import bodyParser from "body-parser";
 
-const compression = require('compression')
-const express = require('express')
-const session = require('express-session')
-const serveIndex = require('serve-index')
-const bodyParser = require("body-parser")
-const {getAuthorizedUsers, isPasswordCorrect, generateEntry} = require("./server/auth.js")
+import {getAuthorizedUsers} from "./server/auth.js"
 
-const assureRelativePathSafe = require("./assureRelativePathSafe.js")
-const requestHandler = require("./requestHandler.js")
+import assureRelativePathSafe from "./assureRelativePathSafe.js"
+import requestHandler from "./requestHandler.js"
 
-const passport = require('passport')
-  , LocalStrategy = require('passport-local').Strategy;
+import passport from "passport"
+import {Strategy as LocalStrategy} from "passport-local"
+// const passport = require('passport')
+//   , LocalStrategy = require('passport-local').Strategy;
 
 
-global.dataDir = path.join(__dirname, "data")
+global.dataDir = path.join(path.dirname((new URL(import.meta.url)).pathname), "data")
 fs.mkdirSync(global.dataDir, {recursive: true})
 
 //Delete the tmp dir in dataDir, if it exists. (upload cache)
 fs.rmSync(path.join(global.dataDir, "tmp"), {force: true, recursive: true})
 
 //The cacheDir can be deleted at server restarts without damage. Potentially any time.
-global.cacheDir = path.join(__dirname, "cache")
+global.cacheDir = path.join(path.dirname((new URL(import.meta.url)).pathname), "cache")
 fs.mkdirSync(global.cacheDir, {recursive: true})
 
 global.precomputedDir = path.join(global.cacheDir, "precomputed")
@@ -365,7 +367,7 @@ app.all('*', requestHandler)
 //         extRelSrc = relativeSrc + ext
 //         assureRelativePathSafe(extRelSrc)
 //
-// 		src = path.join(__dirname, extRelSrc)
+// 		src = path.join(path.dirname((new URL(import.meta.url)).pathname), extRelSrc)
 //
 // 		if (fs.existsSync(src)) {
 // 			return !fs.statSync(src).isDirectory()
@@ -430,7 +432,7 @@ app.all('*', requestHandler)
 // })
 
 app.all("*", (req, res, next) => {
-    serveIndex(__dirname, {
+    serveIndex(path.dirname((new URL(import.meta.url)).pathname), {
 		'icons': true,
 		'view': "details" //Gives more info than tiles.
 	})(req, res, next)

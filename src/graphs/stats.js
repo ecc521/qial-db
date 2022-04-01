@@ -56,7 +56,7 @@ function percentile_z(p) {
 }
 
 
-module.exports = {
+export {
 	calcMean,
 	calcVariance,
 	calcStddev,

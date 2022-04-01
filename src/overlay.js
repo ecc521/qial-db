@@ -1,6 +1,6 @@
 let overlayClassInstances = [] //Potential memory leak, so we need to make sure Overlays are NEVER dynamically created.
 
-module.exports = class Overlay {
+export default class Overlay {
 	constructor() {
 		this.overlay = document.createElement("div")
 		this.overlay.className = "overlay"

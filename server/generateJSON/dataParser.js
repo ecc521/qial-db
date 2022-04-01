@@ -1,14 +1,14 @@
-const fs = require("fs")
-const path = require("path")
+import * as fs from "fs";
+import * as path from "path";
 
-const csvParse = require('csv-parse/lib/sync')
-const xlsx = require("xlsx")
+import { parse as csvParse} from 'csv-parse/sync';
+import * as xlsx from "xlsx";
 
-const {createEmptyAnimal, createFile, normalizeCode} = require("./formats.js")
+import {createEmptyAnimal, createFile, normalizeCode} from "./formats.js";
 
 let memCache = {}
 
-//processFile loads the files, and parses them. It caches the results, and returns them until the source changes. 
+//processFile loads the files, and parses them. It caches the results, and returns them until the source changes.
 function processFile(fileName) {
 	if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {return false}
 
@@ -121,4 +121,4 @@ function mergeRowsWithinSheet(rows) {
 	return obj
 }
 
-module.exports = {parseAnimalCSV, mergeRowsWithinSheet, processFile}
+export {parseAnimalCSV, mergeRowsWithinSheet, processFile}

@@ -1,17 +1,16 @@
-const fs = require("fs")
-const path = require("path")
-const {Buffer} = require("buffer")
+import * as fs from "fs"
+import * as path from "path"
+import {Buffer} from "buffer"
+import * as yauzl from "yauzl" //Zip Library
+import daikon from "daikon" //DICOM Parser
 
-const yauzl = require("yauzl"); //Zip Library
-const daikon = require("daikon") //DICOM Parser
+import getFilesInDirectory from "./getFilesInDirectory.js"
+import loadDataCSV from "./loadDataCSV.js"
 
-const getFilesInDirectory = require("./getFilesInDirectory.js")
-const loadDataCSV = require("./loadDataCSV.js")
+import {createEmptyAnimal, createFile, normalizeCode, computeNamespace} from "./generateJSON/formats.js"
+import {parseAnimalCSV, mergeRowsWithinSheet, processFile} from "./generateJSON/dataParser.js"
 
-const {createEmptyAnimal, createFile, normalizeCode, computeNamespace} = require("./generateJSON/formats.js")
-const {parseAnimalCSV, mergeRowsWithinSheet, processFile} = require("./generateJSON/dataParser.js")
-
-const {accessPrecomputed, createPrecomputed} = require("./precomputed.js")
+import {accessPrecomputed, createPrecomputed} from "./precomputed.js"
 
 
 
@@ -259,7 +258,7 @@ async function generateJSON() {
 
 
 
-	let dicomZips = [] //Used to identify which component files are actually DICOM scans. In case non-DICOM zips are associated with animals. 
+	let dicomZips = [] //Used to identify which component files are actually DICOM scans. In case non-DICOM zips are associated with animals.
 
 	//All DICOMs for a specific series must be in a zip file. Said ZIP file should contain DICOMs only for a single series. Non-DICOM files may slow processing.
 	//We will only process the first DICOM file we find in a zip file here.
@@ -467,4 +466,4 @@ async function generateJSON() {
 }
 
 
-module.exports = generateJSON
+export default generateJSON

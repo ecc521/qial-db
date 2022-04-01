@@ -1,7 +1,7 @@
 //Generates the selector for an axis.
 function axisSelector(props, multiple = false, callback, initialValue) {
 	//TODO: Allow configuring default wording (need to refractor with an options object)
-	//Also need some sort of description/help. Maybe not in axisSelector though. 
+	//Also need some sort of description/help. Maybe not in axisSelector though.
 	let div = document.createElement("div")
 
 	if (props.length > 10) {
@@ -150,4 +150,4 @@ function axisSelector(props, multiple = false, callback, initialValue) {
 	return div
 }
 
-module.exports = axisSelector
+export default axisSelector

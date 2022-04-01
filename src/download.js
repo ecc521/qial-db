@@ -1,4 +1,5 @@
-let getDownloadTemplate = require("./getDownloadTemplate.js")
+import getDownloadTemplate from "./getDownloadTemplate.js"
+import Overlay from "./overlay.js"
 
 let downloadMenuDiv = document.createElement("div")
 document.body.appendChild(downloadMenuDiv)
@@ -29,7 +30,7 @@ downloadMenuDiv.appendChild(downloadSelectedJSON)
 let downloadSelectedCSV = document.createElement("button")
 downloadMenuDiv.appendChild(downloadSelectedCSV)
 
-downloadMenuAdditionalInfo = document.createElement("p")
+let downloadMenuAdditionalInfo = document.createElement("p")
 downloadMenuAdditionalInfo.innerHTML += `
 <h3>ZIP file Download: </h3>
 <p> - Recommended for smaller downloads. Downloads over ~5GB should probably use a script, to allow for pause and resume, and to avoid a potential download failure with network fluctuations. </p>
@@ -47,7 +48,7 @@ downloadMenuDiv.appendChild(closeInstructions)
 
 downloadMenuDiv.remove()
 
-let downloadMenu = new window.Overlay()
+let downloadMenu = new Overlay()
 
 let toggleDownload = document.getElementById("toggleDownload")
 toggleDownload.addEventListener("click", function() {

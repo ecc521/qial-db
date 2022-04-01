@@ -1,4 +1,5 @@
-const webpack = require('webpack');
+import * as path from "path";
+import webpack from "webpack";
 
 let config = {
 	mode: "production", //Build for production
@@ -8,7 +9,7 @@ let config = {
 	target: "web",
 	devtool: "source-map",
 	output: {
-		path: __dirname,
+		path: path.dirname((new URL(import.meta.url)).pathname),
 		filename: "[name]",
 	},
 	optimization: {
@@ -21,6 +22,9 @@ let config = {
 	  type: 'memory',
 	  cacheUnaffected: true,
 	},
+	experiments: {
+	  topLevelAwait: true,
+	},
 	module: {
 		rules: [
 			{
@@ -31,7 +35,7 @@ let config = {
 					options: {
 						cacheDirectory: true, //Huge performance boost. Avoid recompiling when unneeded.
 						cacheCompression: true, //true is default. Compress cached data written to disk.
-						sourceType: 'unambiguous', //Allow mixing CommonJS and ES6 modules.
+						// sourceType: 'unambiguous', //Allow mixing CommonJS and ES6 modules.
 						presets: [
 							[
 								'@babel/preset-env', {
@@ -104,4 +108,4 @@ function watchDev() {
 	}, compilerCallback)
 }
 
-module.exports = {runProd, runDev, watchDev}
+export {runProd, runDev, watchDev}

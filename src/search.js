@@ -1,5 +1,3 @@
-//const {genGraph, graphsDiv} = require("./graphs.js")
-
 let search = document.getElementById("search")
 let infoP = document.createElement("p")
 infoP.id = "searchInfo"
@@ -7,8 +5,6 @@ infoP.id = "searchInfo"
 window.currentViewLink = document.createElement("a")
 currentViewLink.target = "_blank"
 currentViewLink.innerHTML = "Sharable link to your current search and graphs"
-
-window.currentParams = new URLSearchParams(window.location.hash.slice(1)) //Used to keep currentViewLink in sync between search.js and graphs.js
 
 search.appendChild(infoP)
 
@@ -43,22 +39,6 @@ let processedProperties = new Map()
 let availableProperties = []
 let datalist = document.createElement("datalist")
 search.appendChild(datalist)
-
-window.data.forEach((item) => {
-	let props = Object.keys(item)
-	props.forEach((prop) => {
-		if (!processedProperties.has(prop)) {
-			if (obtainPropertyValues(prop).length > 0) {
-				availableProperties.push(prop)
-				let option = document.createElement("option")
-				option.value = prop
-				option.innerHTML = prop
-				datalist.appendChild(option)
-			}
-			processedProperties.set(prop, true)
-		}
-	})
-})
 
 datalist.id = "availableProperties"
 
@@ -189,7 +169,7 @@ function searchFilter({prop, values}, elemToAppend) {
 	let elems = []
 
 	if (type === "of") {
-		propVals.sort() //Sort alphabetically. 
+		propVals.sort() //Sort alphabetically.
 		propVals.forEach((value) => {
 			let box = createCheckbox()
 			//Default to existing values
@@ -344,5 +324,22 @@ function runSearch() {
 	window.dispatchEvent(new Event("searchProcessed"))
 }
 
+function initializeSearch() {
+	window.data.forEach((item) => {
+		let props = Object.keys(item)
+		props.forEach((prop) => {
+			if (!processedProperties.has(prop)) {
+				if (obtainPropertyValues(prop).length > 0) {
+					availableProperties.push(prop)
+					let option = document.createElement("option")
+					option.value = prop
+					option.innerHTML = prop
+					datalist.appendChild(option)
+				}
+				processedProperties.set(prop, true)
+			}
+		})
+	})
+}
 
-module.exports = {runSearch}
+export {runSearch, initializeSearch}

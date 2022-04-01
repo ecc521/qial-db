@@ -48,4 +48,4 @@ function getLCM(nums) {
 	return nums[0] * (nums[1] / gcf)
 }
 
-module.exports = {getGCF, getLCM, getPrimeFactors}
+export {getGCF, getLCM, getPrimeFactors}

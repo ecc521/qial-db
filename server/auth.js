@@ -1,7 +1,7 @@
-const crypto = require("crypto")
+import * as crypto from "crypto";
 
-const loadDataCSV = require("./loadDataCSV.js")
-const csvParse = require('csv-parse/lib/sync')
+import loadDataCSV from "./loadDataCSV.js";
+import { parse as csvParse} from 'csv-parse/sync';
 
 async function getAuthorizedUsers() {
 	let csvText = await loadDataCSV(false, "Sheet1", `1Kk96cTM0LPZ54IKIXTPPymsejLsyW-Dh-CotgAVo6MM`)
@@ -18,6 +18,6 @@ async function getAuthorizedUsers() {
 	return users
 }
 
-module.exports = {
+export {
 	getAuthorizedUsers,
 }

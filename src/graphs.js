@@ -1,11 +1,11 @@
-const regression = require("regression")
+import regression from "regression"
 //const Loess = require("loess").default
-const pearsonCorrelation = require("./graphs/pearsonCorrelation.js")
-const spearmanCorrelation = require("./graphs/spearmanCorrelation.js")
-const obtainGroupPoints = require("./graphs/obtainGroupPoints.js")
-const axisSelector = require("./graphs/axisSelector.js")
+import pearsonCorrelation from "./graphs/pearsonCorrelation.js"
+import spearmanCorrelation from "./graphs/spearmanCorrelation.js"
+import obtainGroupPoints from "./graphs/obtainGroupPoints.js"
+import axisSelector from "./graphs/axisSelector.js"
 
-const {marginOfError, percentile_z} = require("./graphs/stats.js")
+import {marginOfError, percentile_z} from "./graphs/stats.js"
 
 let graphOptions = {
 	"Violin Plot": {
@@ -171,38 +171,6 @@ function createTab({graphType, axes = {}}) {
 //Some require numeric only in certain axes
 let numericAxes = []
 let nonNumericAxes = []
-
-let animals = window.data.filter((a) => {return a.type === "animal"})
-animals.forEach((animal) => {
-	for (let prop in animal) {
-		let values = animal[prop]
-		if (!(values instanceof Array)) {values = [values]}
-
-		values.forEach((value) => {
-			//All numbers or strings that convert to number.
-			if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(value)) {
-				if (!numericAxes.includes(prop)) {
-					numericAxes.push(prop)
-				}
-			}
-		})
-	}
-})
-
-animals.forEach((animal) => {
-	for (let prop in animal) {
-		let values = animal[prop]
-		if (!(values instanceof Array)) {values = [values]}
-
-		values.forEach((value) => {
-			if (typeof value === "string" && value !== "") {
-				if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
-					nonNumericAxes.push(prop)
-				}
-			}
-		})
-	}
-})
 
 console.log(numericAxes, nonNumericAxes)
 
@@ -720,4 +688,38 @@ function updateSearchLink() {
 	currentViewLink.href = url.href
 }
 
-module.exports = {}
+
+
+export function initializeGraphs() {
+	let animals = window.data.filter((a) => {return a.type === "animal"})
+	animals.forEach((animal) => {
+		for (let prop in animal) {
+			let values = animal[prop]
+			if (!(values instanceof Array)) {values = [values]}
+
+			values.forEach((value) => {
+				//All numbers or strings that convert to number.
+				if ((typeof value === "string" || typeof value === "number") && value !== "" && !isNaN(value)) {
+					if (!numericAxes.includes(prop)) {
+						numericAxes.push(prop)
+					}
+				}
+			})
+		}
+	})
+
+	animals.forEach((animal) => {
+		for (let prop in animal) {
+			let values = animal[prop]
+			if (!(values instanceof Array)) {values = [values]}
+
+			values.forEach((value) => {
+				if (typeof value === "string" && value !== "") {
+					if (!numericAxes.includes(prop) && !nonNumericAxes.includes(prop)) {
+						nonNumericAxes.push(prop)
+					}
+				}
+			})
+		}
+	})
+}

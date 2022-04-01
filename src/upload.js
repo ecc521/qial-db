@@ -1,3 +1,5 @@
+import Overlay from "./overlay.js"
+
 let uploadMenuDiv = document.getElementById("uploadMenu")
 let uploadButton = document.getElementById("upload")
 let fileInput = document.getElementById("fileinput")
@@ -6,7 +8,7 @@ let uploadResults = document.getElementById("uploadResults")
 
 uploadMenuDiv.remove()
 
-let uploadMenu = new window.Overlay()
+let uploadMenu = new Overlay()
 
 let toggleUpload = document.getElementById("toggleUpload")
 toggleUpload.addEventListener("click", function() {

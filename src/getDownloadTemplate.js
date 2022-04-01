@@ -1,4 +1,4 @@
-module.exports = function(urls) {
+export default function(urls) {
 	return `//This file will fill the current working directory.
 const readline = require("readline").createInterface({
 	input: process.stdin,

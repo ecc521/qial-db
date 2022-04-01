@@ -1,5 +1,5 @@
-const fs = require("fs")
-const path = require("path")
+import * as fs from "fs";
+import * as path from "path";
 
 //Used to normalize Animal IDs.
 //TODO: We need to figure out what the stuff after the colon means.
@@ -12,7 +12,7 @@ function normalizeCode(codeToNormalize = "") {
 	return codeToNormalize.split("-").join("_")
 }
 
-//Return the namespace for a XLSX/CSV given it's sheet/file name. 
+//Return the namespace for a XLSX/CSV given it's sheet/file name.
 function computeNamespace(name) {
 	name = name.toLowerCase()
 	//TODO: These namespaces might be contained as part of a word (ex, fa being part of body_fats.csv)
@@ -45,4 +45,4 @@ function createFile(fileName, type = "file") {
 	}
 }
 
-module.exports = {createEmptyAnimal, createFile, normalizeCode, computeNamespace}
+export {createEmptyAnimal, createFile, normalizeCode, computeNamespace}

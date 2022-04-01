@@ -1,12 +1,8 @@
-const webpack = require('webpack');
-const fs = require("fs") //For plotly copy
+import * as fs from "fs";
+import * as path from "path";
+import * as webpack from "webpack";
 
-const process = require("process")
-const path = require("path")
-
-const {runDev, runProd, watchDev} = require("./webpackbuild.js")
-
-
+import {runDev, runProd, watchDev} from "./webpackbuild.js"
 
 
 //See https://github.com/plotly/plotly.js/blob/master/dist/README.md#partial-bundles

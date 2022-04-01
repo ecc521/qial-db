@@ -1,8 +1,6 @@
-const fs = require("fs")
-const path = require("path")
-
-const child_process = require("child_process")
-
+import * as fs from "fs"
+import * as path from "path"
+import * as child_process from "child_process"
 
 //Return precomputed directory path if available, else return false.
 function accessPrecomputed(pathToFile) {
@@ -37,7 +35,7 @@ function createPrecomputed(pathToFile) {
 	console.log("Generating", pathToFile)
 
 	let args = [
-		path.join(__dirname, "python", "Precomputed"),
+		path.join(path.dirname((new URL(import.meta.url)).pathname), "python", "Precomputed"),
 		pathToFile,
 		outputPath
 	]
@@ -55,14 +53,14 @@ function createPrecomputed(pathToFile) {
 		}
 	}
 
-	let process = child_process.spawn("python3", args)
+	let spawnedProcess = child_process.spawn("python3", args)
 
-	process.stderr.pipe(require("process").stdout)
+	spawnedProcess.stderr.pipe(process.stdout)
 
 	return new Promise((resolve, reject) => {
-		process.on('close', resolve);
+		spawnedProcess.on('close', resolve);
 	})
 }
 
 
-module.exports = {accessPrecomputed, createPrecomputed}
+export {accessPrecomputed, createPrecomputed}

@@ -1,4 +1,6 @@
-const {openNeuroglancer, getPrecomputedURL} = require("./neuroglancer.js")
+import {openNeuroglancer, getPrecomputedURL} from "./neuroglancer.js"
+import {initializeGraphs} from "./graphs.js"
+import {initializeSearch, runSearch} from "./search.js"
 
 let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
@@ -235,9 +237,9 @@ window.drawCards = function drawCards(items) {
 
 	drawCards(window.data) //Need to get Image Count set BEFORE search code runs. TODO: Double drawing is slow. Use convertTo or something, or assign Image Count before drawing?
 
-	const search = require("./search.js")
-	search.runSearch() //Run again to display details on percentage drawn and stuff.
+	initializeSearch()
+	runSearch() //Run again to display details on percentage drawn and stuff.
 
-	const graphs = require("./graphs.js")
+	initializeGraphs()
 
 }())

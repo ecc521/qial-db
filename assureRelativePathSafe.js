@@ -1,4 +1,4 @@
-const path = require("path")
+import * as path from "path";
 
 //Used to protect against path traversal attacks.
 function assureRelativePathSafe(relSrc) {
@@ -10,4 +10,4 @@ function assureRelativePathSafe(relSrc) {
     }
 }
 
-module.exports = assureRelativePathSafe
+export default assureRelativePathSafe

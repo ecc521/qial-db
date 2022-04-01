@@ -1,4 +1,4 @@
-const {getLCM} = require("./multiples.js")
+import {getLCM} from "./multiples.js"
 
 //Given groupItems and properties (like "weight"), generate an array of points.
 function obtainGroupPoints(groupItems, ...props) {
@@ -105,4 +105,4 @@ function obtainGroupPoints(groupItems, ...props) {
 	return points
 }
 
-module.exports = obtainGroupPoints
+export default obtainGroupPoints

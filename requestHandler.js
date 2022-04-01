@@ -1,8 +1,8 @@
 //Serves files for express.
-const fs = require("fs")
-const path = require("path")
+import * as fs from "fs";
+import * as path from "path";
 
-const assureRelativePathSafe = require("./assureRelativePathSafe.js")
+import assureRelativePathSafe from "./assureRelativePathSafe.js";
 
 function requestHandler(req, res, next) {
 	res.set("Access-Control-Allow-Origin", "*");
@@ -18,7 +18,7 @@ function requestHandler(req, res, next) {
         relPath = relativeSrc + ext
         assureRelativePathSafe(relPath)
 
-		src = path.join(__dirname, relPath)
+		src = path.join(path.dirname((new URL(import.meta.url)).pathname), relPath)
 		if (fs.existsSync(src)) {
 			return !fs.statSync(src).isDirectory()
 		}
@@ -62,4 +62,4 @@ function requestHandler(req, res, next) {
 	readStream.pipe(res)
 }
 
-module.exports = requestHandler
+export default requestHandler
