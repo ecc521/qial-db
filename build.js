@@ -10,7 +10,7 @@ import {runDev, runProd, watchDev} from "./webpackbuild.js"
 console.log("Copying plotly...")
 
 let plotlyBundlePath = "./node_modules/plotly.js-dist-min/plotly.min.js"
-let outputPlotlyPath = "packages/plotly.js"
+let outputPlotlyPath = "dist/plotly.js"
 
 let plotlyBundleBuffer = fs.readFileSync(plotlyBundlePath)
 
@@ -23,7 +23,7 @@ if (outputPlotlyBuffer && plotlyBundleBuffer.equals(outputPlotlyBuffer)) {
 	console.log("Plotly already present and up to date")
 }
 else {
-	if (!fs.existsSync("packages")) {fs.mkdirSync("packages")}
+	if (!fs.existsSync("dist")) {fs.mkdirSync("dist")}
 	fs.writeFileSync(outputPlotlyPath, plotlyBundleBuffer)
 	console.log("Copied Plotly")
 }

@@ -26,11 +26,9 @@
   },
   "homepage": "https://github.com/ecc521/qial-db",
   "browserslist": [
-    "last 2 versions",
-    "not dead",
-    "Firefox >= 60",
-    "Chrome >=49",
-    "Safari >= 8"
+    "Firefox >= 80",
+    "Chrome >=80",
+    "Safari >= 12"
   ],
   "dependencies": {
     "@babel/core": "^7.17.8",

@@ -4,16 +4,12 @@ import webpack from "webpack";
 let config = {
 	mode: "production", //Build for production
 	entry: {
-		"packages/index.js": "./src/index.js",
+		index: "./src/index.js",
 	},
 	target: "web",
 	devtool: "source-map",
-	output: {
-		path: path.dirname((new URL(import.meta.url)).pathname),
-		filename: "[name]",
-	},
 	optimization: {
-		minimize: false
+		minimize: false,
 	},
 	stats: {
 		colors: true
@@ -35,7 +31,6 @@ let config = {
 					options: {
 						cacheDirectory: true, //Huge performance boost. Avoid recompiling when unneeded.
 						cacheCompression: true, //true is default. Compress cached data written to disk.
-						// sourceType: 'unambiguous', //Allow mixing CommonJS and ES6 modules.
 						presets: [
 							[
 								'@babel/preset-env', {
