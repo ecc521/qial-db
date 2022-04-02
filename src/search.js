@@ -300,7 +300,6 @@ function setupFromParams() {
 	catch (e) {console.error("Error loading searchlink", e)}
 }
 
-setupFromParams()
 search.appendChild(searchItemBar())
 
 function runSearch() {
@@ -340,6 +339,8 @@ function initializeSearch() {
 			}
 		})
 	})
+
+	setupFromParams()
 }
 
 export {runSearch, initializeSearch}

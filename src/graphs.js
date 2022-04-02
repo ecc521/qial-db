@@ -671,7 +671,6 @@ function setupFromParams() {
 	}
 	catch (e) {console.error("Error loading graphlink", e)}
 }
-setupFromParams()
 
 function updateSearchLink() {
 	let params = window.currentParams
@@ -722,4 +721,6 @@ export function initializeGraphs() {
 			})
 		}
 	})
+
+	setupFromParams()
 }
