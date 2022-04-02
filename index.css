@@ -56,16 +56,13 @@ h1, h2 {
 	background-color: #8fb2ff;
 	border: none;
 	width: 240px;
-	height: 0;
-	padding: 0;
 	transition: 0.4s;
 	border-radius: 20px;
 }
 
 .accountPopupExpanded {
 	opacity: 1;
-	padding: 30px;
-	height: 50vh;
+	padding: 20px;
 }
 
 

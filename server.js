@@ -14,19 +14,25 @@ import generateJSON from "./server/generateJSON.js"
 
 import compression from "compression";
 import express from "express";
-import session from "express-session";
 import serveIndex from "serve-index";
 import bodyParser from "body-parser";
-
-import {getAuthorizedUsers} from "./server/auth.js"
 
 import assureRelativePathSafe from "./assureRelativePathSafe.js"
 import requestHandler from "./requestHandler.js"
 
-import passport from "passport"
-import {Strategy as LocalStrategy} from "passport-local"
-// const passport = require('passport')
-//   , LocalStrategy = require('passport-local').Strategy;
+import admin from "firebase-admin"
+
+const serviceAccount = JSON.parse(fs.readFileSync("./server/qial-db-firebase-adminsdk-xyuqe-11205ec8c8.json", {encoding: "utf-8"}));
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+const auth = admin.auth();
+
+const users = db.collection("users")
+
 
 
 global.dataDir = path.join(path.dirname((new URL(import.meta.url)).pathname), "data")
@@ -62,69 +68,42 @@ app.use(compression({
 	},
 }))
 
-//app.set('trust proxy', 1) // trust first proxy
-app.use(session({
-  secret: 'awagewges', //What is this used for? Is it used to stop the client from modifying the cookies without us knowing?
-  resave: false,
-  name: "qial-session",
-  saveUninitialized: true,
-  cookie: {
-	  secure: false, //Local dev.
-	  maxAge: 86400 * 1000 //1 day.
-  }
-}))
+app.use(express.urlencoded({ extended: false }));
 
-app.use(bodyParser.urlencoded({ extended: false }));
+function createAuthChecker(requiredPermissions = {}) {
+    return function checkAuth(req, res, next) {
+        if (req.headers.authtoken) {
+            auth.verifyIdToken(req.headers.authtoken)
+            .then((user) => {
+                users.get(user.uid).then((querySnapshot) => {
+                    let userDoc = querySnapshot.docs[0]
+                    let data = userDoc.data()
+                    console.log(data)
 
-app.use(passport.initialize());
-app.use(passport.session());
+                    let permissions = data.permissions
 
-passport.serializeUser(function(user, done) {
-  done(null, JSON.stringify(user));
-});
-
-passport.deserializeUser(function(user, done) {
-  done(null, JSON.parse(user));
-});
-
-passport.use(new LocalStrategy(
-  async function(username, password, done) {
-
-	  	let authorizedUsers = await getAuthorizedUsers()
-
-	  	let user = authorizedUsers[username.toLowerCase()]
-	  	if (!user) {
-			return done(null, false, { message: 'Incorrect username.' });
-	  	}
-
-	  	if (!isPasswordCorrect(password, user["Salt/Hash"])) {
-			return done(null, false, { message: 'Incorrect password.' });
-	  	}
-
-		return done(null, user);
-  }
-));
+                    for (let prop in requiredPermissions) {
+                        if (permissions[prop] !== requiredPermissions[prop]) {
+                            return res.status(403).send(`Permission ${prop} not posessed or insuffecient. `)
+                        }
+                    }
+                    next()
+                }, (e) => {
+                    res.status(500).send('Error Verifying Sign In: ' + e.message)
+                })
+            }).catch(() => {
+                res.status(403).send('Sign In Invalid')
+            });
+        } else {
+            res.status(403).send('Not Signed In')
+        }
+    }
+}
 
 app.all("*", (req, res, next) => {
     res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS.
     assureRelativePathSafe(req.path)
     next()
-})
-
-app.post('/login', passport.authenticate('local', {
-	successRedirect: '/account',
-	failureRedirect: '/login',
-}));
-
-app.post("/logout", (req, res) => {
-	req.logout();
-	res.redirect('/login');
-})
-
-app.get("/user", (req, res) => {
-	let obj = req.user
-	res.send(obj)
-	res.end()
 })
 
 //Gets the body of a request.
@@ -140,16 +119,6 @@ function getData(request) {
 	})
 }
 
-app.post("/auth/generateentry", (req, res) => {
-	//Generate a salt and hash entry for the specified password.
-	let password = req.headers['qial-password']
-	let entry = generateEntry(password)
-	res.statusCode = 200
-	res.setHeader('Content-Type', 'text/plain');
-	res.end(entry);
-	return
-})
-
 app.get("/data.json", async (req, res) => {
 	res.status(200)
 	res.type("json")
@@ -157,8 +126,8 @@ app.get("/data.json", async (req, res) => {
 	return;
 })
 
+app.use("/upload", createAuthChecker({add: true}))
 app.post("/upload", async (req, res) => {
-	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
 
 	if (req?.user?.Add !== "y") {
@@ -299,8 +268,8 @@ app.post("/download", async (req, res) => {
 })
 
 
+app.use("/fileops", createAuthChecker({write: true})) //TODO: Move permission unused.
 app.all("/fileops", async (req, res) => {
-	let password = req.headers['qial-password']
 	let filename = req.headers['qial-filename']
 
 	let filePath = path.join(global.dataDir, filename)
@@ -355,81 +324,6 @@ app.all("/fileops", async (req, res) => {
 
 //Serve remaining files.
 app.all('*', requestHandler)
-
-// app.all('*', (req, res, next) => {
-//     res.set("Access-Control-Allow-Origin", "*");
-//
-//     let relativeSrc = decodeURIComponent(req.path)
-// 	let extensions = ["", ".html", "index.html", ".br", ".gz"]
-//     let extRelSrc;
-// 	let src;
-// 	let extension = extensions.find((ext) => {
-//         extRelSrc = relativeSrc + ext
-//         assureRelativePathSafe(extRelSrc)
-//
-// 		src = path.join(path.dirname((new URL(import.meta.url)).pathname), extRelSrc)
-//
-// 		if (fs.existsSync(src)) {
-// 			return !fs.statSync(src).isDirectory()
-// 		}
-// 	})
-//
-//
-// 	if (fs.existsSync(src)) {
-// 		res.type(path.extname(src))
-// 		let readStream = fs.createReadStream(src)
-//
-// 		if (extension === ".br") {
-// 			res.type(path.extname(src.slice(0, -3)))
-// 			let accepted = req.get("Accept-Encoding")
-// 			if (accepted.includes("br")) {
-// 				res.set("Content-Encoding", "br")
-// 				readStream.pipe(res)
-// 			}
-// 			else {
-// 				console.warn("Brotli not supported by requester. ")
-// 				if (!fs.existsSync(
-// 					src.slice(0, -3) + ".gz"
-// 				)) {
-// 					//Stream decompress off of disk.
-// 					//We check brotli before gzip - if there is a gzip and brotli file, but brotli not supported, we
-// 					//should use the gzip file to avoid the compression CPU.
-// 					let decompressor = zlib.createBrotliDecompress()
-// 					readStream.pipe(decompressor)
-// 					readStream = decompressor
-// 					readStream.pipe(res)
-// 				}
-// 				else {
-//                     //Proceed to the gzip file. (Already precompressed - GZIP might be supported by client, which would save CPU and bandwidth)
-//                     extension = ".gz"
-// 				}
-// 			}
-// 		}
-//
-//         if (extension === ".gz") {
-// 			res.type(path.extname(src.slice(0, -3)))
-// 			let accepted = req.get("Accept-Encoding")
-// 			if (accepted.includes("gzip")) {
-// 				res.set("Content-Encoding", "gzip")
-// 				readStream.pipe(res)
-// 			}
-// 			else {
-// 				//Stream decompress off of disk.
-// 				console.warn("GZIP not supported by requester. ")
-// 				let decompressor = zlib.createUnzip()
-// 				readStream.pipe(decompressor)
-// 				readStream = decompressor
-// 				readStream.pipe(res)
-// 			}
-// 		}
-// 		else {
-// 			readStream.pipe(res)
-// 		}
-// 	}
-// 	else {
-// 		next()
-// 	}
-// })
 
 app.all("*", (req, res, next) => {
     serveIndex(path.dirname((new URL(import.meta.url)).pathname), {

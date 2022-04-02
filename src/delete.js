@@ -53,11 +53,13 @@ deleteButton.addEventListener("click", async function() {
 		//Note - right now the server only allows us to delete one file per request.
 		results.innerHTML = "Results will appear below: <br>"
 
+		let token = await firebase.auth().currentUser?.getIdToken()
 		for (var i = 0; i < names.length; i++) {
 			let request = await fetch("fileops", {
 				method: 'DELETE',
 				headers: {
 					'qial-filename': names[i],
+					"authtoken": token
 				},
 			})
 			let response = await request.text()

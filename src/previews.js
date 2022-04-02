@@ -64,12 +64,15 @@ function Item(item) {
 		renameButton.classList.add("renameButton")
 		renameButton.innerHTML = "Rename"
 		this.row.appendChild(renameButton)
-		renameButton.addEventListener("click", function() {
+		renameButton.addEventListener("click", async function() {
+			let token = await firebase.auth().currentUser?.getIdToken()
+
 			fetch("fileops", {
 				method: 'PATCH',
 				headers: {
 				  	'qial-filename': item.name,
 				  	'qial-target-filename': prompt("Please enter new filename (don't forget extension!)"),
+					"authtoken": token,
 				},
 			}).then((response) => {
 				response.text().then((result) => {

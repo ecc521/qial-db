@@ -44,11 +44,14 @@ function createProgressBar() {
 
 async function _uploadFile(file, start, end, setFileProgress, last) {
 	//XMLHttpRequest upload. Fetch does not support progress, and does not handle readablestreams in a manner that would allow for it.
+	let token = await firebase.auth().currentUser?.getIdToken()
+
 	return await new Promise((resolve, reject) => {
 		let request = new XMLHttpRequest();
 		request.open('POST', "upload");
 
 		request.setRequestHeader("qial-filename", file.name);
+		request.setRequestHeader("authtoken", token);
 
 		if (start === 0) {
 			request.setRequestHeader("qial-action", "create");
