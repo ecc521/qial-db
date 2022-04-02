@@ -1,9 +1,9 @@
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import * as http from "http";
-import * as child_process from "child_process";
-import * as zlib from "zlib";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import http from "http";
+import child_process from "child_process";
+import zlib from "zlib";
 
 process
   .on('unhandledRejection', (reason, p) => {

@@ -1,7 +1,7 @@
-import * as fs from "fs"
-import * as path from "path"
+import fs from "fs"
+import path from "path"
 import {Buffer} from "buffer"
-import * as yauzl from "yauzl" //Zip Library
+import yauzl from "yauzl" //Zip Library
 import daikon from "daikon" //DICOM Parser
 
 import getFilesInDirectory from "./getFilesInDirectory.js"

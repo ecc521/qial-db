@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 
 //Used to normalize Animal IDs.
 //TODO: We need to figure out what the stuff after the colon means.

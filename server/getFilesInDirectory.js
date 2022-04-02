@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 
 async function getFilesInDirectory(dir, files = []) {
 	let items = await fs.promises.readdir(dir)

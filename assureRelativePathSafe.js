@@ -1,4 +1,4 @@
-import * as path from "path";
+import path from "path";
 
 //Used to protect against path traversal attacks.
 function assureRelativePathSafe(relSrc) {

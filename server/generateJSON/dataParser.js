@@ -1,8 +1,8 @@
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 
 import { parse as csvParse} from 'csv-parse/sync';
-import * as xlsx from "xlsx";
+import xlsx from "xlsx";
 
 import {createEmptyAnimal, createFile, normalizeCode} from "./formats.js";
 
