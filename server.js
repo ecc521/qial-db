@@ -130,14 +130,6 @@ app.use("/upload", createAuthChecker({add: true}))
 app.post("/upload", async (req, res) => {
 	let filename = req.headers['qial-filename']
 
-	if (req?.user?.Add !== "y") {
-		res.statusCode = 401
-		res.setHeader('Content-Type', 'text/plain');
-        //res.setHeader("Connection", "close") //Causes issues with Apache, where the error is not passed through.
-		res.end("Missing permissions. You may not be signed in. ");
-		return;
-	}
-
 	//Now we can process the actual upload. The user is authorized.
 	let action = req.headers["qial-action"]
 
@@ -293,23 +285,11 @@ app.all("/fileops", async (req, res) => {
 	res.setHeader('Content-Type', 'text/plain');
 
 	if (req.method === "DELETE") {
-		if (req?.user?.Delete !== "y") {
-			res.statusCode = 401
-			res.setHeader('Content-Type', 'text/plain');
-			res.end("Missing permissions. You may not be signed in. ");
-			return;
-		}
 		await fs.promises.unlink(filePath)
 		//TODO: This can throw if filePath doesn't exist.
 		res.end(`${path.basename(filePath)} deleted. Changes should appear shortly. `);
 	}
 	else if (req.method === "PATCH") {
-		if (req?.user?.Move !== "y") {
-			res.statusCode = 401
-			res.setHeader('Content-Type', 'text/plain');
-			res.end("Missing permissions. You may not be signed in. ");
-			return;
-		}
 		let targetFileName = req.headers['qial-target-filename']
 		let targetFilePath = path.join(global.dataDir, targetFileName)
         assureRelativePathSafe(targetFileName)
