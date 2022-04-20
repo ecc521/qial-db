@@ -87,6 +87,11 @@ function createAuthChecker(requiredPermissions = {}) {
                             return res.status(403).send(`Permission ${prop} not posessed or insuffecient. `)
                         }
                     }
+
+                    req.session = {
+                        user,
+                        data
+                    }
                     next()
                 }, (e) => {
                     res.status(500).send('Error Verifying Sign In: ' + e.message)
@@ -144,46 +149,40 @@ app.post("/upload", async (req, res) => {
         return;
     }
 
-    let tempPath = req?.session?.uploading?.[filename]
+
+
+
+
+    //We can't use a true tmp dir, as then we'd need to rename into the data volume
+    //Since you can't link across volumes, that would require a copy, which could be VERY expensive.
+    //As such, create a subdirectory in the data directory, named tmp.
+    //It will be deleted on server starts, and ignored elsewhere.
+    let tmpindata = path.join(global.dataDir, "tmp")
+
+    //Allocate a temporary directory based of a users UID.
+    //These temporary directories are user specific, which should prevent others from modifying them.
+    //Note that two people can technically upload the same file at once - so we must verify before we move.
+    console.log(req.session.user)
+    let userTempDirectory = path.join(tmpindata, req.session.user.uid)
+    if (!fs.existsSync(userTempDirectory)) {fs.mkdirSync(userTempDirectory, {recursive: true})}
+
+    //Determine write path for this file.
+    let tempPath = path.join(userTempDirectory, filename)
+
     let writeStream;
 
     if (action === "create") {
-        //Allocate a temporary file.
-        //These temporary files are user specific, which should prevent others from modifying them.
-        //Note that two people can technically upload the same file at once - so we must verify before we move.
-
-        if (!req.session.uploading) {
-            req.session.uploading = Object.create(null)
-        }
-
         if (tempPath && fs.existsSync(tempPath)) {
             //Delete the existing file. Probably a reupload after previous attempt failed.
             fs.unlinkSync(tempPath)
         }
 
-        //We can't use a true tmp dir, as then we'd need to rename into the data volume
-        //Since you can't link across volumes, that would require a copy, which could be VERY expensive.
-        //As such, create a subdirectory in the data directory, named tmp.
-        //It will be deleted on server starts, and ignored elsewhere.
-        let tmpindata = path.join(global.dataDir, "tmp")
-        if (!fs.existsSync(tmpindata)) {fs.mkdirSync(tmpindata, {recursive: true})}
-
-        let tempdir = await fs.promises.mkdtemp(path.join(tmpindata, "qial")) //Review the mkdtemp example in docs before touching this. The design makes little sense.
-        tempPath = path.join(tempdir, filename)
-        req.session.uploading[filename] = tempPath //TODO: Could there be a race condition causing some not to get properly created? Overwritten by another? Seeing occasional no upload in progress errors, which would be related. Needs more investigation.
-
         //We will check the temporary file every 15 minutes. If it hasn't changed, it will be deleted.
         let pulseDuration = 1000 * 60 * 15
 
         let interval = setInterval(function() {
-            //If the file does not exist,
-            if (!fs.existsSync(tempPath)) {
-                fs.promises.rm(tempdir, {recursive: true, force: true})
-                clearInterval(interval)
-            }
-            else if (Date.now() - fs.statSync(tempPath).mtime > pulseDuration) {
-                fs.promises.rm(tempdir, {recursive: true, force: true})
-                delete req.session.uploading[filename]
+            if (Date.now() - fs.statSync(tempPath).mtime > pulseDuration) {
+                fs.promises.rm(tempPath)
                 clearInterval(interval)
             }
         }, pulseDuration)
@@ -224,7 +223,6 @@ app.post("/upload", async (req, res) => {
             return;
         }
 
-        delete req.session.uploading[filename]
         fs.renameSync(tempPath, writePath)
     }
 
