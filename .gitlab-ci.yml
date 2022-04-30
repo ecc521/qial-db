@@ -20,6 +20,9 @@ include:
     file: '/helm3.5.yml'
 
 build:
+  before_script:
+      - echo "$qial_db_firebase_adminsdk" > "qial_db_firebase_adminsdk.json"
+
   extends: .kaniko_build
 
 scan:

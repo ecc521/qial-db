@@ -22,7 +22,7 @@ import requestHandler from "./requestHandler.js"
 
 import admin from "firebase-admin"
 
-const serviceAccount = JSON.parse(fs.readFileSync("./server/qial-db-firebase-adminsdk-xyuqe-11205ec8c8.json", {encoding: "utf-8"}));
+const serviceAccount = JSON.parse(fs.readFileSync("./qial_db_firebase_adminsdk.json", {encoding: "utf-8"}));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
