@@ -21,7 +21,8 @@ include:
 
 build:
   before_script:
-      - echo "$qial_db_firebase_adminsdk" > "qial_db_firebase_adminsdk.json"
+      - "mkdir protected"
+      - echo "$qial_db_firebase_adminsdk" > "protected/qial_db_firebase_adminsdk.json"
 
   extends: .kaniko_build
 

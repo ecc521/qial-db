@@ -4,3 +4,4 @@ cache
 *.pyc
 neuroglancer
 dist
+protected
