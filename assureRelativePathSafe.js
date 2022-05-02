@@ -2,7 +2,6 @@ import path from "path";
 
 //Used to protect against path traversal attacks.
 function assureRelativePathSafe(relSrc) {
-    console.log(relSrc)
     while (path.isAbsolute(relSrc)) {
         //Cut off leading characters until not absolute.
         //This is necessary to ensure normalize works properly.
@@ -12,9 +11,6 @@ function assureRelativePathSafe(relSrc) {
     }
 
     let normalizedPath = path.normalize(relSrc)
-
-    console.log(relSrc, normalizedPath)
-
 
     let testPath = path.join("a", "b")
 
