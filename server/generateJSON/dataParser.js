@@ -60,7 +60,7 @@ function parseAnimalCSV(str) {
 				 return str
 			 })
 		 },
-		 columns_duplicates_to_array: true
+		 group_columns_by_name: true
 	 })
 }
 
