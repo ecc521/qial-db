@@ -1,6 +1,11 @@
 import fs from "fs";
 import path from "path";
 
+/**
+ * Recursively obtains files in a directory.
+ * @param {string} dir - Path of directory.
+ * @param {string[]} [files=[]] - Files to concatenate with result. 
+ */
 async function getFilesInDirectory(dir, files = []) {
 	let items = await fs.promises.readdir(dir)
 
