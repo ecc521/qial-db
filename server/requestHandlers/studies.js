@@ -9,9 +9,8 @@ import {getAllStudies} from "../utils/studies.js"
  * Handles a request to get, set (create/update), or delete a study.
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
- * @param {Function} next - Express callback function object.
  */
-async function studiesRequestHandler(req, res, next) {
+async function studiesHandler(req, res) {
 	if (req.query.type === "get") {
 		let result = await getAllStudies()
 		res.status(200)
@@ -40,6 +39,4 @@ async function studiesRequestHandler(req, res, next) {
 	}
 }
 
-
-
-export default studiesRequestHandler
+export default studiesHandler

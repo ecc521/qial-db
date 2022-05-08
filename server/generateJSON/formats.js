@@ -26,23 +26,4 @@ function computeNamespace(name) {
 	return
 }
 
-function createEmptyAnimal(id) {
-	return {
-		Animal: id,
-		type: "animal",
-		views: [],
-		componentFiles: []
-	}
-}
-
-function createFile(fileName, type = "file") {
-	let stats = fs.statSync(path.join(global.dataDir, fileName))
-	return {
-		name: fileName,
-		size: stats.size,
-		lastModified: new Date(stats.mtime).getTime(),
-		type
-	}
-}
-
-export {createEmptyAnimal, createFile, normalizeCode, computeNamespace}
+export {normalizeCode, computeNamespace}

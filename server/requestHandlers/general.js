@@ -8,6 +8,12 @@
 
  import assureRelativePathSafe from "../utils/assureRelativePathSafe.js"; //This may be unnecessary, however additional checks won't hurt.
 
+ /**
+  * Handles requests for files on disk.
+  * @param {Object} req - Express request object.
+  * @param {Object} res - Express response object.
+  * @param {Function} next - Express callback (called if this handler cannot handle the request to pass onto next handler).
+  */
  function generalRequestHandler(req, res, next) {
  	res.set("Access-Control-Allow-Origin", "*");
 

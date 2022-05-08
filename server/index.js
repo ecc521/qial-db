@@ -19,10 +19,11 @@ import serveIndex from "serve-index";
 
 import assureRelativePathSafe from "./utils/assureRelativePathSafe.js"
 
-import studiesRequestHandler from "./requests/studiesRequestHandler.js"
-import generalRequestHandler from "./requests/generalRequestHandler.js"
-
-
+import studiesHandler from "./requestHandlers/studies.js"
+import generalRequestHandler from "./requestHandlers/general.js"
+import fileopHandler from "./requestHandlers/fileops.js"
+import uploadHandler from "./requestHandlers/uploads.js"
+import downloadHandler from "./requestHandlers/downloads.js"
 
 
 let app = express()
@@ -53,7 +54,10 @@ app.all("*", (req, res, next) => {
 })
 
 //Register handlers.
-app.all("/studies", studiesRequestHandler)
+app.all("/studies", studiesHandler)
+app.all("/download", downloadHandler)
+app.all("/upload", uploadHandler)
+app.all("/fileops", fileopHandler)
 app.all("*", generalRequestHandler)
 
 
@@ -65,7 +69,7 @@ app.all("*", (req, res, next) => {
 	})(req, res, next)
 })
 
-//404 if nothing could serve the request. 
+//404 if nothing could serve the request.
 app.use("*", (req, res, next) => {
 	res.status(404)
 	res.type("text/plain")

@@ -4,7 +4,7 @@ import path from "path";
 import { parse as csvParse} from 'csv-parse/sync';
 import xlsx from "xlsx";
 
-import {createEmptyAnimal, createFile, normalizeCode} from "./formats.js";
+import {normalizeCode} from "./formats.js";
 
 let memCache = {}
 
@@ -12,7 +12,7 @@ let memCache = {}
 function processFile(fileName) {
 	if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {return false}
 
-	let fileObj = createFile(fileName, "datafile")
+	let fileObj = createFile(fileName, "datafile") //TODO: We need to stop using this function. It no longer exists. 
 	let cached = memCache[fileName]
 
 	//Check lastModified and size, the two properties createFile generates for us.

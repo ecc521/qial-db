@@ -28,9 +28,11 @@ const users = db.collection("users")
  * @params {Object} req - Express request object.
  * @params {Object} res - Express response object.
  * @params {UserPermissions} requiredPermissions - Permissions to check. Properties that are false may be omitted.
- * @returns {boolean} Returns true and assigns req.session if user successfully authenticated with requiredPermissions. Returns false and ends the request if authentication failed (not signed in or does not posess permissions).
+ * @throws Throws and ends the request if authentication failed (not signed in or does not posess permissions).
+ * @returns {boolean} Returns true and assigns req.session if user successfully authenticated with requiredPermissions.
  *
  */
+
 async function checkAuth(req, res, requiredPermissions) {
 	if (!requiredPermissions) {
 		//If res was not included, requiredPermissions may not be in the correct spot,
@@ -40,8 +42,9 @@ async function checkAuth(req, res, requiredPermissions) {
 
 	let authToken = req.headers.authtoken
 	if (!authToken) {
-		res.status(403).end('Not Signed In')
-		return false
+		let message = "Not Signed In"
+		res.status(403).end(message)
+		throw message
 	}
 
 	let user;
@@ -49,10 +52,13 @@ async function checkAuth(req, res, requiredPermissions) {
 		user = await auth.verifyIdToken(authToken)
 	}
 	catch (e) {
-		res.status(403).end("Sign in Invalid")
-		return false
+		let message = "Sign in Invalid"
+		res.status(403).end(message)
+		throw message
 	}
 
+
+	let data, permissions;
 	try {
 		let querySnapshot = await users.get(user.uid)
 		let userDoc = querySnapshot.docs[0]
@@ -60,23 +66,26 @@ async function checkAuth(req, res, requiredPermissions) {
 		console.log(data)
 
 		let permissions = data.permissions
-
-		for (let prop in requiredPermissions) {
-			if (requiredPermissions[prop] && !permissions[prop]) {
-				return res.status(403).end(`Permission ${prop} required but not posessed. `)
-			}
-		}
-
-		req.session = {
-			user,
-			data
-		}
-		return true //User is signed in and has the necessary permissions.
 	}
 	catch (e) {
-		res.status(500).end('Error Verifying Sign In: ' + e.message)
-		return false
+		let message = `Server Obtaining User Permissions and Information: ${e.message}`
+		res.status(500).end(message)
+		throw message
 	}
+
+	for (let prop in requiredPermissions) {
+		if (requiredPermissions[prop] && !permissions[prop]) {
+			let message = `Permission ${prop} required but not posessed. `
+			res.status(403).end(message)
+			throw message
+		}
+	}
+
+	req.session = {
+		user,
+		data
+	}
+	return true //User is signed in and has the necessary permissions.
 }
 
 /**
@@ -88,8 +97,8 @@ async function checkAuth(req, res, requiredPermissions) {
  */
 function checkAuthMiddleware(requiredPermissions) {
     return async function verifyRequest(req, res, next) {
-        let authed = await checkAuth(req, res, requiredPermissions)
-		if (authed) {next()}
+        await checkAuth(req, res, requiredPermissions)
+		next()
     }
 }
 

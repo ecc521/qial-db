@@ -4,10 +4,9 @@ import {Buffer} from "buffer"
 import yauzl from "yauzl" //Zip Library
 import daikon from "daikon" //DICOM Parser
 
-import getFilesInDirectory from "./getFilesInDirectory.js"
-import loadDataCSV from "./loadDataCSV.js"
+import getFilesInDirectory from "./utils/getFilesInDirectory.js"
 
-import {createEmptyAnimal, createFile, normalizeCode, computeNamespace} from "./generateJSON/formats.js"
+import {normalizeCode, computeNamespace} from "./generateJSON/formats.js"
 import {parseAnimalCSV, mergeRowsWithinSheet, processFile} from "./generateJSON/dataParser.js"
 
 import {accessPrecomputed, createPrecomputed} from "./precomputed.js"
