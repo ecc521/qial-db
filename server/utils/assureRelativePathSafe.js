@@ -1,6 +1,15 @@
+/**
+ * @overview Used to protect against path travseral attacks.
+ */
+
 import path from "path";
 
-//Used to protect against path traversal attacks.
+/**
+ * @param {string} relSrc - Relative path to check.
+ * @throws Throws an error if the relative path attempts to traverse the filesystem or enter the protected directory.
+ * @returns {boolean} true
+ */
+
 function assureRelativePathSafe(relSrc) {
     while (path.isAbsolute(relSrc)) {
         //Cut off leading characters until not absolute.
