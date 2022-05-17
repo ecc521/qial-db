@@ -3,7 +3,7 @@
  */
 
 import {checkAuth} from "../utils/auth.js";
-import {getAllStudies, createStudy, updateStudy, getStudy} from "../utils/studies.js"
+import {getAllStudies, createStudy, updateStudy, getStudy, deleteStudy} from "../utils/studies.js"
 import getData from "../utils/getData.js"
 
 
@@ -41,10 +41,13 @@ async function studiesHandler(req, res) {
 		return
 	}
 	else if (req.query.type === "delete") {
-		//Deleting a study is a highly concerning operation. We might want additional access control.
+		//TODO: Deleting a study is a highly concerning operation. We might want additional access control.
+		let obj = JSON.parse(await getData(req))
+
 		await checkAuth(req, res, {write: true})
-		res.status(500)
-		res.end("Deleting studies not yet supported. ")
+		await deleteStudy(obj)
+		res.status(200)
+		res.end()
 		return
 	}
 	else {

@@ -95,15 +95,38 @@ async function updateStudy(newContents) {
 	await sublevel.batch([
 		{
 			type: "put",
-			key: 'name',
+			key: "name",
 			value: newContents.name
 		},
 		{
 			type: "put",
-			key: 'description',
+			key: "description",
 			value: newContents.description
 		},
 	])
 }
 
-export {getAllStudies, getStudy, updateStudy, createStudy}
+async function deleteStudy({
+	ID,
+}) {
+	//TODO: Delete the directory from filesystem.
+	await studiesDatabase.batch([
+		{
+			type: "del",
+			key: ID,
+			sublevel: filesystemReferences
+		},
+		{
+			type: "del",
+			key: "name",
+			sublevel: studyMetadata
+		},
+		{
+			type: "del",
+			key: "description",
+			sublevel: studyMetadata
+		},
+	])
+}
+
+export {getAllStudies, getStudy, updateStudy, createStudy, deleteStudy}

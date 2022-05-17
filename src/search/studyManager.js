@@ -57,14 +57,39 @@ async function openStudyMetadataEditor({
 
 	})
 	container.appendChild(saveChanges)
+
+	if (ID) {
+		//Add delete button if the study exists. 
+		let deleteStudy = document.createElement("button")
+		deleteStudy.innerHTML = "Delete Study"
+		deleteStudy.addEventListener("click", async function() {
+			try {
+				if (
+					confirm("Are you sure you want to delete this study?")
+					&& confirm("Are you absolutely sure you want to delete this study?")
+					&& confirm("Are you absolutely absolutely sure you want to delete this study?")
+				) {
+					await deleteStudyFromServer({ID})
+					modal.remove()
+					callback()
+				}
+				else {
+					alert("Delete cancelled by user. ")
+				}
+			}
+			catch (e) {
+				console.error(e)
+				alert(e)
+			}
+		})
+		container.appendChild(deleteStudy)
+	}
 }
 
-
-async function saveStudyToServer(newStudyDetails) {
-	//TODO: Change the studies object so we don't need to refresh all studies. 
-	let request = await fetch("studies?type=set", {
+async function studyServerSync(study, type = "set") {
+	let request = await fetch(`studies?type=${type}`, {
 		method: "POST",
-		body: JSON.stringify(newStudyDetails),
+		body: JSON.stringify(study),
 		headers: {
 			authtoken: await firebase.auth().currentUser?.getIdToken(),
 		}
@@ -80,4 +105,12 @@ async function saveStudyToServer(newStudyDetails) {
 }
 
 
-export {openStudyMetadataEditor, saveStudyToServer}
+function saveStudyToServer(study) {
+	return studyServerSync(study, "set")
+}
+
+function deleteStudyFromServer(study) {
+	return studyServerSync(study, "delete")
+}
+
+export {openStudyMetadataEditor, saveStudyToServer, deleteStudyFromServer}
