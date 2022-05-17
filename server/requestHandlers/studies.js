@@ -3,7 +3,9 @@
  */
 
 import {checkAuth} from "../utils/auth.js";
-import {getAllStudies} from "../utils/studies.js"
+import {getAllStudies, createStudy, updateStudy, getStudy} from "../utils/studies.js"
+import getData from "../utils/getData.js"
+
 
 /**
  * Handles a request to get, set (create/update), or delete a study.
@@ -11,18 +13,31 @@ import {getAllStudies} from "../utils/studies.js"
  * @param {Object} res - Express response object.
  */
 async function studiesHandler(req, res) {
-	if (req.query.type === "get") {
+	if (req.query.type === "list") {
 		let result = await getAllStudies()
 		res.status(200)
-		console.log(result)
-		res.end(result)
+		res.setHeader('content-type', 'application/json');
+		res.end(JSON.stringify(result))
 		return
 	}
 	else if (req.query.type === "set") {
-		//If the study exists, check write permission, else check add permission.
-		await checkAuth(req, res, {add: true})
-		res.status(500)
-		res.end("Setting studies not yet supported. ")
+		let obj = JSON.parse(await getData(req))
+		let studyID = obj.ID
+		if (obj.ID) {
+			//Edit existing study. Error if ID does not exist.
+			await checkAuth(req, res, {write: true})
+			await updateStudy(obj)
+		}
+		else {
+			//Create new study.
+			await checkAuth(req, res, {add: true})
+			studyID = await createStudy(obj)
+		}
+
+		res.status(200)
+		res.setHeader('content-type', 'application/json');
+		let studyObj = await getStudy(studyID)
+		res.end(JSON.stringify(studyObj))
 		return
 	}
 	else if (req.query.type === "delete") {

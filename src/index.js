@@ -9,6 +9,11 @@ initAuthUI()
 
 
 
+import "./search/index.js"
+
+
+
+
 
 // window.currentParams = new URLSearchParams(window.location.hash.slice(1)) //Used to keep currentViewLink in sync between search.js and graphs.js
 

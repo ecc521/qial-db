@@ -45,7 +45,9 @@ app.use(compression({
 	},
 }))
 
-app.use(express.urlencoded({ extended: false }));
+// app.use(express.urlencoded({ extended: false }));
+// app.use(express.json());
+
 
 app.all("*", (req, res, next) => {
     res.set("Strict-Transport-Security", "max-age=" + 60 * 60 * 24 * 365) //1 year HSTS.

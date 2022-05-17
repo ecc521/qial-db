@@ -61,11 +61,11 @@ async function checkAuth(req, res, requiredPermissions) {
 	let data, permissions;
 	try {
 		let querySnapshot = await users.get(user.uid)
-		let userDoc = querySnapshot.docs[0]
-		let data = userDoc.data()
-		console.log(data)
 
-		let permissions = data.permissions
+		let userDoc = querySnapshot.docs[0]
+		data = userDoc.data()
+
+		permissions = data.permissions
 	}
 	catch (e) {
 		let message = `Server Obtaining User Permissions and Information: ${e.message}`
@@ -73,8 +73,10 @@ async function checkAuth(req, res, requiredPermissions) {
 		throw message
 	}
 
+    console.log(permissions)
+
 	for (let prop in requiredPermissions) {
-		if (requiredPermissions[prop] && !permissions[prop]) {
+		if (requiredPermissions[prop] && !permissions?.[prop]) {
 			let message = `Permission ${prop} required but not posessed. `
 			res.status(403).end(message)
 			throw message

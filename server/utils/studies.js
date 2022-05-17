@@ -1,5 +1,5 @@
 /**
- * @overview Methods for accessing, creating, and modifying Studies. Handles database and filesystem components. 
+ * @overview Methods for accessing, creating, and modifying Studies. Handles database and filesystem components.
  */
 
 import fs from "fs";
@@ -45,12 +45,65 @@ async function getStudy(studyID) {
 	})
 }
 
-function createStudy() {
+async function createStudy(newContents) {
+	//Create a study, randomly assigning a study ID.
+	//Study IDs will be 6 characters.
+	//TODO: We should probably increase the study ID length if some number of attempts don't
+	//come up with an ID to allow arbitrary scaling. However not a concern at the moment.
 
+	let radix = 36
+	let len = 6
+	let newStudyID;
+
+	while (true) {
+		let min = radix ** (len - 1) //Inclusive
+		let max = radix ** len //Exclusive
+		let range = max - min
+		let random = min + Math.floor(Math.random() * (range))
+
+		newStudyID = random.toString(radix).toUpperCase()
+		console.log(newStudyID)
+
+		let pathOnDisk = await filesystemReferences.getMany([newStudyID])[0]
+		console.log(pathOnDisk)
+		if (!pathOnDisk) {
+			console.log("Found!")
+			break;
+		}
+	}
+
+	//TODO: Now allocate a directory on disk and proceed.
+	//TODO We want to make sure the directory doesn't conflict with existing directories.
+	//But for now, just use study ID.
+
+	await filesystemReferences.put(newStudyID, newStudyID)
+
+	newContents.ID = newStudyID
+	updateStudy(newContents)
+
+	return newStudyID
 }
 
-function updateStudy() {
+async function updateStudy(newContents) {
+	let studyID = newContents.ID
+	let pathOnDisk = await filesystemReferences.get(studyID)
+	if (!pathOnDisk) {
+		throw "Study cannot be updated because it does not yet exist. "
+	}
 
+	let sublevel = studyMetadata.sublevel(studyID)
+	await sublevel.batch([
+		{
+			type: "put",
+			key: 'name',
+			value: newContents.name
+		},
+		{
+			type: "put",
+			key: 'description',
+			value: newContents.description
+		},
+	])
 }
 
-export {getAllStudies, getStudy, updateStudy}
+export {getAllStudies, getStudy, updateStudy, createStudy}
