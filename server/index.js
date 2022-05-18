@@ -3,7 +3,7 @@
  */
 
 
- //TODO: We want to initialize generation of all study cache when the server is started. 
+ //TODO: We want to initialize generation of all study cache when the server is started.
 
 
 import http from "http";
@@ -12,8 +12,6 @@ process
   .on('unhandledRejection', (reason, p) => {
     console.error(reason, 'Unhandled Rejection at Promise', p);
   })
-
-import generateJSON from "./generateJSON.js"
 
 import compression from "compression";
 import express from "express";
