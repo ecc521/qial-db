@@ -4,6 +4,7 @@
 //search: Search params within study.
 
 window.searchQuery = new URLSearchParams(window.location.hash.slice(1)) //Used to keep currentViewLink in sync between search.js and graphs.js
+//window.currentStudy
 
 let oldSet = window.searchQuery.set
 window.searchQuery.set = (function(...args) {

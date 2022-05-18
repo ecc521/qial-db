@@ -123,6 +123,8 @@ async function setSelectedStudy(studyID) {
 	}
 
     //Load the new study, then change the search link.
+    let resp = await fetch("studies?type=get&studyID=" + studyID)
+    window.currentStudy = await resp.json()
     window.searchQuery.set("studyID", studyID)
 
 }

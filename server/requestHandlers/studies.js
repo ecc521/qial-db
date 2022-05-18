@@ -20,6 +20,14 @@ async function studiesHandler(req, res) {
 		res.end(JSON.stringify(result))
 		return
 	}
+	else if (req.query.type === "get") {
+		let studyID = req.query.studyID
+		let result = await getStudy(req.query.studyID, true) //Include study contents as well. 
+		res.status(200)
+		res.setHeader('content-type', 'application/json');
+		res.end(JSON.stringify(result))
+		return
+	}
 	else if (req.query.type === "set") {
 		let obj = JSON.parse(await getData(req))
 		let studyID = obj.ID

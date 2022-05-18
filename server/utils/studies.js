@@ -11,12 +11,12 @@ import {Level} from "level";
 let studiesDatabasePath = path.join(global.dataDir, "studies_data")
 let studiesDatabase = new Level(studiesDatabasePath, {valueEncoding: "json"})
 
-let filesystemReferences = studiesDatabase.sublevel("refs") //key: studyID, value: RELATIVE_PATH_TO_STUDY_DIRECTORY_FROM_ROOTDIR
+let filesystemReferences = studiesDatabase.sublevel("refs") //key: studyID, value: RELATIVE_PATH_TO_STUDY_DIRECTORY_FROM_STUDIES_DIR
 let studyMetadata = studiesDatabase.sublevel("meta") //Contains sublevels for all
 
 /**
  * Obtain a list of all studies.
- * @returns {Study[]} - Array of Study objects.
+ * @returns {Study[]} - Array of Study objects. ONLY CONTAINS METADATA. To get study contents, call getStudy directly with the includeContents option.
  */
 async function getAllStudies() {
 	let studyIDs = await filesystemReferences.keys().all()
@@ -36,7 +36,7 @@ async function getAllStudies() {
  * @param {string} studyID - ID of study.
  * @returns {Study} - Study object.
  */
-async function getStudy(studyID) {
+async function getStudy(studyID, includeContents = false) {
 	let sublevel = studyMetadata.sublevel(studyID)
 	let [name, description] = await sublevel.getMany(["name", "description"])
 	console.warn(name, description)
@@ -112,7 +112,10 @@ async function updateStudy(newContents) {
 async function deleteStudy({
 	ID,
 }) {
-	//TODO: Delete the directory from filesystem.
+	//Find the directory on filesystem.
+	let fsdir = await filesystemReferences.get(ID)
+
+	//Delete the fs reference.
 	await studiesDatabase.batch([
 		{
 			type: "del",
@@ -130,6 +133,12 @@ async function deleteStudy({
 			sublevel: studyMetadata
 		},
 	])
+
+	//Delete the directory from filesystem.
+	//We won't hold up execution on this - the study has been removed from studiesDatabase, so
+	//it isn't a problem to clean up later if something goes wrong (as we can enumerate the filesystemReferences
+	//and determine this directory should have been deleted)
+	fs.promises.rm(path.join(global.studiesDir, fsdir), {force: true, recursive: true})
 }
 
 export {getAllStudies, getStudy, updateStudy, createStudy, deleteStudy}
