@@ -96,7 +96,10 @@ function prepareStudies() {
 	//Add the create study card at the bottom.
 	let createNewStudy = createCard("New Study", "Create a new study. ")
 	createNewStudy.addEventListener("click", function() {
-		openStudyMetadataEditor({}, refreshStudies)
+		openStudyMetadataEditor({}, async function(newStudy) {
+            await refreshStudies()
+            setSelectedStudy(newStudy.ID)
+        })
 	})
 	studySelectionOptions.appendChild(createNewStudy)
 }
@@ -121,7 +124,7 @@ async function setSelectedStudy(studyID) {
 
     //Load the new study, then change the search link.
     window.searchQuery.set("studyID", studyID)
-    
+
 }
 
 ;(async function init() {

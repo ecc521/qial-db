@@ -42,13 +42,13 @@ async function openStudyMetadataEditor({
 	saveChanges.innerHTML = "Save Changes"
 	saveChanges.addEventListener("click", async function() {
 		try {
-			await saveStudyToServer({
+			let resp = await saveStudyToServer({
 				ID,
 				name: nameInput.value,
 				description: descriptionInput.value
 			})
 			modal.remove()
-			callback()
+			callback(JSON.parse(resp))
 		}
 		catch (e) {
 			console.error(e)
@@ -59,7 +59,7 @@ async function openStudyMetadataEditor({
 	container.appendChild(saveChanges)
 
 	if (ID) {
-		//Add delete button if the study exists. 
+		//Add delete button if the study exists.
 		let deleteStudy = document.createElement("button")
 		deleteStudy.innerHTML = "Delete Study"
 		deleteStudy.addEventListener("click", async function() {
@@ -99,9 +99,7 @@ async function studyServerSync(study, type = "set") {
 	if (request.status !== 200) {
 		throw `Error in Request: ${response}`
 	}
-	else {
-		console.log(response) //Sends back server version of study.
-	}
+	return response
 }
 
 
