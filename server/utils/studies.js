@@ -5,6 +5,7 @@
 import fs from "fs";
 import path from "path";
 
+import getStudyContents from "./getStudyContents.js"
 import Study from "../../lib/Study/index.js"
 import {Level} from "level";
 
@@ -39,12 +40,17 @@ async function getAllStudies() {
 async function getStudy(studyID, includeContents = false) {
 	let sublevel = studyMetadata.sublevel(studyID)
 	let [name, description] = await sublevel.getMany(["name", "description"])
-	console.warn(name, description)
+
+	let contents;
+	if (includeContents) {
+		contents = await getStudyContents(studyID)
+	}
 
 	return new Study({
 		ID: studyID,
 		name,
 		description,
+		contents,
 	})
 }
 

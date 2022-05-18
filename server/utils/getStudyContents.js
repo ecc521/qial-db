@@ -4,16 +4,16 @@ import {Buffer} from "buffer"
 import yauzl from "yauzl" //Zip Library
 import daikon from "daikon" //DICOM Parser
 
-import getFilesInDirectory from "./utils/getFilesInDirectory.js"
+import getFilesInDirectory from "./getFilesInDirectory.js"
 
-import {normalizeCode, computeNamespace} from "./generateJSON/formats.js"
-import {parseAnimalCSV, mergeRowsWithinSheet, processFile} from "./generateJSON/dataParser.js"
+import {normalizeCode, computeNamespace} from "../generateJSON/formats.js"
+import {parseAnimalCSV, mergeRowsWithinSheet, processFile} from "../generateJSON/dataParser.js"
 
-import {accessPrecomputed, createPrecomputed} from "./precomputed.js"
+import {accessPrecomputed, createPrecomputed} from "../precomputed.js"
 
-import File from "../lib/File/index.js"
-import Scan from "../lib/Scan/index.js"
-import Subject from "../lib/Subject/index.js"
+import File from "../../lib/File/index.js"
+import Scan from "../../lib/Scan/index.js"
+import Subject from "../../lib/Subject/index.js"
 
 
 let queue = []
@@ -50,6 +50,7 @@ function addToQueue(callback, ...args) {
 
 //Return if cached, else add to queue.
 async function obtainPrecomputed(filePath) {
+	console.log(filePath)
 	let precomputed = await accessPrecomputed(filePath)
 	if (precomputed) {return precomputed}
 
@@ -61,34 +62,17 @@ async function obtainPrecomputed(filePath) {
 //Compression bomb type attacks should be covered, even though users must be authenticated.
 //We would need to defend against GZIP bombs, possibly other types of compression in the future.
 
-//All processing is run before returning a request. Instead, we should return a request with the data we currently have, and keep data up to date other ways.
+async function getStudyContents(relativeStudyPath) {
+	let studyDirectory = path.join(global.studiesDir, relativeStudyPath, "data")
+	console.log(studyDirectory)
 
+	//When the study is opened, ensure it is initialized.
+	if (!fs.existsSync(studyDirectory)) {
+		fs.mkdirSync(studyDirectory, {recursive: true})
+	}
 
-//Architecture:
-// 1. Receive Request
-// 2. Obtain list of all files
-// 3. Iterate through CSV files (Excel file sheets count as a CSV)
-// 3a. Merge animals within file
-// 3b. Merge list of aminals with animals in file
-// -  Add animal if needed
-// -  Determine namespace
-// -  Merge into namespace
-// 4. Process DICOM files. Create new animals as necessary.
-// 5. Assign image files where possible.
-// 6. Final processing & send response
-
-
-//TODO: We need a way to inform about generic issues, not related to an individual file.
-
-
-
-async function generateJSON() {
-	console.time("Gen")
-
-   let files = await getFilesInDirectory(global.dataDir)
-   files = files.map((filePath) => {return path.relative(global.dataDir, filePath)})
-   //TODO: Lock down tmp directory. Hide all files here, prevent uploads to it (not here), and prevent deletions and renames within it.
-
+   let files = await getFilesInDirectory(studyDirectory)
+   files = files.map((filePath) => {return path.relative(studyDirectory, filePath)})
 
    let data = {
 	   Files: new Map(),
@@ -108,7 +92,7 @@ async function generateJSON() {
 
    //Assemble all files.
    for (let fileName of files) {
-	   let stats = fs.statSync(path.join(global.dataDir, fileName))
+	   let stats = fs.statSync(path.join(studyDirectory, fileName))
 	   let file = new File({
 		   path: fileName,
 		   size: stats.size,
@@ -126,7 +110,7 @@ async function generateJSON() {
 	   let isNonDICOMScan = fileName.endsWith(".nii") || fileName.endsWith(".nii.gz") || fileName.endsWith(".tif") || fileName.endsWith(".tiff")
 	   if (!isNonDICOMScan) {continue}
 
-	   let filePath = path.join(global.dataDir, fileName)
+	   let filePath = path.join(studyDirectory, fileName)
 
 	   let scanID = fileName
 
@@ -149,7 +133,7 @@ async function generateJSON() {
  	   let isDICOMScan = fileName.endsWith(".zip")
  	   if (!isDICOMScan) {continue}
 
-	   let filePath = path.join(global.dataDir, fileName)
+	   let filePath = path.join(studyDirectory, fileName)
 
 	   function formatDate(dateObj) {
 	   		return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
@@ -222,7 +206,7 @@ async function generateJSON() {
 								   //right now we will just use the fileName of the zip file containing the DICOMs.
 								   let scanID = fileName
 
-								   let precomputedPromise = obtainPrecomputed(path.join(global.dataDir, fileName))
+								   let precomputedPromise = obtainPrecomputed(path.join(studyDirectory, fileName))
 								   precomputedPromise.then((precomputed) => {
 									   let scan = new Scan({
 										   ID: scanID,
@@ -267,7 +251,8 @@ async function generateJSON() {
 	   //Process CSV and XLSX sheets.
 	   //TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
 	   //XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
-	   let res = processFile(fileName)
+	   let file = data.Files.get(fileName)
+	   let res = processFile(file, studyDirectory)
 	   if (!res) {continue} //Not a data file.
 
 	   let sheets = res.sheets //If there was an error, res.sheets might not be defined, and there will be an error property on res.fileObj
@@ -301,8 +286,10 @@ async function generateJSON() {
 				subject.addDataSources(`${fileName}`)
 	 			delete newData.Animal
 
-				if (newData?.Sex?.toLowerCase() === "male") {newData.Sex = "M"}
-				else if (newData?.Sex?.toLowerCase() === "female") {newData.Sex = "F"}
+				if (typeof newData?.Sex === "string") {
+					if (newData?.Sex?.toLowerCase() === "male") {newData.Sex = "M"}
+					else if (newData?.Sex?.toLowerCase() === "female") {newData.Sex = "F"}	
+				}
 
 	 			for (let inputProp in newData) {
 	 				let outputProp = prefix + inputProp
@@ -385,8 +372,6 @@ async function generateJSON() {
 		}
 	}
 
-
-
 	//TODO: We should sort either client or server side to put Subjects with more imaging scans higher up.
 	// function calc(item) {
 	// 	let val = 0;
@@ -399,10 +384,8 @@ async function generateJSON() {
 	// 	return calc(b) - calc(a)
 	// })
 
-
-
    return data
 }
 
 
-export default generateJSON
+export default getStudyContents

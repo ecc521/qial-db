@@ -9,11 +9,10 @@ import {normalizeCode} from "./formats.js";
 let memCache = {}
 
 //processFile loads the files, and parses them. It caches the results, and returns them until the source changes.
-function processFile(fileName) {
-	if (!fileName.endsWith(".csv") && !fileName.endsWith(".xlsx")) {return false}
+function processFile(fileObj, relativeDirectory) {
+	if (!fileObj.path.endsWith(".csv") && !fileObj.path.endsWith(".xlsx")) {return false}
 
-	let fileObj = createFile(fileName, "datafile") //TODO: We need to stop using this function. It no longer exists. 
-	let cached = memCache[fileName]
+	let cached = memCache[fileObj.path]
 
 	//Check lastModified and size, the two properties createFile generates for us.
 	if (cached && cached.fileObj.lastModified === fileObj.lastModified && cached.fileObj.size === fileObj.size) {
@@ -22,14 +21,14 @@ function processFile(fileName) {
 
 	let sheets = {};
 	try {
-		let filePath = path.join(global.dataDir, fileName)
-		if (fileName.endsWith(".csv")) {
+		let filePath = path.join(relativeDirectory, fileObj.path)
+		if (fileObj.path.endsWith(".csv")) {
 			let str = fs.readFileSync(filePath)
 			let csvData = parseAnimalCSV(str)
 			let merged = mergeRowsWithinSheet(csvData)
-			sheets[fileName] = merged //Name for sheet is used determining namespace.
+			sheets[fileObj.path] = merged //Name for sheet is used determining namespace.
 		}
-		else if (fileName.endsWith(".xlsx")) {
+		else if (fileObj.path.endsWith(".xlsx")) {
 			let file = xlsx.readFileSync(filePath)
 			for (let sheetName in file.Sheets) {
 				let sheet = file.Sheets[sheetName]
@@ -43,10 +42,11 @@ function processFile(fileName) {
 		}
 	}
 	catch (e) {
+		//TODO: Nothing useful is done with these currently.
 		fileObj.errors = "Not Merged: " + e
 	}
 
-	return memCache[fileName] = {fileObj, sheets}
+	return memCache[fileObj.path] = {fileObj, sheets}
 }
 
 function parseAnimalCSV(str) {

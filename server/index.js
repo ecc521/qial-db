@@ -3,6 +3,9 @@
  */
 
 
+ //TODO: We want to initialize generation of all study cache when the server is started. 
+
+
 import http from "http";
 
 process
@@ -81,6 +84,3 @@ app.use("*", (req, res, next) => {
 //Start the server.
 const httpport = 8080
 app.listen(httpport)
-
-//Call at start, to begin processing of thumbnails, etc.
-// generateJSON()
