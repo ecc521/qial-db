@@ -5,6 +5,9 @@
  * There will also be an option to Create New Study, which will open up a Study Creator page.
  */
 
+
+ //TODO: We should check user permissions early on - disallow options that require login immediately, rather than rejecting at the last step.
+
  import {openStudyMetadataEditor, saveStudyToServer} from "./studyManager.js"
 
  let studies;
@@ -91,8 +94,6 @@ function prepareStudies() {
 	}
 
 	//Add the create study card at the bottom.
-	//TODO: It should check user permissions somewhere so we don't end up with a server side rejection late in the process.
-
 	let createNewStudy = createCard("New Study", "Create a new study. ")
 	createNewStudy.addEventListener("click", function() {
 		openStudyMetadataEditor({}, refreshStudies)
@@ -101,36 +102,29 @@ function prepareStudies() {
 }
 
 
-
-
 async function refreshStudies() {
 	let studyRequest = await fetch("studies?type=list")
 	studies = await studyRequest.json()
 	prepareStudies()
 }
 
-function setSelectedStudy(studyID) {
-	console.log(studyID)
-	console.log(studies)
-	window.searchQuery.set("studyID", studyID)
-	if (studies[studyID]) {
+async function setSelectedStudy(studyID) {
+    let study = studies.find((study) => {return study.ID == studyID})
+	if (study) {
 		closeAccordian()
+        studySelectAccordian.innerHTML = `${study.name} (ID: ${study.ID})`
 	}
 	else {
 		openAccordian()
+        studySelectAccordian.innerHTML = "No Study Selected"
 	}
+
+    //Load the new study, then change the search link.
+    window.searchQuery.set("studyID", studyID)
+    
 }
 
 ;(async function init() {
 	await refreshStudies()
 	setSelectedStudy(window.searchQuery.get("studyID"))
 }())
-
-
-
-
-
-
-function createStudy() {
-
-}

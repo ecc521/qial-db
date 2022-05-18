@@ -21,9 +21,12 @@ let studyMetadata = studiesDatabase.sublevel("meta") //Contains sublevels for al
 async function getAllStudies() {
 	let studyIDs = await filesystemReferences.keys().all()
 
-	let studies = studyIDs.map(studyID => getStudy(studyID))
-	for (let i=0;i<studies.length;i++) {
-		studies[i] = await studies[i]
+	let studiesPromises = studyIDs.map(studyID => getStudy(studyID))
+
+	let studies = []
+	for (let studyPromise of studiesPromises) {
+		let study = await studyPromise
+		studies.push(study)
 	}
 	return studies
 }
