@@ -5,13 +5,12 @@ window.firebase = firebase
 initAuthUI()
 
 
-
-
-
-
 import "./search/index.js"
 
-
+import("./upload.js")
+import("./download.js")
+import("./delete.js")
+import("./selections.js")
 
 
 

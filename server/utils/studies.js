@@ -41,17 +41,18 @@ async function getStudy(studyID, includeContents = false) {
 	let sublevel = studyMetadata.sublevel(studyID)
 	let [name, description] = await sublevel.getMany(["name", "description"])
 
-	let contents;
-	if (includeContents) {
-		contents = await getStudyContents(studyID)
-	}
-
-	return new Study({
+	let study = new Study({
 		ID: studyID,
 		name,
 		description,
-		contents,
 	})
+
+	if (includeContents) {
+		//TODO: To reduce network use, we need to avoid loading the individual data fields until needed. 
+		study.contents = await getStudyContents(studyID)
+	}
+
+	return study
 }
 
 async function createStudy(newContents) {

@@ -324,8 +324,8 @@ function runSearch() {
 }
 
 function initializeSearch() {
-	window.data.forEach((item) => {
-		let props = Object.keys(item)
+	for (let subject of Object.values(window.currentStudy.contents.Subjects)) {
+		let props = Object.keys(subject)
 		props.forEach((prop) => {
 			if (!processedProperties.has(prop)) {
 				if (obtainPropertyValues(prop).length > 0) {
@@ -338,9 +338,12 @@ function initializeSearch() {
 				processedProperties.set(prop, true)
 			}
 		})
-	})
+	}
 
 	setupFromParams()
 }
 
-export {runSearch, initializeSearch}
+window.addEventListener("searchQueryChanged", function() {
+	initializeSearch()
+	runSearch()
+})

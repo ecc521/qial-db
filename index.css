@@ -195,6 +195,24 @@ h1, h2 {
 }
 
 
+/*Search link info*/
+#searchLinksContainer {
+	display: flex;
+	align-items: center;
+	justify-content: space-evenly;
+	padding: 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*Other styling. */
