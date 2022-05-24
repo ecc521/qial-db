@@ -43,7 +43,8 @@ search.appendChild(datalist)
 datalist.id = "availableProperties"
 
 function obtainPropertyValues(prop) {
-	return window.data.map((item) => {
+	let subjects = Object.values(window.currentStudy.contents.Subjects)
+	return subjects.map((item) => {
 		return item[prop]
 	}).filter((item) => {
 		return item !== undefined
@@ -286,7 +287,7 @@ function searchFilter({prop, values}, elemToAppend) {
 
 
 function setupFromParams() {
-	let params = window.currentParams
+	let params = window.searchQuery
 	let arr = params.get("search")
 	if (!arr) {return}
 
@@ -303,12 +304,28 @@ function setupFromParams() {
 search.appendChild(searchItemBar())
 
 function runSearch() {
-	let items = window.data
+	//This stuff, then drawCards needs to get redone.
+	//TODO: How do we want to handle these?
+
+	//Do we want to maintain a list of the current stuff?
+	//We probably want to avoid global variables if possible, so if it's possible avoid using global varialbes.
+
+
+
+
+
+
+
+	//We will allow searching to Subjects, Files, or Scans. Only one type at once.
+
+	let prop = "Subjects"
+	let itemsToSearch = Object.values(window.currentStudy.contents[prop])
+
 	searchFilters.forEach((searchFilter) => {
-		items = searchFilter.filter(items)
+		itemsToSearch = searchFilter.filter(itemsToSearch)
 	})
-	window.lastSearchItems = items
-	drawCards(items)
+	window.lastSearchItems = itemsToSearch
+	drawCards(itemsToSearch)
 
 	let params = window.currentParams
 	let url = new URL(window.location.href)
@@ -324,7 +341,8 @@ function runSearch() {
 }
 
 function initializeSearch() {
-	for (let subject of Object.values(window.currentStudy.contents.Subjects)) {
+	let subjects = Object.values(window.currentStudy.contents.Subjects)
+	for (let subject of subjects) {
 		let props = Object.keys(subject)
 		props.forEach((prop) => {
 			if (!processedProperties.has(prop)) {
@@ -339,6 +357,8 @@ function initializeSearch() {
 			}
 		})
 	}
+
+	console.log(processedProperties)
 
 	setupFromParams()
 }

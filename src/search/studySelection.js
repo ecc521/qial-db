@@ -8,9 +8,10 @@
 
  //TODO: We should check user permissions early on - disallow options that require login immediately, rather than rejecting at the last step.
 
- import {openStudyMetadataEditor, saveStudyToServer} from "./studyManager.js"
+import {openStudyMetadataEditor, saveStudyToServer} from "./studyManager.js"
+import destringifyStudyContents from "./destringifyStudyContents.js"
 
- let studies;
+let studies;
 
 //Accordian UI and currently selected study name.
 let studySelectAccordian = document.getElementById("studySelectAccordian")
@@ -115,7 +116,7 @@ async function setSelectedStudy(studyID) {
     let study = studies.find((study) => {return study.ID == studyID})
 	if (study) {
 		closeAccordian()
-        studySelectAccordian.innerHTML = `${study.name} (ID: ${study.ID})`
+        studySelectAccordian.innerHTML = `<a target="_blank" href="#studyID=${study.ID}"> ${study.name} (ID: ${study.ID})</a>`
 	}
 	else {
 		openAccordian()
@@ -124,9 +125,12 @@ async function setSelectedStudy(studyID) {
 
     //Load the new study, then change the search link.
     let resp = await fetch("studies?type=get&studyID=" + studyID)
-    window.currentStudy = await resp.json()
-    window.searchQuery.set("studyID", studyID)
+    let obj = await resp.json()
 
+    obj.contents = destringifyStudyContents(obj.contents)
+
+    window.currentStudy = obj
+    window.searchQuery.set("studyID", studyID)
 }
 
 ;(async function init() {

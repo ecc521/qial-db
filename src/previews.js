@@ -1,6 +1,6 @@
 import {openNeuroglancer, getPrecomputedURL} from "./neuroglancer.js"
 import {initializeGraphs} from "./graphs.js"
-import {initializeSearch, runSearch} from "./search.js"
+// import {initializeSearch, runSearch} from "./search.js"
 
 let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
@@ -222,6 +222,7 @@ function Item(item) {
 window.drawCards = function drawCards(items) {
 	itemHolder = []
 	parentHolder = []
+	console.log(items)
 	while(itemContainer.firstChild) {itemContainer.firstChild.remove()}
 	for (let i=0;i<items.length;i++) {
 		let item = items[i]
@@ -232,17 +233,17 @@ window.drawCards = function drawCards(items) {
 		})
 	}
 }
-
-;(async function() {
-	let request = await fetch("data.json")
-	let response = await request.json()
-	window.data = response.data
-
-	drawCards(window.data) //Need to get Image Count set BEFORE search code runs. TODO: Double drawing is slow. Use convertTo or something, or assign Image Count before drawing?
-
-	initializeSearch()
-	runSearch() //Run again to display details on percentage drawn and stuff.
-
-	initializeGraphs()
-
-}())
+//
+// ;(async function() {
+// 	let request = await fetch("data.json")
+// 	let response = await request.json()
+// 	window.data = response.data
+//
+// 	drawCards(window.data) //Need to get Image Count set BEFORE search code runs. TODO: Double drawing is slow. Use convertTo or something, or assign Image Count before drawing?
+	//
+	// initializeSearch()
+	// runSearch() //Run again to display details on percentage drawn and stuff.
+	//
+	// initializeGraphs()
+//
+// }())

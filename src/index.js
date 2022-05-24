@@ -11,6 +11,7 @@ import("./upload.js")
 import("./download.js")
 import("./delete.js")
 import("./selections.js")
+import("./previews.js")
 
 
 
