@@ -11,13 +11,13 @@ let contentParsers = {
 
 function destringifyStudyContents(contents) {
 	for (let [keyInContents, parser] of Object.entries(contentParsers)) {
-		let itemMap = new Map()
+		let itemMap = {} //new Map()
 		for (let [key, value] of Object.entries(contents[keyInContents])) {
-			itemMap.set(key, new parser(value))
+			//itemMap.set(key, new parser(value))
+			itemMap[key] = new parser(value)
 		}
 		contents[keyInContents] = itemMap
 	}
-	console.log(contents)
 	return contents
 }
 

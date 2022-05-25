@@ -48,8 +48,11 @@ async function getStudy(studyID, includeContents = false) {
 	})
 
 	if (includeContents) {
-		//TODO: To reduce network use, we need to avoid loading the individual data fields until needed. 
-		study.contents = await getStudyContents(studyID)
+		let studyDirectory = path.join(global.studiesDir, studyID)
+		study.path = path.relative(global.rootDir, studyDirectory)
+
+		//TODO: To reduce network use, we need to avoid loading the individual data fields until needed.
+		study.contents = await getStudyContents(studyDirectory)
 	}
 
 	return study

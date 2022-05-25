@@ -62,17 +62,16 @@ async function obtainPrecomputed(filePath) {
 //Compression bomb type attacks should be covered, even though users must be authenticated.
 //We would need to defend against GZIP bombs, possibly other types of compression in the future.
 
-async function getStudyContents(relativeStudyPath) {
-	let studyDirectory = path.join(global.studiesDir, relativeStudyPath, "data")
-	console.log(studyDirectory)
+async function getStudyContents(baseStudyDirectory) {
+	let studyDataDirectory = path.join(baseStudyDirectory, "data")
 
 	//When the study is opened, ensure it is initialized.
-	if (!fs.existsSync(studyDirectory)) {
-		fs.mkdirSync(studyDirectory, {recursive: true})
+	if (!fs.existsSync(studyDataDirectory)) {
+		fs.mkdirSync(studyDataDirectory, {recursive: true})
 	}
 
-   let files = await getFilesInDirectory(studyDirectory)
-   files = files.map((filePath) => {return path.relative(studyDirectory, filePath)})
+   let files = await getFilesInDirectory(studyDataDirectory)
+   files = files.map((filePath) => {return path.relative(studyDataDirectory, filePath)})
 
    let data = {
 	   Files: new Map(),
@@ -92,9 +91,10 @@ async function getStudyContents(relativeStudyPath) {
 
    //Assemble all files.
    for (let fileName of files) {
-	   let stats = fs.statSync(path.join(studyDirectory, fileName))
+	   let filePath = path.join(studyDataDirectory, fileName)
+	   let stats = await fs.promises.stat(filePath)
 	   let file = new File({
-		   path: fileName,
+		   path: path.relative(baseStudyDirectory, filePath),
 		   size: stats.size,
 		   lastModified: new Date(stats.mtime).getTime(),
 	   })
@@ -110,15 +110,20 @@ async function getStudyContents(relativeStudyPath) {
 	   let isNonDICOMScan = fileName.endsWith(".nii") || fileName.endsWith(".nii.gz") || fileName.endsWith(".tif") || fileName.endsWith(".tiff")
 	   if (!isNonDICOMScan) {continue}
 
-	   let filePath = path.join(studyDirectory, fileName)
+	   let filePath = path.join(studyDataDirectory, fileName)
 
 	   let scanID = fileName
+
+	   let precomputedPath = await obtainPrecomputed(filePath)
+	   if (precomputedPath) {
+		   precomputedPath = path.relative(baseStudyDirectory, precomputedPath)
+	   }
 
 	   let scan = new Scan({
 		   //TODO: Add more details here, and process the scans.
 		   ID: scanID,
 		   sourceFiles: [fileName],
-		   precomputed: await obtainPrecomputed(filePath)
+		   precomputed: precomputedPath
 	   })
 	   data.Scans.set(scanID, scan)
    }
@@ -133,7 +138,7 @@ async function getStudyContents(relativeStudyPath) {
  	   let isDICOMScan = fileName.endsWith(".zip")
  	   if (!isDICOMScan) {continue}
 
-	   let filePath = path.join(studyDirectory, fileName)
+	   let filePath = path.join(studyDataDirectory, fileName)
 
 	   function formatDate(dateObj) {
 	   		return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`
@@ -206,7 +211,7 @@ async function getStudyContents(relativeStudyPath) {
 								   //right now we will just use the fileName of the zip file containing the DICOMs.
 								   let scanID = fileName
 
-								   let precomputedPromise = obtainPrecomputed(path.join(studyDirectory, fileName))
+								   let precomputedPromise = obtainPrecomputed(path.join(studyDataDirectory, fileName))
 								   precomputedPromise.then((precomputed) => {
 									   let scan = new Scan({
 										   ID: scanID,
@@ -252,7 +257,7 @@ async function getStudyContents(relativeStudyPath) {
 	   //TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
 	   //XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
 	   let file = data.Files.get(fileName)
-	   let res = processFile(file, studyDirectory)
+	   let res = processFile(file, studyDataDirectory)
 	   if (!res) {continue} //Not a data file.
 
 	   let sheets = res.sheets //If there was an error, res.sheets might not be defined, and there will be an error property on res.fileObj
@@ -288,7 +293,7 @@ async function getStudyContents(relativeStudyPath) {
 
 				if (typeof newData?.Sex === "string") {
 					if (newData?.Sex?.toLowerCase() === "male") {newData.Sex = "M"}
-					else if (newData?.Sex?.toLowerCase() === "female") {newData.Sex = "F"}	
+					else if (newData?.Sex?.toLowerCase() === "female") {newData.Sex = "F"}
 				}
 
 	 			for (let inputProp in newData) {

@@ -1,3 +1,7 @@
+import File from "../lib/File/index.js"
+import Scan from "../lib/Scan/index.js"
+import Subject from "../lib/Subject/index.js"
+
 import {openNeuroglancer, getPrecomputedURL} from "./neuroglancer.js"
 import {initializeGraphs} from "./graphs.js"
 // import {initializeSearch, runSearch} from "./search.js"
@@ -41,9 +45,7 @@ function Item(item) {
 
 	this.componentRows = []
 
-	item["Image Count"] = String(item?.views?.length ?? "")
-
-	if (item.type === "file" || item.type === "datafile") {
+	if (item instanceof File) {
 		itemHolder.push(this)
 		if (!this.parent) {
 			parentHolder.push(this)
@@ -81,42 +83,42 @@ function Item(item) {
 			})
 		})
 	}
-	else if (item.type === "animal") {
+	else if (item instanceof Subject) {
 		parentHolder.push(this)
 		//TODO: We should probably nest directories IF there are files not in the directory and the directory has more than some number of files.
 		//Maybe nest always, just autoexpand.
-		this.componentFiles = item.componentFiles
-		this.componentFiles = this.componentFiles.map((component) => {
-			component.parent = this
-			let item = new Item(component)
-			this.componentRows.push(item.row)
-			return item
-		})
 
-		let setComponentVisibility = (function() {
-			if (this.checkbox.checked === false) {
-				this.componentFiles.forEach((file) => {
-					file.row.style.display = "none"
-					file.checkbox.checked = false
-				})
-			}
-			else {
-				this.componentFiles.forEach((file) => {
-					file.row.style.display = ""
-					file.checkbox.checked = true
-				})
-			}
-		}).bind(this)
+		// this.componentFiles = item.componentFiles
+		// this.componentFiles = this.componentFiles.map((component) => {
+		// 	component.parent = this
+		// 	let item = new Item(component)
+		// 	this.componentRows.push(item.row)
+		// 	return item
+		// })
+		//
+		// let setComponentVisibility = (function() {
+		// 	if (this.checkbox.checked === false) {
+		// 		this.componentFiles.forEach((file) => {
+		// 			file.row.style.display = "none"
+		// 			file.checkbox.checked = false
+		// 		})
+		// 	}
+		// 	else {
+		// 		this.componentFiles.forEach((file) => {
+		// 			file.row.style.display = ""
+		// 			file.checkbox.checked = true
+		// 		})
+		// 	}
+		// }).bind(this)
 
-		setComponentVisibility()
-		this.checkbox.addEventListener("change", setComponentVisibility)
+		// setComponentVisibility()
+		// this.checkbox.addEventListener("change", setComponentVisibility)
 
 		addText(`Animal: ${item.Animal}`)
 		addProp("Sex", item.Sex)
 		addProp("Genotype", item.Genotype)
 		addProp("Weight", item.weight)
 		addProp("DOB", item.DOB)
-		addProp("File Count", item.componentFiles.length)
 
 		if (item.Sex === "male") {this.row.style.backgroundColor = "#eeeeff"}
 		else if (item.Sex === "female") {this.row.style.backgroundColor = "#ffeeee"}
@@ -124,22 +126,6 @@ function Item(item) {
 		this.thumbnailContainer = document.createElement("div")
 		this.thumbnailContainer.className = "thumbnailContainer"
 		this.row.appendChild(this.thumbnailContainer)
-
-		function getFileSize(fileName) {
-			//This may throw IF (and hopefully only if) the same image is used by multiple animals (as the image may be added, without the file being added to
-			//componentFiles, as it was already reclaimed)
-			try {
-				return item.componentFiles.find((componentFile) => {return componentFile.name === fileName}).size
-			}
-			catch (e) {
-				console.error("Error logged below. See code comments for more details. ")
-				console.error(e)
-				console.error(item)
-				console.error(fileName)
-				console.error(item.componentFiles)
-				return //We don't know.
-			}
-		}
 
 		function addThumbnails(view, container, fileSize) {
 			if (!view.precomputed) {console.warn("No Thumbnails");return;}
@@ -157,31 +143,32 @@ function Item(item) {
 			})
 		}
 
-		function createButton(view, fileSize) {
+		function createButton(scan, fileSize) {
 			let preview = document.createElement("button")
 			preview.className = "neuroglancerLink"
 
 			//Neuroglancer doesn't support 64 bit floats - so we can't always provide a precomputed that is
 			//exactly the same as the input file. We may want to provide a warning on affected files (mostly larger ones),
 			//so that people know they
-			if (!view.precomputed) {
-				preview.innerHTML = `Download ${view.name}`
+			if (!scan.precomputed) {
+				//TODO: If more than one sourceFile for this scan, produce a zip for all of them.
+				preview.innerHTML = `Download ${scan.ID}`
 
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");
-				    link.setAttribute('download', view.name);
-				    link.href = "data/" + view.name;
+				    link.setAttribute('download', scan.ID);
+				    link.href = "data/" + scan.sourceFiles[0];
 				    document.body.appendChild(link);
 				    link.click();
 				    link.remove();
 				})
 			}
 			else {
-				preview.innerHTML = `View ${view.name} in Neuroglancer`
+				preview.innerHTML = `View ${scan.ID} in Neuroglancer`
 				preview.addEventListener("click", function() {
 					openNeuroglancer({
-						fileName: view.filePath,
-						labelName: view.labelPath
+						fileName: scan.precomputed,
+						//labelName: view.labelPath //TODO: Add labels.
 					})
 				})
 			}
@@ -194,21 +181,41 @@ function Item(item) {
 			return preview
 		}
 
-		for (let i=0;i<item.views.length;i++) {
-			let view = item.views[i]
+		for (let scanID of item.scanIDs) {
+			let scan = window.currentStudy.contents.Scans[scanID]
+
 			let scanContainer = document.createElement("div")
 			scanContainer.className = "scanContainer"
 			scanContainer.style.textAlign = "center"
 			this.thumbnailContainer.appendChild(scanContainer)
 
-			let fileSize = getFileSize(view.filePath)
+			let fileSize = 0;
+			for (let fileID of scan.sourceFiles) {
+				fileSize += window.currentStudy.contents.Files[fileID].size
+			}
 
-			addThumbnails(view, scanContainer, fileSize)
+			addThumbnails(scan, scanContainer, fileSize)
 
 			scanContainer.appendChild(document.createElement("br"))
-			let button = createButton(view, fileSize)
+			let button = createButton(scan, fileSize)
 			scanContainer.appendChild(button)
 		}
+
+		// for (let i=0;i<item.views.length;i++) {
+			// let view = item.views[i]
+			// let scanContainer = document.createElement("div")
+			// scanContainer.className = "scanContainer"
+			// scanContainer.style.textAlign = "center"
+			// this.thumbnailContainer.appendChild(scanContainer)
+			//
+			// let fileSize = getFileSize(view.filePath)
+			//
+			// addThumbnails(view, scanContainer, fileSize)
+			//
+			// scanContainer.appendChild(document.createElement("br"))
+			// let button = createButton(view, fileSize)
+			// scanContainer.appendChild(button)
+		// }
 	}
 	else {
 		console.warn("Unknown Type: " + item.type)
