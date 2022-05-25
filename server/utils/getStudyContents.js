@@ -213,6 +213,10 @@ async function getStudyContents(baseStudyDirectory) {
 
 								   let precomputedPromise = obtainPrecomputed(path.join(studyDataDirectory, fileName))
 								   precomputedPromise.then((precomputed) => {
+									   if (precomputed) {
+										   precomputed = path.relative(baseStudyDirectory, precomputed)
+									   }
+									   
 									   let scan = new Scan({
 										   ID: scanID,
 										   sourceFiles: [fileName],
@@ -257,7 +261,7 @@ async function getStudyContents(baseStudyDirectory) {
 	   //TODO: We should probably make sure that either CSVs or XLSX sheets are processed first.
 	   //XLSX should probably go second, as they can have multiple sheets and cause conflicts more easily.
 	   let file = data.Files.get(fileName)
-	   let res = processFile(file, studyDataDirectory)
+	   let res = processFile(file, baseStudyDirectory)
 	   if (!res) {continue} //Not a data file.
 
 	   let sheets = res.sheets //If there was an error, res.sheets might not be defined, and there will be an error property on res.fileObj

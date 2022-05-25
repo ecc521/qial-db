@@ -2,7 +2,7 @@ import File from "../lib/File/index.js"
 import Scan from "../lib/Scan/index.js"
 import Subject from "../lib/Subject/index.js"
 
-import {openNeuroglancer, getPrecomputedURL} from "./neuroglancer.js"
+import {openNeuroglancer} from "./neuroglancer.js"
 import {initializeGraphs} from "./graphs.js"
 // import {initializeSearch, runSearch} from "./search.js"
 
@@ -132,14 +132,16 @@ function Item(item) {
 			;["x", "y", "z"].map(name => name + ".webp").forEach((fileName) => {
 				let img = document.createElement("img")
 				img.loading = "lazy"
-				img.src = getPrecomputedURL(`${view.precomputed.source}/${fileName}`, true)
+				img.src = `${window.currentStudy.path}/${view.precomputed}/${fileName}`
 				container.appendChild(img)
 			})
 			container.addEventListener("click", function() {
-				openNeuroglancer({
-					fileName: view.precomputed.source,
-					labelName: view.precomputed.labels
-				})
+				openNeuroglancer(view)
+
+				// openNeuroglancer({
+				// 	fileName: view.precomputed.source,
+				// 	labelName: view.precomputed.labels
+				// })
 			})
 		}
 
@@ -157,7 +159,7 @@ function Item(item) {
 				preview.addEventListener("click", function() {
 					var link = document.createElement("a");
 				    link.setAttribute('download', scan.ID);
-				    link.href = "data/" + scan.sourceFiles[0];
+				    link.href = `${window.currentStudy.path}/${scan.sourceFiles[0].path}`
 				    document.body.appendChild(link);
 				    link.click();
 				    link.remove();
@@ -166,10 +168,7 @@ function Item(item) {
 			else {
 				preview.innerHTML = `View ${scan.ID} in Neuroglancer`
 				preview.addEventListener("click", function() {
-					openNeuroglancer({
-						fileName: scan.precomputed,
-						//labelName: view.labelPath //TODO: Add labels.
-					})
+					openNeuroglancer(scan)
 				})
 			}
 

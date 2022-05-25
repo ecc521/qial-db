@@ -1,8 +1,8 @@
-function getPrecomputedURL(fileName, isHttp=false) {
-	let url = `${window.location.origin}/cache/precomputed/${fileName}`
-	if (!isHttp) {url = "precomputed://" + url}
-	return url
-}
+// function getPrecomputedURL(fileName, isHttp=false) {
+// 	let url = `${window.location.origin}/cache/precomputed/${fileName}`
+// 	if (!isHttp) {url = "precomputed://" + url}
+// 	return url
+// }
 
 //TODO: We need shaders for 5D images, etc.
 
@@ -37,23 +37,25 @@ function getEmptyMatrix(dim) {
 	return mat
 }
 
-async function openNeuroglancer({fileName, labelName}) {
-	//TODO: We should fetch the norm.json from the server when we go to run this.
-	//This would require us to calculate the link on click. (if there is an error, just open with no normalization range. )
+//TODO: Add back labels.
+async function openNeuroglancer(mainScan) {
+	console.log(mainScan)
+	let mainHttpURL = `${window.location.origin}/${window.currentStudy.path}/${mainScan.precomputed}`
+
 	let obj = {
 		"layers": [
 			{
 				"type": "image",
 				"source": {
-					"url": getPrecomputedURL(fileName)
+					"url": `precomputed://${mainHttpURL}`
 				},
 				"tab": "source", //TODO: render tab, with the window open? Or source tab?
-				"name": fileName
+				"name": mainScan.ID
 			},
 		],
 		"selectedLayer": {
 			"visible": true,
-			"layer": fileName
+			"layer": mainScan.ID
 		},
 		"layout": "4panel",
 		//Rotate the images to Allen Mouse Brain Common Coordinate Framework
@@ -66,7 +68,7 @@ async function openNeuroglancer({fileName, labelName}) {
 	try {
 		//Attempt to load norm.json
 		let promise = new Promise((resolve, reject) => {
-			fetch(getPrecomputedURL(fileName, true) + "/norm.json").then((resp) => {
+			fetch(`${mainHttpURL}/norm.json`).then((resp) => {
 				console.log(resp)
 				resp.json().then((normData) => {
 					obj.layers[0].shaderControls = {
@@ -95,23 +97,23 @@ async function openNeuroglancer({fileName, labelName}) {
 		console.error(e)
 	}
 
-	if (labelName) {
-		//May need to turn on "enableDefaultSubsources" or other config if labels stop appearing at some point.
-		//Seems to be default right now (which makes sense given name).
-		obj.layers.push({
-			"source": {
-				"url": getPrecomputedURL(labelName),
-			},
-			"tab": "source",
-			"colorSeed": 1557235359,
-			"name": labelName
-		})
-
-		//Expand selection panel - the descriptions for the labels are shown here.
-		//Make sure the selectedLayer panel is much larger though - selection panel shouldn't cover anything up.
-		obj.selection = {flex: 0.6}
-		obj.selectedLayer.flex = 1.4
-	}
+	// if (labelName) {
+	// 	//May need to turn on "enableDefaultSubsources" or other config if labels stop appearing at some point.
+	// 	//Seems to be default right now (which makes sense given name).
+	// 	obj.layers.push({
+	// 		"source": {
+	// 			"url": getPrecomputedURL(labelName),
+	// 		},
+	// 		"tab": "source",
+	// 		"colorSeed": 1557235359,
+	// 		"name": labelName
+	// 	})
+	//
+	// 	//Expand selection panel - the descriptions for the labels are shown here.
+	// 	//Make sure the selectedLayer panel is much larger though - selection panel shouldn't cover anything up.
+	// 	obj.selection = {flex: 0.6}
+	// 	obj.selectedLayer.flex = 1.4
+	// }
 
 	let appspotDemoUrl = "https://neuroglancer-demo.appspot.com/" //Appspot demo is hosted by Google.
 	//This can be used if we need to host our own version. Note that building neuroglancer uses
@@ -123,4 +125,4 @@ async function openNeuroglancer({fileName, labelName}) {
 	return neuroglancerLink
 }
 
-export {openNeuroglancer, getPrecomputedURL}
+export {openNeuroglancer}
