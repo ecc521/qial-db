@@ -216,7 +216,7 @@ async function getStudyContents(baseStudyDirectory) {
 									   if (precomputed) {
 										   precomputed = path.relative(baseStudyDirectory, precomputed)
 									   }
-									   
+
 									   let scan = new Scan({
 										   ID: scanID,
 										   sourceFiles: [fileName],

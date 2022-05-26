@@ -114,7 +114,7 @@ function Item(item) {
 		// setComponentVisibility()
 		// this.checkbox.addEventListener("change", setComponentVisibility)
 
-		addText(`Animal: ${item.Animal}`)
+		addText(`Subject: ${item.ID}`)
 		addProp("Sex", item.Sex)
 		addProp("Genotype", item.Genotype)
 		addProp("Weight", item.weight)
