@@ -217,6 +217,10 @@ h1, h2 {
 
 /*Other styling. */
 
+#items {
+	padding-bottom: 70px; /*Ensure bar at bottom doesn't cover anything up. */
+}
+
 #searchDropdown {
 	background: #eeeeee;
 	padding: 8px;
