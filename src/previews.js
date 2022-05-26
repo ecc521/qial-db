@@ -10,12 +10,11 @@ let itemContainer = document.getElementById("items")
 window.itemHolder = [] //itemHolder currently holds files only - no animals.
 window.parentHolder = [] //animals and files not part of an animal/
 
-function Item(item) {
+function Item(item, parentItem) {
 	this.item = item
 
-	if (item.parent) {
-		this.parent = item.parent
-		delete item.parent
+	if (parentItem) {
+		this.parent = parentItem
 	}
 
 	this.row = document.createElement("div")
@@ -43,15 +42,17 @@ function Item(item) {
 		}
 	}
 
-	this.componentRows = []
-
 	if (item instanceof File) {
 		itemHolder.push(this)
 		if (!this.parent) {
 			parentHolder.push(this)
 		}
 
-		let itemName = addText(`File Name: ${item.name}`)
+		let fileName = item.path
+		if (fileName.indexOf("/") > -1) {
+			fileName = fileName.slice(fileName.lastIndexOf("/") + 1) //File path contains a leading data/
+		}
+		let itemName = addText(`File Name: ${fileName}`)
 		//Add a link to download directly.
 		let downloadLink = document.createElement("a")
 		downloadLink.href = `${window.location.origin}/data/${item.name}`
@@ -88,31 +89,40 @@ function Item(item) {
 		//TODO: We should probably nest directories IF there are files not in the directory and the directory has more than some number of files.
 		//Maybe nest always, just autoexpand.
 
-		// this.componentFiles = item.componentFiles
-		// this.componentFiles = this.componentFiles.map((component) => {
-		// 	component.parent = this
-		// 	let item = new Item(component)
-		// 	this.componentRows.push(item.row)
+		this.componentRows = []
+		this.scanIDs = item.scanIDs
+		for (let i=0;i<this.scanIDs.length;i++) {
+			let scanID = this.scanIDs[i]
+			let scan = window.currentStudy.contents.Scans[scanID]
+			for (let fileID of scan.sourceFiles) {
+				let file = window.currentStudy.contents.Files[fileID]
+				let item = new Item(file, this)
+				this.componentRows.push(item)
+			}
+		}
+		// this.scanIDs = this.scanIDs.map((component) => {
+		// 	let item = new Item(component, this)
+		// 	this.scanIDs.push(item.row)
 		// 	return item
 		// })
-		//
-		// let setComponentVisibility = (function() {
-		// 	if (this.checkbox.checked === false) {
-		// 		this.componentFiles.forEach((file) => {
-		// 			file.row.style.display = "none"
-		// 			file.checkbox.checked = false
-		// 		})
-		// 	}
-		// 	else {
-		// 		this.componentFiles.forEach((file) => {
-		// 			file.row.style.display = ""
-		// 			file.checkbox.checked = true
-		// 		})
-		// 	}
-		// }).bind(this)
 
-		// setComponentVisibility()
-		// this.checkbox.addEventListener("change", setComponentVisibility)
+		let setComponentVisibility = (function() {
+			if (this.checkbox.checked === false) {
+				this.componentRows.forEach((file) => {
+					file.row.style.display = "none"
+					file.checkbox.checked = false
+				})
+			}
+			else {
+				this.componentRows.forEach((file) => {
+					file.row.style.display = ""
+					file.checkbox.checked = true
+				})
+			}
+		}).bind(this)
+
+		setComponentVisibility()
+		this.checkbox.addEventListener("change", setComponentVisibility)
 
 		addText(`Subject: ${item.ID}`)
 		addProp("Sex", item.Sex)
@@ -120,8 +130,8 @@ function Item(item) {
 		addProp("Weight", item.weight)
 		addProp("DOB", item.DOB)
 
-		if (item.Sex === "male") {this.row.style.backgroundColor = "#eeeeff"}
-		else if (item.Sex === "female") {this.row.style.backgroundColor = "#ffeeee"}
+		if (item.Sex === "M") {this.row.style.backgroundColor = "#eeeeff"}
+		else if (item.Sex === "F") {this.row.style.backgroundColor = "#ffeeee"}
 
 		this.thumbnailContainer = document.createElement("div")
 		this.thumbnailContainer.className = "thumbnailContainer"
@@ -137,11 +147,6 @@ function Item(item) {
 			})
 			container.addEventListener("click", function() {
 				openNeuroglancer(view)
-
-				// openNeuroglancer({
-				// 	fileName: view.precomputed.source,
-				// 	labelName: view.precomputed.labels
-				// })
 			})
 		}
 
@@ -199,22 +204,6 @@ function Item(item) {
 			let button = createButton(scan, fileSize)
 			scanContainer.appendChild(button)
 		}
-
-		// for (let i=0;i<item.views.length;i++) {
-			// let view = item.views[i]
-			// let scanContainer = document.createElement("div")
-			// scanContainer.className = "scanContainer"
-			// scanContainer.style.textAlign = "center"
-			// this.thumbnailContainer.appendChild(scanContainer)
-			//
-			// let fileSize = getFileSize(view.filePath)
-			//
-			// addThumbnails(view, scanContainer, fileSize)
-			//
-			// scanContainer.appendChild(document.createElement("br"))
-			// let button = createButton(view, fileSize)
-			// scanContainer.appendChild(button)
-		// }
 	}
 	else {
 		console.warn("Unknown Type: " + item.type)
@@ -234,8 +223,8 @@ window.drawCards = function drawCards(items) {
 		let item = items[i]
 		item = new Item(item) //REDEFINE OF VARIABLE!!!
 		itemContainer.appendChild(item.row)
-		item.componentRows.forEach((row) => {
-			itemContainer.appendChild(row)
+		item.componentRows.forEach((item) => {
+			itemContainer.appendChild(item.row)
 		})
 	}
 }
