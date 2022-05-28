@@ -131,6 +131,8 @@ async function setSelectedStudy(studyID) {
 
     window.currentStudy = obj
     window.searchQuery.set("studyID", studyID)
+	//TODO: This is ineffecient as we double render. 
+	window.dispatchEvent(new Event("searchQueryChanged")) //To force a call, in case the url didn't actually change we just updated to reflect what was there.
 }
 
 ;(async function init() {

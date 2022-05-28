@@ -600,6 +600,7 @@ function createGraphComponent({graphType, axes}) {
 
 	function setGraphOptions() {
 		let graphInfo = graphOptions[graphType]
+		while (axisSelectorDiv.firstChild) {axisSelectorDiv.firstChild.remove()}
 		console.log(graphInfo)
 
 		let axesCodes = ["x","y","z","w"]
@@ -650,12 +651,13 @@ function createGraphComponent({graphType, axes}) {
 		}
 	}
 	setGraphOptions()
+	window.addEventListener("updateGraphOptions", setGraphOptions)
 
 	return graphDiv
 }
 
 function setupFromParams() {
-	let params = window.currentParams
+	let params = window.searchQuery
 	let obj = params.get("graphs")
 	if (!obj) {return}
 
@@ -681,7 +683,7 @@ function updateSearchLink() {
 		tabs
 	}
 
-	// params.set("graphs", JSON.stringify(obj))
+	params.set("graphs", JSON.stringify(obj))
 
 	url.hash = params
 	currentViewLink.href = url.href
@@ -689,7 +691,7 @@ function updateSearchLink() {
 
 
 
-export function initializeGraphs() {
+function initializeGraphs() {
 	nonNumericAxes = []
 	numericAxes = []
 
@@ -725,12 +727,13 @@ export function initializeGraphs() {
 			})
 		}
 	})
-
-	// setupFromParams()
 }
-
-
 
 window.addEventListener("searchQueryChanged", function() {
 	initializeGraphs()
+	window.dispatchEvent(new Event("updateGraphOptions"))
 })
+
+setupFromParams()
+
+window.initializeGraphs = initializeGraphs

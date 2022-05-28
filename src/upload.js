@@ -50,7 +50,7 @@ async function _uploadFile(file, start, end, setFileProgress, last) {
 		let request = new XMLHttpRequest();
 		request.open('POST', "upload");
 
-		request.setRequestHeader("qial-filename", file.name);
+		request.setRequestHeader("qial-filename", `${window.currentStudy.path}/${file.name}`);
 		request.setRequestHeader("authtoken", token);
 
 		if (start === 0) {

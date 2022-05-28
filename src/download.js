@@ -79,7 +79,7 @@ function downloadFile(name, text) {
 }
 
 function getFullJSONMetadata() {
-	return JSON.stringify(window.data, null, "\t")
+	return JSON.stringify(window.currentStudy, null, "\t")
 }
 
 downloadFullJSON.addEventListener("click", function() {
@@ -87,6 +87,7 @@ downloadFullJSON.addEventListener("click", function() {
 })
 
 function getSelectionJSONMetadata() {
+	//TODO: This doesn't include things like studies or scans, and doesn't nest Subjects properly.
 	let itemsSelected = parentHolder.filter((item) => {
 		if (!item.checkbox.checked) {return false}
 		return true
@@ -183,7 +184,7 @@ function createCSV(items) {
 }
 
 function getFullCSVMetadata() {
- 	return createCSV(window.data)
+ 	return createCSV(Object.values(window.currentStudy.contents.Subjects))
 }
 
 downloadFullCSV.addEventListener("click", function() {
