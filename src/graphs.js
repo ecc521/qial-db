@@ -673,7 +673,7 @@ function setupFromParams() {
 }
 
 function updateSearchLink() {
-	let params = window.currentParams
+	let params = window.searchQuery
 	let url = new URL(window.location.href)
 
 	let obj = {
@@ -681,7 +681,7 @@ function updateSearchLink() {
 		tabs
 	}
 
-	params.set("graphs", JSON.stringify(obj))
+	// params.set("graphs", JSON.stringify(obj))
 
 	url.hash = params
 	currentViewLink.href = url.href
@@ -690,7 +690,11 @@ function updateSearchLink() {
 
 
 export function initializeGraphs() {
-	let animals = window.data.filter((a) => {return a.type === "animal"})
+	nonNumericAxes = []
+	numericAxes = []
+
+	let animals = Object.values(window.currentStudy.contents.Subjects)
+	console.log(animals)
 	animals.forEach((animal) => {
 		for (let prop in animal) {
 			let values = animal[prop]
@@ -722,5 +726,11 @@ export function initializeGraphs() {
 		}
 	})
 
-	setupFromParams()
+	// setupFromParams()
 }
+
+
+
+window.addEventListener("searchQueryChanged", function() {
+	initializeGraphs()
+})

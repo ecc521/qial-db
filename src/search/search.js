@@ -319,7 +319,8 @@ function runSearch() {
 	//We will allow searching to Subjects, Files, or Scans. Only one type at once.
 
 	let prop = "Subjects"
-	let itemsToSearch = Object.values(window.currentStudy.contents[prop])
+	let originalItems = Object.values(window.currentStudy.contents[prop])
+	let itemsToSearch = originalItems;
 
 	searchFilters.forEach((searchFilter) => {
 		itemsToSearch = searchFilter.filter(itemsToSearch)
@@ -327,14 +328,14 @@ function runSearch() {
 	window.lastSearchItems = itemsToSearch
 	drawCards(itemsToSearch)
 
-	let params = window.currentParams
+	let params = window.searchQuery
 	let url = new URL(window.location.href)
 
-	params.set("search", JSON.stringify(searchFilters))
+	// params.set("search", JSON.stringify(searchFilters))
 
 	url.hash = params
 
-	infoP.innerHTML = `Displaying ${items.length} of ${window.data.length} Items. `
+	infoP.innerHTML = `Displaying ${itemsToSearch.length} of ${originalItems.length} Items. `
 	currentViewLink.href = url.href
 	infoP.appendChild(currentViewLink)
 	window.dispatchEvent(new Event("searchProcessed"))
