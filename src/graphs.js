@@ -534,7 +534,6 @@ function createGraphComponent({graphType, axes}) {
 			}
 		}
 		else if (graphType === "Correlation Table") {
-			console.log(type)
 			let type = axes.y
 
 			//Default plotly RdBu colorscale
