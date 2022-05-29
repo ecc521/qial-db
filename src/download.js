@@ -229,11 +229,12 @@ toggleDownload.addEventListener("click", getDownloadData)
 window.addEventListener("bulkSelectionUsed", getDownloadData)
 
 downloadZip.addEventListener("click", function() {
+	//TODO: Pass the studyID here then read from specific study when exporting.
 	let items = getDownloadData()
 	if (items.length === 0) {return alert("Please exit the download menu and select some items to download. ")}
 
-	let names = items.map((item) => {
-		return item.name
+	let names = items.map((file) => {
+		return file.path
 	})
 
 	let form = document.createElement("form")
@@ -241,10 +242,15 @@ downloadZip.addEventListener("click", function() {
 	form.setAttribute("action", "download")
 	form.style.display = "none"
 
-	let field = document.createElement("input")
-	field.setAttribute("name", "names")
-	field.setAttribute("value", names.join(","))
-	form.appendChild(field)
+	let fileNames = document.createElement("input")
+	fileNames.setAttribute("name", "names")
+	fileNames.setAttribute("value", names.join(","))
+	form.appendChild(fileNames)
+
+	let studyID = document.createElement("input")
+	studyID.setAttribute("name", "studyID")
+	studyID.setAttribute("value", window.currentStudy.ID)
+	form.appendChild(studyID)
 
 	document.body.appendChild(form)
 	form.submit()
@@ -255,8 +261,8 @@ downloadNodejsScript.addEventListener("click", function() {
 	let items = getDownloadData()
 	if (items.length === 0) {return alert("Please exit the download menu and select some items to download. ")}
 
-	let urls = items.map((item) => {
-		return `${window.location.origin}/data/${item.name}`
+	let urls = items.map((file) => {
+		return `${window.location.origin}/${window.currentStudy.path}/${file.path}`
 	})
 	let str = getDownloadTemplate(urls)
 
