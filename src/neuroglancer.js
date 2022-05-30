@@ -1,9 +1,3 @@
-// function getPrecomputedURL(fileName, isHttp=false) {
-// 	let url = `${window.location.origin}/cache/precomputed/${fileName}`
-// 	if (!isHttp) {url = "precomputed://" + url}
-// 	return url
-// }
-
 //TODO: We need shaders for 5D images, etc.
 
 //Neuroglancer Shader when colored
@@ -97,23 +91,26 @@ async function openNeuroglancer(mainScan) {
 		console.error(e)
 	}
 
-	// if (labelName) {
-	// 	//May need to turn on "enableDefaultSubsources" or other config if labels stop appearing at some point.
-	// 	//Seems to be default right now (which makes sense given name).
-	// 	obj.layers.push({
-	// 		"source": {
-	// 			"url": getPrecomputedURL(labelName),
-	// 		},
-	// 		"tab": "source",
-	// 		"colorSeed": 1557235359,
-	// 		"name": labelName
-	// 	})
-	//
-	// 	//Expand selection panel - the descriptions for the labels are shown here.
-	// 	//Make sure the selectedLayer panel is much larger though - selection panel shouldn't cover anything up.
-	// 	obj.selection = {flex: 0.6}
-	// 	obj.selectedLayer.flex = 1.4
-	// }
+	if (mainScan.labelID) {
+        let labelScan = window.currentStudy.contents.Scans[mainScan.labelID]
+        if (labelScan) {
+            //May need to turn on "enableDefaultSubsources" or other config if labels stop appearing at some point.
+            //Seems to be default right now (which makes sense given name).
+            obj.layers.push({
+                "source": {
+                    "url": `precomputed://${window.location.origin}/${window.currentStudy.path}/${labelScan.precomputed}`
+                },
+                "tab": "source",
+                "colorSeed": 1557235359,
+                "name": labelScan.ID
+            })
+
+            //Expand selection panel - the descriptions for the labels are shown here.
+            //Make sure the selectedLayer panel is much larger though - selection panel shouldn't cover anything up.
+            obj.selection = {flex: 0.6}
+            obj.selectedLayer.flex = 1.4
+        }
+	}
 
 	let appspotDemoUrl = "https://neuroglancer-demo.appspot.com/" //Appspot demo is hosted by Google.
 	//This can be used if we need to host our own version. Note that building neuroglancer uses

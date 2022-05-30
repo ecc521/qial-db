@@ -50,7 +50,6 @@ function addToQueue(callback, ...args) {
 
 //Return if cached, else add to queue.
 async function obtainPrecomputed(filePath) {
-	console.log(filePath)
 	let precomputed = await accessPrecomputed(filePath)
 	if (precomputed) {return precomputed}
 
@@ -129,6 +128,8 @@ async function getStudyContents(baseStudyDirectory) {
    }
 
    console.log(data)
+
+
 
 
 	//Process all DICOM scans.
@@ -251,7 +252,8 @@ async function getStudyContents(baseStudyDirectory) {
     }
 
 
-
+	//TODO: Interim Solution. Better solution needed in the future
+	//Significant caching in necessary in a database or through some other methods to improve performance.
    //Assemble all non-DICOM Animals.
    for (let fileName of data.Files.keys()) {
 	   //TODO: Some of these sheets contain a property "Modality"
@@ -337,8 +339,28 @@ async function getStudyContents(baseStudyDirectory) {
 	   console.log(res.sheets)
    }
 
+
+   //TODO: Interim Solution. Better solution needed in the future
+	//Filter out all Label scans.
+	let subjectScans = new Map();
+	let labelScans = new Map();
+
+	for (let scanID of data.Scans.keys()) {
+		let scan = data.Scans.get(scanID)
+		if (scanID.includes("label")) {
+			labelScans.set(scanID, scan)
+		}
+		else {
+			subjectScans.set(scanID, scan)
+		}
+	}
+	let scansWithAnimals = Array.from(data.Scans.keys()).filter((scanID) => {
+		return !scanID.includes("label")
+	})
+
+
    //Link Subjects and Scans.
-   for (let scanID of data.Scans.keys()) {
+   for (let scanID of subjectScans.keys()) {
 	   let scan = data.Scans.get(scanID)
 	   //If a Scan matches more than one Subject, we will raise a warning.
 
@@ -347,6 +369,7 @@ async function getStudyContents(baseStudyDirectory) {
 	   for (let subjectID of data.Subjects.keys()) {
 		   let subject = data.Subjects.get(subjectID)
 
+		   //TODO: Interim Solution. Better solution needed in the future
 		   // //These are all the different ways that files can be identified along with an animal.
 		   // //We keep them seperate so we can pair with labels better.
 		   let provisionalItems = [subjectID, subjectID.split("_").join("-"), subject["SAMBA Brunno"], subject.GRE, subject.DWI]
@@ -362,6 +385,18 @@ async function getStudyContents(baseStudyDirectory) {
 				   matchingSubjectIDs.push(subjectID)
 				   subject.addScanIDs(scanID)
 				   scan.setSubjectID(subjectID)
+
+				   //We matched with this subject. Now iterate the label files and see of any label files also match.
+				   for (let labelScanID of labelScans.keys()) {
+					   if (scanID.toLowerCase().includes("ras") !== labelScanID.toLowerCase().includes("ras")) {
+						   continue;
+					   }
+					   if (labelScanID.match(regexp)) {
+						   if (scan.labelID) {console.warn("Label ID overwritten. Possibly multiple matches")}
+						   scan.setLabelID(labelScanID)
+					   }
+				   }
+
 				   break;
 			   }
 		   }
@@ -371,6 +406,7 @@ async function getStudyContents(baseStudyDirectory) {
 		   console.warn("Multiple subjects matched scan", matchingSubjectIDs, scanID)
 	   }
    }
+
 
 	console.log(data)
 
